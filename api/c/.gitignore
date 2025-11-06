@@ -1,0 +1,27 @@
+
+# Object
+*.o
+*.ko
+*.obj
+*.elf
+
+# Libraries
+
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+
+*.exe
+*.out
+*.app
+*.hex
+
