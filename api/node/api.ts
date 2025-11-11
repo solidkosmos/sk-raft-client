@@ -1,7 +1,15 @@
+import path = require("node:path");
 let grpc = require('@grpc/grpc-js');
 let protoLoader = require('@grpc/proto-loader');
 
-let PROTO_PATH = __dirname + '/skraft_client.proto';
+let PROTO_PATH = path.resolve(
+    __dirname,
+    "../../",
+    "global",
+    "proto",
+    "skraft_client.proto"
+)
+
 let packageDefinition = protoLoader.loadSync(
     PROTO_PATH,
     {keepCase: true,
@@ -50,50 +58,60 @@ class SkRaftFpga {
     }
 
     fpgaClose() {
-        return new Promise((_, reject) => {
-            this.grpcClient.fpgaClose({}, (err: Error) => {
+        return new Promise((resolve, reject) => {
+            this.grpcClient.fpgaClose({}, (err: Error, response: any) => {
                 if (err) {
                     reject(err);
+                } else {
+                    resolve(response);
                 }
             });
         })
     }
 
     fpgaSetRbdFilePath(rbdPath: string) {
-        return new Promise((_, reject) => {
-            this.grpcClient.fpgaSetRbdFilePath({path: rbdPath}, (err: Error) => {
+        return new Promise((resolve, reject) => {
+            this.grpcClient.fpgaSetRbdFilePath({path: rbdPath}, (err: Error, response: any) => {
                 if (err) {
                     reject(err);
+                } else {
+                    resolve(response);
                 }
             })
         })
     }
 
     fpgaSetMsdFilePath(msdPath: string) {
-        return new Promise((_, reject) => {
-            this.grpcClient.fpgaSetMsdFilePath({path: msdPath}, (err: Error) => {
+        return new Promise((resolve, reject) => {
+            this.grpcClient.fpgaSetMsdFilePath({path: msdPath}, (err: Error, response: any) => {
                 if (err) {
                     reject(err);
+                } else {
+                    resolve(response);
                 }
             })
         })
     }
 
     fpgaSetEbdFilePath(ebdPath: string) {
-        return new Promise((_, reject) => {
-            this.grpcClient.fpgaSetEbdFilePath({path: ebdPath}, (err: Error) => {
+        return new Promise((resolve, reject) => {
+            this.grpcClient.fpgaSetEbdFilePath({path: ebdPath}, (err: Error, response: any) => {
                 if (err) {
                     reject(err);
+                } else {
+                    resolve(response);
                 }
             })
         })
     }
 
     fpgaSetBitFilePath(bitPath: string) {
-        return new Promise((_, reject) => {
-            this.grpcClient.fpgaSetBitFilePath({path: bitPath}, (err: Error) => {
+        return new Promise((resolve, reject) => {
+            this.grpcClient.fpgaSetBitFilePath({path: bitPath}, (err: Error, response: any) => {
                 if (err) {
                     reject(err);
+                } else {
+                    resolve(response);
                 }
             })
         })
@@ -118,14 +136,32 @@ class SkRaftFpga {
     fpgaBitFlip(far: number, wordIndex: number, bitIndex: number,
                 isFlipFlop: boolean, isLutRam: boolean, isBram: boolean) {
         return new Promise((resolve, reject) => {
-
+            this.grpcClient.fpgaBitFlip({
+                frameAddress: far,
+                wordIndex: wordIndex,
+                bitIndex: bitIndex,
+                isFlipFlop: isFlipFlop,
+                isLutRam: isLutRam,
+                isBram: isBram
+            }, (err: Error, result: any) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            })
         })
     }
 
-    fpgaProgram() {}
-
+    fpgaProgram() {
+        return new Promise((resolve, reject) => {
+            this.grpcClient.fpgaProgram({}, (err: Error, response: any) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(response);
+                }
+            })
+        })
+    }
 }
-
-let test: SkRaftFpga = new SkRaftFpga("127.0.0.1", 50052)
-
-test.establishConnection()
