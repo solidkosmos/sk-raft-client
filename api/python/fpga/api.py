@@ -22,6 +22,7 @@
 #   SOFTWARE
 
 import grpc
+import datatypes
 from google.protobuf import empty_pb2
 
 import skraft_client_pb2
@@ -151,8 +152,7 @@ class SkRaftFpga:
         except grpc.RpcError as e:
             raise RuntimeError(f"Failed to configure bit file path.")
 
-    def fpga_write_bscan(self, user_register_id: int, value: bytes,
-                         useful_bits: int) -> bytes:
+    def fpga_write_bscan(self, bscan: datatypes.BscanPrimitive, value: bytes, userful_bits) -> bytes:
         """
             fpga_write_bscan perform a write operation on user register
             @user_register_id. The @user_register_id take as value an integer
@@ -165,20 +165,10 @@ class SkRaftFpga:
             register.
         """
         try:
-            if user_register_id < 0 or user_register_id > 4:
-                raise RuntimeError(f"User_register_id must be between 0 and 4")
-
-            request = skraft_client_pb2.FpgaBscanTarget(
-                userRegisterId=user_register_id,
-                value=value,
-                usefulBits=useful_bits
-            )
-
-            reply = self.__grpc_client.fpgaWriteBscan(request)
-            return bytes(reply.value)
+            return bscan.shift_in(self.__grpc_client, value, userful_bits)
         except grpc.RpcError as e:
             raise RuntimeError(f"Failed to write bscan register "
-                               f"{user_register_id}.")
+                               f"{bscan.user_register_id}.")
 
     def fpga_bit_flip(self, far: int, word_index: int, bit_index: int,
                       is_flip_flop: bool, is_lut_ram: bool, is_bram: bool):
