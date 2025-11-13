@@ -165,3 +165,5 @@ class SkRaftFpga {
         })
     }
 }
+
+module.exports = { SkRaftFpga };
