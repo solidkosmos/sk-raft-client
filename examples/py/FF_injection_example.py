@@ -65,6 +65,7 @@
 import sys
 sys.path.insert(1, '../../api/python')
 from fpga import api as client
+from fpga import datatypes
 import time
 
 ## Bscan user regs
@@ -81,7 +82,9 @@ def enable_clock(grpc_client: client.SkRaftFpga) -> None:
         @param grpc_client: The gRPC client used to communicate with the target
         FPGA device.
     """
-    grpc_client.fpga_write_bscan(1, bytes([0xff]), 1)
+    test = datatypes.BscanPrimitive(1, 8)
+    # grpc_client.fpga_write_bscan(tester, 1, bytes([0xff]), 1)
+    grpc_client.fpga_write_bscan(test, bytes([0xff]), 1)
 
 def disable_clock(grpc_client: client.SkRaftFpga) -> None:
     """
@@ -92,7 +95,8 @@ def disable_clock(grpc_client: client.SkRaftFpga) -> None:
         @param grpc_client: The gRPC client used to communicate with the target
         FPGA device.
     """
-    grpc_client.fpga_write_bscan(1, bytes([0x00]), 1)
+    test = datatypes.BscanPrimitive(1, 8)
+    grpc_client.fpga_write_bscan(test, bytes([0x00]), 1)
 
 def enable_write(grpc_client: client.SkRaftFpga) -> None:
     """
@@ -101,7 +105,8 @@ def enable_write(grpc_client: client.SkRaftFpga) -> None:
         @param grpc_client: The gRPC client used to communicate with the target
         FPGA device.
     """
-    grpc_client.fpga_write_bscan(2, bytes([0xff]), 1)
+    test = datatypes.BscanPrimitive(2, 8)
+    grpc_client.fpga_write_bscan(test, bytes([0xff]), 1)
 
 def disable_write(grpc_client: client.SkRaftFpga) -> None:
     """
@@ -110,7 +115,8 @@ def disable_write(grpc_client: client.SkRaftFpga) -> None:
         @param grpc_client: The gRPC client used to communicate with the target
         FPGA device.
     """
-    grpc_client.fpga_write_bscan(2, bytes([0x00]), 1)
+    test = datatypes.BscanPrimitive(2, 8)
+    grpc_client.fpga_write_bscan(test, bytes([0x00]), 1)
 
 def write_data_in(grpc_client: client.SkRaftFpga, data_in_high: bytes,
                    data_in_low: bytes) -> None:
@@ -120,19 +126,21 @@ def write_data_in(grpc_client: client.SkRaftFpga, data_in_high: bytes,
     high = int.from_bytes(data_in_high, 'big')
     low = int.from_bytes(data_in_low, 'big')
     data_in = (high << 8) | low
-    grpc_client.fpga_write_bscan(3, data_in.to_bytes(2, 'big'), 0)
+    test = datatypes.BscanPrimitive(3, 16)
+    grpc_client.fpga_write_bscan(test, data_in.to_bytes(2, 'big'), 0)
 
 def read_data_out(grpc_client: client.SkRaftFpga) -> bytes:
     """
         read the result (data_out)
     """
-    return grpc_client.fpga_write_bscan(4, bytes(6), 0)
+    test = datatypes.BscanPrimitive(4, 48)
+    return grpc_client.fpga_write_bscan(test, bytes(6), 0)
 
 
 if __name__ == "__main__":
     # Set up the SK-RAFT server connection details.
     tester = client.SkRaftFpga("127.0.0.1", 50052)
-
+    
     # Initiate the communication with the SK-RAFT server.
     tester.establish_connection()
     # Try to connect to the desired device, using the desired programmer.
@@ -140,7 +148,7 @@ if __name__ == "__main__":
     tester.fpga_connect("XC7A35T-1CPG236C", "FT2232H")
 
     # Configure the bitstream path.
-    tester.fpga_set_bit_file_path("C:/sk/sk-raft/examples/design_1_wrapper.bit")
+    tester.fpga_set_bit_file_path("C:/sk/sk-raft_client/sk-raft/examples/design_1_wrapper.bit")
     # Program the configured device, using the previously declared bitstream.
     tester.fpga_program()
 
@@ -185,7 +193,8 @@ if __name__ == "__main__":
 
     enable_write(tester)
     time.sleep(2)
-    write_data_in(tester, bytes([0x02]), bytes([0x02]))
+    write_data_in(tester, bytes([0x02]), bytes([0xff]))
+    time.sleep(2)
     disable_write(tester)
     time.sleep(2)
     result = read_data_out(tester)
