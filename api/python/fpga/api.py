@@ -22,7 +22,7 @@
 #   SOFTWARE
 
 import grpc
-import datatypes
+from . import datatypes
 from google.protobuf import empty_pb2
 
 import skraft_client_pb2
@@ -200,7 +200,7 @@ class SkRaftFpga:
 
     def fpga_random_bit_flip(self, include_essential: bool,
                              include_flip_flops: bool, include_lut_rams: bool,
-                             include_brams: bool) -> FpgaRandomInjectionReport:
+                             include_brams: bool) -> datatypes.FpgaRandomInjectionReport:
         """
             fpga_random_bit_flip inserts a single random bit into the FPGA
             memory. Provided with the necessary flags this function can
@@ -228,7 +228,7 @@ class SkRaftFpga:
             )
             reply = self.__grpc_client.fpgaRandomInjectionOptions(request)
 
-            return FpgaRandomInjectionReport(
+            return datatypes.FpgaRandomInjectionReport(
                 reply.target.frameAdress,
                 reply.target.wordIndex,
                 reply.target.bitIndex,
@@ -240,7 +240,7 @@ class SkRaftFpga:
         except grpc.RpcError as e:
             raise RuntimeError(f"Failed to perform random bit flip operation.")
 
-    def fpga_fault_injection(self, fi_session: FpgaFiSession) -> FpgaFiSummary:
+    def fpga_fault_injection(self, fi_session: datatypes.FpgaFiSession) -> datatypes.FpgaFiSummary:
         """
             fpa_fault_injection initiates a fault injection session, using
             the user-defined options specified in FpgaFiSession.
@@ -269,7 +269,7 @@ class SkRaftFpga:
 
             for word_summary in reply.wordSummary:
                 words_summary.append(
-                    FpgaWordSummary(
+                    datatypes.FpgaWordSummary(
                         word_summary.far,
                         word_summary.wordIndex,
                         word_summary.bitIndex,
@@ -279,7 +279,7 @@ class SkRaftFpga:
                     )
                 )
 
-            return FpgaFiSummary(
+            return datatypes.FpgaFiSummary(
                 reply.type,
                 reply.duration,
                 reply.correctionTime,
@@ -307,7 +307,7 @@ class SkRaftFpga:
         except grpc.RpcError as e:
             raise RuntimeError(f"Failed to program the target fpga device.")
 
-    def fpga_readback(self, start_far: int, end_far: int) -> list[FpgaFrame]:
+    def fpga_readback(self, start_far: int, end_far: int) -> list[datatypes.FpgaFrame]:
         """
             fpga_readback reads a range of frames starting from start_far and
             ending at end_far.
@@ -323,7 +323,7 @@ class SkRaftFpga:
                 f"start_far must be smaller than end_far but {start_far}.")
 
         try:
-            frames: list[FpgaFrame] = []
+            frames: list[datatypes.FpgaFrame] = []
 
             request = skraft_client_pb2.FpgaReadbackTarget(
                 startFrameAddress=start_far,
@@ -333,11 +333,11 @@ class SkRaftFpga:
                 self.__grpc_client.fpgaReadback(request))
 
             for frame in reply.frames:
-                curr_words: list[FpgaWord] = []
+                curr_words: list[datatypes.FpgaWord] = []
                 for value in frame.words.values:
-                    curr_words.append(FpgaWord(value))
+                    curr_words.append(datatypes.FpgaWord(value))
 
-                frames.append(FpgaFrame(
+                frames.append(datatypes.FpgaFrame(
                     frame.frameAddress,
                     curr_words,
                 ))
