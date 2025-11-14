@@ -1,3 +1,5 @@
+from PIL.Image import frombytes
+
 import skraft_client_pb2
 import skraft_client_pb2_grpc
 
@@ -421,7 +423,8 @@ class BscanPrimitive:
         send_bytes: bytearray|bytes = bytearray(self.__size_in_bits//8) 
 
         for curr_byte in range(0, len(send_bytes)):
-            if curr_byte != len(value):
+            print(curr_byte)
+            if curr_byte < len(value):
                 send_bytes[curr_byte] = value[curr_byte]
             else:
                 send_bytes[curr_byte] = 0x00
@@ -435,3 +438,4 @@ class BscanPrimitive:
 
         reply = grpc_client.fpgaWriteBscan(request)
         return bytes(reply.value)
+
