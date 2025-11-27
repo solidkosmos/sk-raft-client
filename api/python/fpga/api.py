@@ -25,8 +25,8 @@ import grpc
 from . import datatypes
 from google.protobuf import empty_pb2
 
-import skraft_client_pb2
-import skraft_client_pb2_grpc
+from . import skraft_client_pb2
+from . import skraft_client_pb2_grpc
 
 class SkRaftFpga:
     """

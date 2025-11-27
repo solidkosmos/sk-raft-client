@@ -148,7 +148,7 @@ if __name__ == "__main__":
     tester.fpga_connect("XC7A35T-1CPG236C", "FT2232H")
 
     # Configure the bitstream path.
-    tester.fpga_set_bit_file_path("C:/sk/sk-raft_client/sk-raft/examples/design_1_wrapper.bit")
+    tester.fpga_set_bit_file_path("bit_file")
     # Program the configured device, using the previously declared bitstream.
     tester.fpga_program()
 
@@ -173,34 +173,23 @@ if __name__ == "__main__":
             The Shift Register's 15th bit signal is located in FAR: 0x0040021f,
             Word: 53, Bit: 4.
     """
-    # for fault in range(10):
-    #     """
-    #         Inject a fault into the FAR: 0x0040021f, Word: 53, Bit: 4. Also,
-    #         instruct the SK-RAFT that the fault is injected on a FlipFlops.
-    #         signature:  fpga_bit_flip(self, far: int, word_index: int,
-    #                                   bit_index: int, is_flip_flop: bool)
-    #     """
-    #     # Wait for 5 seconds before injecting the next fault.
-    #     time.sleep(5)
-    #     # Disable the clock to freeze the design.
-    #     disable_clock(tester)
-    #     tester.fpga_bit_flip(0x0040021f, 53, 4, True)
-    #     # Wait for 5 before enabling the clock again.
-    #     time.sleep(5)
-    #     # Enable the design to allow the fault to propagate through the Shift
-    #     # register.
-    #     enable_clock(tester)
-
-    enable_write(tester)
-    time.sleep(2)
-    write_data_in(tester, bytes([0x02]), bytes([0xff]))
-    time.sleep(2)
-    disable_write(tester)
-    time.sleep(2)
-    result = read_data_out(tester)
-    print(result)
-    result = read_data_out(tester)
-    print(result)
-
+    for fault in range(10):
+        """
+            Inject a fault into the FAR: 0x0040021f, Word: 53, Bit: 4. Also,
+            instruct the SK-RAFT that the fault is injected on a FlipFlops.
+            signature:  fpga_bit_flip(self, far: int, word_index: int,
+                                      bit_index: int, is_flip_flop: bool)
+        """
+        # Wait for 5 seconds before injecting the next fault.
+        time.sleep(5)
+        # Disable the clock to freeze the design.
+        disable_clock(tester)
+        tester.fpga_bit_flip(0x0040021f, 53, 4, True)
+        # Wait for 5 before enabling the clock again.
+        time.sleep(5)
+        # Enable the design to allow the fault to propagate through the Shift
+        # register.
+        enable_clock(tester)
+    
     # Close the target device.
     tester.fpga_close()

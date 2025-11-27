@@ -1,7 +1,6 @@
 from PIL.Image import frombytes
 
-import skraft_client_pb2
-import skraft_client_pb2_grpc
+from . import skraft_client_pb2
 
 class FpgaWordSummary:
     """

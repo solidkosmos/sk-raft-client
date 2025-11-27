@@ -9,8 +9,6 @@
 
 *.js
 
-*pb*.py
-
 __pycache__/
 .idea/
 .vscode/
