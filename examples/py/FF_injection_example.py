@@ -68,12 +68,6 @@ from fpga import api as client
 from fpga import datatypes
 import time
 
-## Bscan user regs
-## ur1  - clk_en
-## ur2  - wr_en
-## ur3  - data_in
-## ur4  - data_out
-
 def enable_clock(grpc_client: client.SkRaftFpga) -> None:
     """
         enable_clock enables the clock of the Shift Register, allowing the
@@ -82,9 +76,9 @@ def enable_clock(grpc_client: client.SkRaftFpga) -> None:
         @param grpc_client: The gRPC client used to communicate with the target
         FPGA device.
     """
-    test = datatypes.BscanPrimitive(1, 8)
-    # grpc_client.fpga_write_bscan(tester, 1, bytes([0xff]), 1)
-    grpc_client.fpga_write_bscan(test, bytes([0xff]), 1)
+    bscan_user_1 = datatypes.BscanPrimitive(2, 1) # BSCAN USER 1 with 1-bit width. BscanPrimitive(#USER, #WIDTH).
+    value = 0x01
+    grpc_client.fpga_write_bscan(bscan_user_1, value)
 
 def disable_clock(grpc_client: client.SkRaftFpga) -> None:
     """
@@ -95,67 +89,29 @@ def disable_clock(grpc_client: client.SkRaftFpga) -> None:
         @param grpc_client: The gRPC client used to communicate with the target
         FPGA device.
     """
-    test = datatypes.BscanPrimitive(1, 8)
-    grpc_client.fpga_write_bscan(test, bytes([0x00]), 1)
-
-def enable_write(grpc_client: client.SkRaftFpga) -> None:
-    """
-        write enable
-
-        @param grpc_client: The gRPC client used to communicate with the target
-        FPGA device.
-    """
-    test = datatypes.BscanPrimitive(2, 8)
-    grpc_client.fpga_write_bscan(test, bytes([0xff]), 1)
-
-def disable_write(grpc_client: client.SkRaftFpga) -> None:
-    """
-        write disable
-
-        @param grpc_client: The gRPC client used to communicate with the target
-        FPGA device.
-    """
-    test = datatypes.BscanPrimitive(2, 8)
-    grpc_client.fpga_write_bscan(test, bytes([0x00]), 1)
-
-def write_data_in(grpc_client: client.SkRaftFpga, data_in_high: bytes,
-                   data_in_low: bytes) -> None:
-    """
-        write data in
-    """
-    high = int.from_bytes(data_in_high, 'big')
-    low = int.from_bytes(data_in_low, 'big')
-    data_in = (high << 8) | low
-    test = datatypes.BscanPrimitive(3, 16)
-    grpc_client.fpga_write_bscan(test, data_in.to_bytes(2, 'big'), 0)
-
-def read_data_out(grpc_client: client.SkRaftFpga) -> bytes:
-    """
-        read the result (data_out)
-    """
-    test = datatypes.BscanPrimitive(4, 48)
-    return grpc_client.fpga_write_bscan(test, bytes(6), 0)
-
+    bscan_user_1 = datatypes.BscanPrimitive(2, 1)
+    value = 0x00
+    grpc_client.fpga_write_bscan(bscan_user_1, value)
 
 if __name__ == "__main__":
     # Set up the SK-RAFT server connection details.
-    tester = client.SkRaftFpga("127.0.0.1", 50052)
+    dut = client.SkRaftFpga("127.0.0.1", 50052)
     
     # Initiate the communication with the SK-RAFT server.
-    tester.establish_connection()
+    dut.establish_connection()
     # Try to connect to the desired device, using the desired programmer.
     # In this example device: XC7A35T-1CPG236C & programmer: FT2232H.
-    tester.fpga_connect("XC7A35T-1CPG236C", "FT2232H")
+    dut.fpga_connect("XC7A35T-1CPG236C", "FT2232H")
 
     # Configure the bitstream path.
-    tester.fpga_set_bit_file_path("bit_file")
+    dut.fpga_set_bit_file_path("/home/embeddedcat/Vivado/Vivado/2023.2/bin/flip_flop_test_basys/flip_flop_test_basys.runs/impl_1/tester.bit")
     # Program the configured device, using the previously declared bitstream.
-    tester.fpga_program()
+    dut.fpga_program()
 
-    enable_clock(tester)
+    enable_clock(dut)
 
     """
-        Inject 10 faults into a FlipFLop.
+        Currupt 10 times FlipFlop[15] of SLICE_X5Y26.
         The respective line from *.ll file:
             - Bit  9797892 0x0040021f   1700 Block=SLICE_X5Y26 Latch=AQ Net=sr_OBUF[15]
                      ^         ^          ^
@@ -175,21 +131,21 @@ if __name__ == "__main__":
     """
     for fault in range(10):
         """
-            Inject a fault into the FAR: 0x0040021f, Word: 53, Bit: 4. Also,
-            instruct the SK-RAFT that the fault is injected on a FlipFlops.
+            Inject a fault into the FAR: 0x0040021f, Word: 63, Bit: 28.
             signature:  fpga_bit_flip(self, far: int, word_index: int,
-                                      bit_index: int, is_flip_flop: bool)
+                                      bit_index: int, is_flip_flop: bool, 
+                                      is_lutram: bool, is_bram: bool)
         """
         # Wait for 5 seconds before injecting the next fault.
-        time.sleep(5)
+        time.sleep(1)
         # Disable the clock to freeze the design.
-        disable_clock(tester)
-        tester.fpga_bit_flip(0x0040021f, 53, 4, True)
+        disable_clock(dut)
+        dut.fpga_bit_flip(0x0040021f, 53, 4, True, False, False)
         # Wait for 5 before enabling the clock again.
-        time.sleep(5)
+        time.sleep(1)
         # Enable the design to allow the fault to propagate through the Shift
         # register.
-        enable_clock(tester)
+        enable_clock(dut)
     
     # Close the target device.
-    tester.fpga_close()
+    dut.fpga_close()

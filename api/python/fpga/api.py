@@ -152,7 +152,7 @@ class SkRaftFpga:
         except grpc.RpcError as e:
             raise RuntimeError(f"Failed to configure bit file path.")
 
-    def fpga_write_bscan(self, bscan: datatypes.BscanPrimitive, value: bytes, userful_bits) -> bytes:
+    def fpga_write_bscan(self, bscan: datatypes.BscanPrimitive, value: int) -> bytes:
         """
             fpga_write_bscan perform a write operation on user register
             @user_register_id. The @user_register_id take as value an integer
@@ -165,7 +165,13 @@ class SkRaftFpga:
             register.
         """
         try:
-            return bscan.shift_in(self.__grpc_client, value, userful_bits)
+            total_bytes = bscan.size_in_bits // 8
+            if total_bytes == 0:
+                total_bytes = 1
+            
+            value_to_bytes = value.to_bytes(total_bytes, 'big')
+
+            return bscan.shift_in(self.__grpc_client, value_to_bytes)
         except grpc.RpcError as e:
             raise RuntimeError(f"Failed to write bscan register "
                                f"{bscan.user_register_id}.")
