@@ -313,6 +313,42 @@ class SkRaftFpga:
         except grpc.RpcError as e:
             raise RuntimeError(f"Failed to program the target fpga device.")
 
+    def fpga_extract_fars_from_bitstream(self, bitstream_path: str) -> list[int]:
+        """
+            fpga_extract_fars_from_bitstream extracts the Frame Addresses (FARs)
+            present in the provided bitstream.
+            @param bitstream_path: The path to the bitstream from which the FARs
+            should be extracted.
+            @return A list of integers representing the FARs in the bitstream.
+        """
+        try:
+            request = skraft_client_pb2.FpgaFarListExtractRequest(
+                bitstreamPath=bitstream_path,
+            )
+ 
+            reply = self.__grpc_client.fpgaExtractFarsFromBitstream(request)
+
+            return reply.values
+        except grpc.RpcError as e:
+            raise RuntimeError(f"Failed to extract the Frame Address List from {bitstream_path},"
+                               f"with error: {e.details}")
+
+    def fpga_exclude_fars(self, fars_to_exclude: list[int]):
+        """
+            fpga_exclude_fars excludes from any future operation, unless explicitly requested,
+            the provided list of Frame Addresses (FARs).
+            @param fars_to_exclude: A list holding the FARs to be excluded.
+        """
+        try:
+            request = skraft_client_pb2.FpgaFarListExcludeRequest(
+                values = fars_to_exclude
+            )
+
+            self.__grpc_client.fpgaExcludeFars(request)
+        except grpc.RpcError as e:
+            raise RuntimeError(f"failed to exclude the FAR provided,"
+                               f"with error: {e.details}")
+
     def fpga_readback(self, start_far: int, end_far: int) -> list[datatypes.FpgaFrame]:
         """
             fpga_readback reads a range of frames starting from start_far and

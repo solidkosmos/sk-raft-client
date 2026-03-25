@@ -3,6 +3,7 @@ syntax = "proto3";
 package proto;
 
 import "google/protobuf/empty.proto";
+option go_package = "bitbucket.org/sk_dev_team/sk-raft-software/cmd/sk_raft/proto";
 
 service SKRaftFpga {
     rpc fpgaConnect(FpgaDeviceDetails) returns (google.protobuf.Empty) {}
@@ -23,10 +24,26 @@ service SKRaftFpga {
 
     rpc fpgaProgram(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 
+    rpc fpgaExtractFarsFromBitstream(FpgaFarListExtractRequest) returns (FpgaFarListExtractResult) {}
+
+    rpc fpgaExcludeFars(FpgaFarListExcludeRequest) returns (google.protobuf.Empty) {}
+
     rpc fpgaReadBack(FpgaReadbackTarget) returns (FpgaReadbackDetail) {}
 }
 
 message FpgaWord {
+    repeated uint32 values = 1;
+}
+
+message FpgaFarListExtractRequest {
+    string bitstreamPath = 1;
+}
+
+message FpgaFarListExtractResult {
+    repeated  uint32 values = 1;
+}
+
+message FpgaFarListExcludeRequest {
     repeated uint32 values = 1;
 }
 
@@ -50,9 +67,9 @@ message FpgaDeviceDetails {
 }
 
 message FpgaBscanTarget {
-    uint32 userRegisterId = 1;
-    bytes value           = 2;
-    uint32 usefulBits     = 3;
+    uint32 userRegisterId  = 1;
+    bytes value            = 2;
+    uint32 usefulBits = 3;
 }
 
 message FpgaBscanOutput {
@@ -60,16 +77,16 @@ message FpgaBscanOutput {
 }
 
 message FpgaInjectionTarget {
-    uint32 frameAddress  = 1;
-    uint32 wordIndex     = 2;
-    uint32 bitIndex      = 3;
-    uint32 isFlipFlop    = 4;
-    uint32 isLutRam      = 5;
-    uint32 isBram        = 6;
+    uint32 frameAddress = 1;
+    uint32 wordIndex    = 2;
+    uint32 bitIndex     = 3;
+    bool isFlipFlop     = 4;
+    bool isLutRam       = 5;
+    bool isBram         = 6;
 }
 
 message FpgaRandomInjectionReport {
-    FpgaReadbackTarget target = 1;
+    FpgaInjectionTarget target = 1;
 }
 
 message FpgaRandomInjectionOptions {
@@ -88,9 +105,9 @@ message FpgaFiSession {
     uint32 duration          = 2;
     uint32 correctionTime    = 3;
     uint32 timeBetweenFaults = 4;
-    uint32 sbuPercent        = 5;
-    uint32 mbuPercent        = 6;
-    uint32 mcuPercent        = 7;
+    float sbuPercent         = 5;
+    float mbuPercent         = 6;
+    float mcuPercent         = 7;
     bool essential           = 8;
     bool correct             = 9;
 } 

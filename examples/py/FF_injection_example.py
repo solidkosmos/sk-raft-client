@@ -131,7 +131,7 @@ if __name__ == "__main__":
     """
     for fault in range(10):
         """
-            Inject a fault into the FAR: 0x0040021f, Word: 63, Bit: 28.
+            Inject a fault into the FAR: 0x0040021f, Word: 53, Bit: 4.
             signature:  fpga_bit_flip(self, far: int, word_index: int,
                                       bit_index: int, is_flip_flop: bool, 
                                       is_lutram: bool, is_bram: bool)

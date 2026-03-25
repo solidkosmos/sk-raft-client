@@ -6,7 +6,7 @@ import warnings
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 from . import skraft_client_pb2 as skraft__client__pb2
 
-GRPC_GENERATED_VERSION = '1.74.0'
+GRPC_GENERATED_VERSION = '1.76.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -19,7 +19,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in skraft_client_pb2_grpc.py depends on'
+        + ' but the generated code in skraft_client_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -93,6 +93,16 @@ class SKRaftFpgaStub(object):
         self.fpgaProgram = channel.unary_unary(
                 '/proto.SKRaftFpga/fpgaProgram',
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
+        self.fpgaExtractFarsFromBitstream = channel.unary_unary(
+                '/proto.SKRaftFpga/fpgaExtractFarsFromBitstream',
+                request_serializer=skraft__client__pb2.FpgaFarListExtractRequest.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaFarListExtractResult.FromString,
+                _registered_method=True)
+        self.fpgaExcludeFars = channel.unary_unary(
+                '/proto.SKRaftFpga/fpgaExcludeFars',
+                request_serializer=skraft__client__pb2.FpgaFarListExcludeRequest.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 _registered_method=True)
         self.fpgaReadBack = channel.unary_unary(
@@ -177,6 +187,18 @@ class SKRaftFpgaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def fpgaExtractFarsFromBitstream(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def fpgaExcludeFars(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def fpgaReadBack(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -244,6 +266,16 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
             'fpgaProgram': grpc.unary_unary_rpc_method_handler(
                     servicer.fpgaProgram,
                     request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'fpgaExtractFarsFromBitstream': grpc.unary_unary_rpc_method_handler(
+                    servicer.fpgaExtractFarsFromBitstream,
+                    request_deserializer=skraft__client__pb2.FpgaFarListExtractRequest.FromString,
+                    response_serializer=skraft__client__pb2.FpgaFarListExtractResult.SerializeToString,
+            ),
+            'fpgaExcludeFars': grpc.unary_unary_rpc_method_handler(
+                    servicer.fpgaExcludeFars,
+                    request_deserializer=skraft__client__pb2.FpgaFarListExcludeRequest.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
             'fpgaReadBack': grpc.unary_unary_rpc_method_handler(
@@ -575,6 +607,60 @@ class SKRaftFpga(object):
             target,
             '/proto.SKRaftFpga/fpgaProgram',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def fpgaExtractFarsFromBitstream(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/fpgaExtractFarsFromBitstream',
+            skraft__client__pb2.FpgaFarListExtractRequest.SerializeToString,
+            skraft__client__pb2.FpgaFarListExtractResult.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def fpgaExcludeFars(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/fpgaExcludeFars',
+            skraft__client__pb2.FpgaFarListExcludeRequest.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,
             channel_credentials,

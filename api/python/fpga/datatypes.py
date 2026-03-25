@@ -411,23 +411,6 @@ class BscanPrimitive:
         return self.__size_in_bits
 
     def shift_in(self, grpc_client, value: bytes) -> bytes:
-        # value_bits: int = len(value) * 8
-        # bscan_bits_diff: int = self.__size_in_bits - value_bits
-        #
-        # if bscan_bits_diff < 0:
-        #     raise Exception(f"Cannot shifts more bits than defined. Tried to"
-        #                     f"shift {value_bits} when BSCAN allows:"
-        #                     f"{self.__size_in_bits}")
-    
-        # send_bytes: bytearray|bytes = bytearray(self.__size_in_bits//8) 
-        #
-        # for curr_byte in range(0, len(send_bytes)):
-        #     print(curr_byte)
-        #     if curr_byte < len(value):
-        #         send_bytes[curr_byte] = value[curr_byte]
-        #     else:
-        #         send_bytes[curr_byte] = 0x00
-
         request = skraft_client_pb2.FpgaBscanTarget(
             userRegisterId=self.__user_register_id,
             value=value,
