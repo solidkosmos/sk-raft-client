@@ -1,0 +1,15 @@
+
+
+*.ebd
+*.msd
+*.ebc
+*.rbd
+*.bit
+*.ll
+
+*.js
+
+__pycache__/
+.idea/
+.vscode/
+node_modules/
