@@ -75,6 +75,31 @@ class SKRaftFpgaStub(object):
                 request_serializer=skraft__client__pb2.FpgaBscanTarget.SerializeToString,
                 response_deserializer=skraft__client__pb2.FpgaBscanOutput.FromString,
                 _registered_method=True)
+        self.fpgaCramBits = channel.unary_unary(
+                '/proto.SKRaftFpga/fpgaCramBits',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaBitCount.FromString,
+                _registered_method=True)
+        self.fpgaEssentialCramBits = channel.unary_unary(
+                '/proto.SKRaftFpga/fpgaEssentialCramBits',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaBitCount.FromString,
+                _registered_method=True)
+        self.fpgaBramBits = channel.unary_unary(
+                '/proto.SKRaftFpga/fpgaBramBits',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaBitCount.FromString,
+                _registered_method=True)
+        self.fpgaFlipFlopBits = channel.unary_unary(
+                '/proto.SKRaftFpga/fpgaFlipFlopBits',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaBitCount.FromString,
+                _registered_method=True)
+        self.fpgaLutramBits = channel.unary_unary(
+                '/proto.SKRaftFpga/fpgaLutramBits',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaBitCount.FromString,
+                _registered_method=True)
         self.fpgaBitFlip = channel.unary_unary(
                 '/proto.SKRaftFpga/fpgaBitFlip',
                 request_serializer=skraft__client__pb2.FpgaInjectionTarget.SerializeToString,
@@ -158,6 +183,36 @@ class SKRaftFpgaServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def fpgaWriteBscan(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def fpgaCramBits(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def fpgaEssentialCramBits(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def fpgaBramBits(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def fpgaFlipFlopBits(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def fpgaLutramBits(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -247,6 +302,31 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
                     servicer.fpgaWriteBscan,
                     request_deserializer=skraft__client__pb2.FpgaBscanTarget.FromString,
                     response_serializer=skraft__client__pb2.FpgaBscanOutput.SerializeToString,
+            ),
+            'fpgaCramBits': grpc.unary_unary_rpc_method_handler(
+                    servicer.fpgaCramBits,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=skraft__client__pb2.FpgaBitCount.SerializeToString,
+            ),
+            'fpgaEssentialCramBits': grpc.unary_unary_rpc_method_handler(
+                    servicer.fpgaEssentialCramBits,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=skraft__client__pb2.FpgaBitCount.SerializeToString,
+            ),
+            'fpgaBramBits': grpc.unary_unary_rpc_method_handler(
+                    servicer.fpgaBramBits,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=skraft__client__pb2.FpgaBitCount.SerializeToString,
+            ),
+            'fpgaFlipFlopBits': grpc.unary_unary_rpc_method_handler(
+                    servicer.fpgaFlipFlopBits,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=skraft__client__pb2.FpgaBitCount.SerializeToString,
+            ),
+            'fpgaLutramBits': grpc.unary_unary_rpc_method_handler(
+                    servicer.fpgaLutramBits,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=skraft__client__pb2.FpgaBitCount.SerializeToString,
             ),
             'fpgaBitFlip': grpc.unary_unary_rpc_method_handler(
                     servicer.fpgaBitFlip,
@@ -500,6 +580,141 @@ class SKRaftFpga(object):
             '/proto.SKRaftFpga/fpgaWriteBscan',
             skraft__client__pb2.FpgaBscanTarget.SerializeToString,
             skraft__client__pb2.FpgaBscanOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def fpgaCramBits(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/fpgaCramBits',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            skraft__client__pb2.FpgaBitCount.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def fpgaEssentialCramBits(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/fpgaEssentialCramBits',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            skraft__client__pb2.FpgaBitCount.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def fpgaBramBits(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/fpgaBramBits',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            skraft__client__pb2.FpgaBitCount.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def fpgaFlipFlopBits(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/fpgaFlipFlopBits',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            skraft__client__pb2.FpgaBitCount.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def fpgaLutramBits(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/fpgaLutramBits',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            skraft__client__pb2.FpgaBitCount.FromString,
             options,
             channel_credentials,
             insecure,

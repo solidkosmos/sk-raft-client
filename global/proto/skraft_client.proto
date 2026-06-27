@@ -17,6 +17,12 @@ service SKRaftFpga {
 
     rpc fpgaWriteBscan(FpgaBscanTarget) returns (FpgaBscanOutput) {}
 
+    rpc fpgaCramBits(google.protobuf.Empty) returns (FpgaBitCount) {}
+    rpc fpgaEssentialCramBits(google.protobuf.Empty) returns (FpgaBitCount) {}
+    rpc fpgaBramBits(google.protobuf.Empty) returns (FpgaBitCount) {}
+    rpc fpgaFlipFlopBits(google.protobuf.Empty) returns (FpgaBitCount) {}
+    rpc fpgaLutramBits(google.protobuf.Empty) returns (FpgaBitCount) {}
+
     rpc fpgaBitFlip(FpgaInjectionTarget) returns (google.protobuf.Empty) {}
     rpc fpgaRandomBitFlip(FpgaRandomInjectionOptions) returns (FpgaRandomInjectionReport) {}
 
@@ -29,6 +35,10 @@ service SKRaftFpga {
     rpc fpgaExcludeFars(FpgaFarListExcludeRequest) returns (google.protobuf.Empty) {}
 
     rpc fpgaReadBack(FpgaReadbackTarget) returns (FpgaReadbackDetail) {}
+}
+
+message FpgaBitCount {
+    uint32 value = 1;
 }
 
 message FpgaWord {
@@ -83,6 +93,7 @@ message FpgaInjectionTarget {
     bool isFlipFlop     = 4;
     bool isLutRam       = 5;
     bool isBram         = 6;
+    string netName      = 7;
 }
 
 message FpgaRandomInjectionReport {

@@ -1,0 +1,9 @@
+[project]
+name = "skraft"
+version = "1.0.0-alpha.1"
+dependencies = ["grpcio", "protobuf"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
