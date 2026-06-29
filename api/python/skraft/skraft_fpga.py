@@ -247,16 +247,8 @@ class FpgaDevice:
     def inject_at(self, far: int, word_index: int, bit_index: int,
                   target: InjectionArea) -> FpgaInjectionReport:
         """Inject an upset at a specific ``(far, word_index, bit_index)``
-        location, constrained to ``target`` (RPC: ``fpgaBitFlip``).
-
-        Specific injection cannot target essential bits (the wire message has
-        no essential flag), so ``InjectionArea.ESSENTIAL_CRAM`` is rejected.
+           location, constrained to ``target`` (RPC: ``fpgaBitFlip``).
         """
-        if target & InjectionArea.ESSENTIAL_CRAM:
-            raise ValueError(
-                "inject_at cannot target ESSENTIAL_CRAM; essential targeting "
-                "is only available for random injection and campaigns"
-            )
         self._files.require(*target.required_design_files)
         try:
             request = skraft_client_pb2.FpgaInjectionTarget(
