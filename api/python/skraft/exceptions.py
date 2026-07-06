@@ -1,5 +1,5 @@
 #   Copyright(C) 2024 SOLIDKOSMOS S.A.
-#   All rights reserved. Confidential Information.
+#   All rights reserved.
 #
 #   This software ("Software") is supplied by SOLIDKOSMOS S.A. ("SolidKosmos").
 #   SolidKosmos grants you a personal, non-exclusive, non-transferable, revocable,

@@ -1,40 +1,59 @@
 #   Copyright(C) 2024 SOLIDKOSMOS S.A.
 #   All rights reserved. Confidential Information.
 #   (retain the full SolidKosmos notice here, as the other modules do)
-
 """SK-RAFT FPGA control client."""
 
-from .skraft_fpga import SkraftFpga, FpgaDevice
+from .skraft_fpga import FpgaDevice, SkraftFpga
 from .datatypes import (
-    ServerPath,
-    DesignFiles,
-    InjectionArea,
-    InjectionType,
     BscanPrimitive,
-    FpgaFrame,
-    FpgaWord,
+    DesignFiles,
+    FaultType,
     FpgaFiSession,
     FpgaFiSummary,
-    FpgaWordSummary,
+    FpgaFrame,
     FpgaInjectionReport,
     FpgaRandomInjectionReport,
+    FpgaScrubReport,
+    FpgaScrubSummary,
+    FpgaScrubWordSummary,
+    FpgaWord,
+    FpgaFiWordSummary,
+    InjectionArea,
+    ScrubbingType,
+    ServerPath,
 )
 from .exceptions import (
-    SkraftError,
-    ConnectionFailedError,
-    DeviceReservationError,
-    DesignFileError,
-    FrameAddressError,
     BscanError,
+    ConnectionFailedError,
+    DesignFileError,
+    DeviceReservationError,
+    FrameAddressError,
+    SkraftError,
 )
 
 __all__ = [
-    "SkraftFpga", "FpgaDevice",
-    "ServerPath", "DesignFiles", "InjectionArea", "InjectionType",
-    "BscanPrimitive", "FpgaFrame", "FpgaWord",
-    "FpgaFiSession", "FpgaFiSummary", "FpgaWordSummary",
-    "FpgaInjectionReport", "FpgaRandomInjectionReport",
-    "SkraftError", "ConnectionFailedError", "DeviceReservationError",
-    "DesignFileError", "FrameAddressError", "BscanError",
+    "SkraftFpga",
+    "FpgaDevice",
+    "BscanPrimitive",
+    "DesignFiles",
+    "FaultType",
+    "FpgaFiSession",
+    "FpgaFiSummary",
+    "FpgaFrame",
+    "FpgaInjectionReport",
+    "FpgaRandomInjectionReport",
+    "FpgaScrubReport",
+    "FpgaScrubSummary",
+    "FpgaScrubWordSummary",
+    "FpgaWord",
+    "FpgaFiWordSummary",
+    "InjectionArea",
+    "ScrubbingType",
+    "ServerPath",
+    "BscanError",
+    "ConnectionFailedError",
+    "DesignFileError",
+    "DeviceReservationError",
+    "FrameAddressError",
+    "SkraftError",
 ]
-

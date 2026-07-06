@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: skraft
+Version: 1.0.0a1
+Requires-Dist: grpcio
+Requires-Dist: protobuf

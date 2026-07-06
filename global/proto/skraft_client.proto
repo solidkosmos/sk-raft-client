@@ -3,139 +3,264 @@ syntax = "proto3";
 package proto;
 
 import "google/protobuf/empty.proto";
+
 option go_package = "bitbucket.org/sk_dev_team/sk-raft-software/cmd/sk_raft/proto";
 
+// SKRaftFpga exposes FPGA connection management, bitstream/auxiliary file
+// configuration, scrubbing, fault injection, BSCAN access and readback.
 service SKRaftFpga {
-    rpc fpgaConnect(FpgaDeviceDetails) returns (google.protobuf.Empty) {}
-    rpc fpgaClose(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    // Connection lifecycle
+    rpc FpgaConnect(FpgaDeviceDetails) returns (google.protobuf.Empty) {}
+    rpc FpgaClose(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 
-    rpc fpgaSetRbdFilePath(FilePath) returns (google.protobuf.Empty) {}
-    rpc fpgaSetMsdFilePath(FilePath) returns (google.protobuf.Empty) {}
-    rpc fpgaSetEbdFilePath(FilePath) returns (google.protobuf.Empty) {}
-    rpc fpgaSetllFilePath(FilePath)  returns (google.protobuf.Empty) {}
-    rpc fpgaSetBitFilePath(FilePath) returns (google.protobuf.Empty) {}
+    // Auxiliary / bitstream file configuration.
+    // A single RPC with an explicit file-type enum replaces the five
+    // near-identical fpgaSetXxxFilePath RPCs.
+    rpc FpgaSetDesignFilePath(FpgaDesignFilePathRequest) returns (google.protobuf.Empty) {}
 
-    rpc fpgaWriteBscan(FpgaBscanTarget) returns (FpgaBscanOutput) {}
+    // Bit statistics. One RPC with a category selector replaces the five
+    // fpgaXxxBits RPCs; FpgaGetAllBitCounts returns everything in one call.
+    rpc FpgaGetBitCount(FpgaBitCountRequest) returns (FpgaBitCount) {}
+    rpc FpgaGetAllBitCounts(google.protobuf.Empty) returns (FpgaBitCounts) {}
 
-    rpc fpgaCramBits(google.protobuf.Empty) returns (FpgaBitCount) {}
-    rpc fpgaEssentialCramBits(google.protobuf.Empty) returns (FpgaBitCount) {}
-    rpc fpgaBramBits(google.protobuf.Empty) returns (FpgaBitCount) {}
-    rpc fpgaFlipFlopBits(google.protobuf.Empty) returns (FpgaBitCount) {}
-    rpc fpgaLutramBits(google.protobuf.Empty) returns (FpgaBitCount) {}
+    // Scrubbing
+    rpc FpgaScrubbing(FpgaScrubSession) returns (FpgaScrubReport) {}
 
-    rpc fpgaBitFlip(FpgaInjectionTarget) returns (google.protobuf.Empty) {}
-    rpc fpgaRandomBitFlip(FpgaRandomInjectionOptions) returns (FpgaRandomInjectionReport) {}
+    // Boundary scan (BSCAN) user register access
+    rpc FpgaWriteBscan(FpgaBscanTarget) returns (FpgaBscanOutput) {}
+    rpc FpgaReadBscan(FpgaBscanTarget) returns (FpgaBscanOutput) {}
 
-    rpc fpgaFaultInjection(FpgaFiSession)  returns (FpgaFiSummary) {}
+    // Fault injection
+    rpc FpgaBitFlip(FpgaInjectionTarget) returns (google.protobuf.Empty) {}
+    rpc FpgaRandomBitFlip(FpgaRandomInjectionOptions) returns (FpgaRandomInjectionReport) {}
+    rpc FpgaFaultInjection(FpgaFiSession) returns (FpgaFiSummary) {}
 
-    rpc fpgaProgram(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    // Programming
+    rpc FpgaProgram(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 
-    rpc fpgaExtractFarsFromBitstream(FpgaFarListExtractRequest) returns (FpgaFarListExtractResult) {}
+    // Frame address (FAR) list management
+    rpc FpgaExtractFarsFromBitstream(FpgaFarListExtractRequest) returns (FpgaFarListExtractResponse) {}
+    rpc FpgaExcludeFars(FpgaFarListExcludeRequest) returns (google.protobuf.Empty) {}
 
-    rpc fpgaExcludeFars(FpgaFarListExcludeRequest) returns (google.protobuf.Empty) {}
+    // Readback
+    rpc FpgaReadBackRange(FpgaReadbackTarget) returns (FpgaReadbackDetail) {}
+    rpc FpgaReadBack(google.protobuf.Empty) returns (FpgaReadbackDetail) {}
 
-    rpc fpgaReadBack(FpgaReadbackTarget) returns (FpgaReadbackDetail) {}
+}
+
+// ---------------------------------------------------------------------------
+// Connection
+// ---------------------------------------------------------------------------
+
+message FpgaDeviceDetails {
+    string device_part_number     = 1;
+    string programmer_part_number = 2;
+}
+
+// ---------------------------------------------------------------------------
+// File configuration
+// ---------------------------------------------------------------------------
+
+enum FpgaFileType {
+    FPGA_FILE_TYPE_UNSPECIFIED = 0;
+    FPGA_FILE_TYPE_RBD         = 1; // Readback data file
+    FPGA_FILE_TYPE_MSD         = 2; // Readback mask data file
+    FPGA_FILE_TYPE_EBD         = 3; // Essential bits data file
+    FPGA_FILE_TYPE_LL          = 4; // Logic location file
+    FPGA_FILE_TYPE_BIT         = 5; // Bitstream file
+}
+
+message FpgaDesignFilePathRequest {
+    FpgaFileType type = 1;
+    string path       = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Bit statistics
+// ---------------------------------------------------------------------------
+enum FpgaBitCategory {
+    FPGA_BIT_CATEGORY_UNSPECIFIED    = 0;
+    FPGA_BIT_CATEGORY_CRAM           = 1;
+    FPGA_BIT_CATEGORY_ESSENTIAL_CRAM = 2;
+    FPGA_BIT_CATEGORY_BRAM           = 3;
+    FPGA_BIT_CATEGORY_FLIP_FLOP      = 4;
+    FPGA_BIT_CATEGORY_LUTRAM         = 5;
+}
+
+message FpgaBitCountRequest {
+    FpgaBitCategory category = 1;
 }
 
 message FpgaBitCount {
     uint32 value = 1;
 }
 
-message FpgaWord {
-    repeated uint32 values = 1;
+message FpgaBitCounts {
+    uint32 cram_bits           = 1;
+    uint32 essential_cram_bits = 2;
+    uint32 bram_bits           = 3;
+    uint32 flip_flop_bits      = 4;
+    uint32 lutram_bits         = 5;
 }
+
+// ---------------------------------------------------------------------------
+// Scrubbing
+// ---------------------------------------------------------------------------
+
+message FpgaScrubSession {
+    uint32 scrub_cycle     = 1;
+    uint32 duration_ms     = 2; // Session duration in milliseconds
+    string id              = 3;
+}
+
+message FpgaScrubSummary {
+    uint32 scrub_cycle                     = 1;
+    uint32 correction_time_ms              = 2;
+    uint32 idle_time_ms                    = 3;
+    uint32 scrub_cycle_actual_duration_ms  = 4;
+
+    repeated FpgaScrubWordSummary word_summaries = 5;
+}
+
+message FpgaScrubReport {
+    repeated FpgaScrubSummary scrub_summaries = 1;
+}
+
+message FpgaScrubWordSummary {
+    uint32 far                  = 1;
+    uint32 word_index           = 2;
+    uint32 bit_index            = 3;
+    uint32 golden_word_value    = 4;
+    uint32 erroneous_word_value = 5; // fixed typo: was "erroneusWordValue"
+    uint32 ebd_word_value       = 6;
+    uint32 msd_word_value       = 7;
+    bool   is_essential         = 8;
+}
+
+// ---------------------------------------------------------------------------
+// FAR list management
+// ---------------------------------------------------------------------------
 
 message FpgaFarListExtractRequest {
-    string bitstreamPath = 1;
+    string bitstream_path = 1;
 }
 
-message FpgaFarListExtractResult {
-    repeated  uint32 values = 1;
+message FpgaFarListExtractResponse {
+    repeated uint32 fars = 1;
 }
 
 message FpgaFarListExcludeRequest {
-    repeated uint32 values = 1;
+    repeated uint32 fars = 1;
 }
 
+// ---------------------------------------------------------------------------
+// Readback
+// ---------------------------------------------------------------------------
+
+message FpgaReadbackTarget {
+    uint32 start_frame_address = 1;
+    uint32 end_frame_address   = 2;
+}
+
+// A configuration frame is a flat sequence of 32-bit words, so the extra
+// FpgaWord wrapper (a repeated message each holding a repeated uint32) was
+// removed in favor of a single repeated uint32.
 message FpgaFrame {
-    uint32 frameAddress     = 1;
-    repeated FpgaWord words = 2;
+    uint32 frame_address  = 1;
+    repeated uint32 words = 2;
 }
 
 message FpgaReadbackDetail {
     repeated FpgaFrame frames = 1;
 }
 
-message FpgaReadbackTarget {
-    uint32 startFrameAddress = 1;
-    uint32 endFrameAddress   = 2;
-}
-
-message FpgaDeviceDetails {
-    string devicePartNumber     = 1;
-    string programmerPartNumber = 2;
-}
+// ---------------------------------------------------------------------------
+// Boundary scan
+// ---------------------------------------------------------------------------
 
 message FpgaBscanTarget {
-    uint32 userRegisterId  = 1;
-    bytes value            = 2;
-    uint32 usefulBits = 3;
+    uint32 user_register_id = 1;
+    bytes  value            = 2;
+    uint32 useful_bits      = 3;
 }
 
 message FpgaBscanOutput {
-    bytes value = 2;
+    bytes value = 1; // fixed field number: was 2 with no field 1
+}
+
+// ---------------------------------------------------------------------------
+// Fault injection
+// ---------------------------------------------------------------------------
+
+// Memory type of the injection target. The three mutually exclusive booleans
+// (isFlipFlop / isLutRam / isBram) were replaced by an enum, which makes
+// invalid combinations unrepresentable.
+enum FpgaTargetKind {
+    FPGA_TARGET_KIND_UNSPECIFIED = 0;
+    FPGA_TARGET_KIND_CRAM        = 1;
+    FPGA_TARGET_KIND_FLIP_FLOP   = 2;
+    FPGA_TARGET_KIND_LUTRAM      = 3;
+    FPGA_TARGET_KIND_BRAM        = 4;
 }
 
 message FpgaInjectionTarget {
-    uint32 frameAddress = 1;
-    uint32 wordIndex    = 2;
-    uint32 bitIndex     = 3;
-    bool isFlipFlop     = 4;
-    bool isLutRam       = 5;
-    bool isBram         = 6;
-    string netName      = 7;
+    uint32 frame_address = 1;
+    uint32 word_index    = 2;
+    uint32 bit_index     = 3;
+    FpgaTargetKind kind  = 4;
+    string net_name      = 5;
+}
+
+message FpgaRandomInjectionOptions {
+    bool include_essential  = 1;
+    bool include_flip_flops = 2;
+    bool include_lutrams    = 3;
+    bool include_brams      = 4;
 }
 
 message FpgaRandomInjectionReport {
     FpgaInjectionTarget target = 1;
 }
 
-message FpgaRandomInjectionOptions {
-    bool includeEssential = 1;
-    bool includeFlipFlops = 2;
-    bool includeLutRams   = 3;
-    bool includeBrams     = 4;
-}
-
-message FilePath {
-    string path = 1;
+// Fault model used by a fault-injection session. Replaces the opaque
+// "uint32 type" field.
+enum FpgaFaultType {
+    FPGA_FAULT_TYPE_UNSPECIFIED = 0;
+    FPGA_FAULT_TYPE_SBU         = 1; // Single bit upset
+    FPGA_FAULT_TYPE_MBU         = 2; // Multiple bit upset
+    FPGA_FAULT_TYPE_MCU         = 3; // Multiple cell upset
+    FPGA_FAULT_TYPE_MIXED       = 4; // Mix governed by the percentages below
 }
 
 message FpgaFiSession {
-    uint32 type              = 1;
-    uint32 duration          = 2;
-    uint32 correctionTime    = 3;
-    uint32 timeBetweenFaults = 4;
-    float sbuPercent         = 5;
-    float mbuPercent         = 6;
-    float mcuPercent         = 7;
-    bool essential           = 8;
-    bool correct             = 9;
-} 
+    FpgaFaultType type            = 1;
+    uint32 duration_ms            = 2;
+    uint32 correction_time_ms     = 3;
+    uint32 time_between_faults_ms = 4;
 
-message FpgaWordSummary {
-    uint32 far               = 1;
-    uint32 wordIndex         = 2;
-    uint32 bitIndex          = 3;
-    uint32 goldenWordValue   = 4;
-    uint32 injectedWordValue = 5;
-    bool isEssential         = 6;
+    // Distribution of upset types; the three values should sum to 100.
+    float sbu_percent = 5;
+    float mbu_percent = 6;
+    float mcu_percent = 7;
+
+    bool essential = 8; // Inject only into essential bits
+    bool correct   = 9; // Correct faults after injection
+}
+
+message FpgaFiWordSummary {
+    uint32 far                 = 1;
+    uint32 word_index          = 2;
+    uint32 bit_index           = 3;
+    uint32 golden_word_value   = 4;
+    uint32 injected_word_value = 5;
+    bool   is_essential        = 6;
 }
 
 message FpgaFiSummary {
-    uint32 type                          = 1;
-    uint32 duration                      = 2;
-    uint32 correctionTime                = 3;
-    uint32 timeBetweenFaults             = 4;
-    repeated FpgaWordSummary wordSummary = 5;
+    FpgaFaultType type            = 1;
+    uint32 duration_ms            = 2;
+    uint32 correction_time_ms     = 3;
+    uint32 time_between_faults_ms = 4;
+
+    repeated FpgaFiWordSummary word_summaries = 5;
 }

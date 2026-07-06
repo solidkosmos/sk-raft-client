@@ -1,5 +1,5 @@
 #   Copyright(C) 2024 SOLIDKOSMOS S.A.
-#   All rights reserved. Confidential Information.
+#   All rights reserved.
 #
 #   This software ("Software") is supplied by SOLIDKOSMOS S.A. ("SolidKosmos").
 #   SolidKosmos grants you a personal, non-exclusive, non-transferable, revocable,
@@ -21,14 +21,19 @@
 #   THIS NOTICE. IF YOU DO NOT AGREE TO THESE TERMS, YOU ARE NOT PERMITTED TO USE THIS
 #   SOFTWARE
 
-"""SK-RAFT FPGA control client, matching the redesigned documentation.
+"""SK-RAFT FPGA control client, matching the redesigned proto definition.
 
 ``SkraftFpga`` owns the server connection and hands out ``FpgaDevice`` handles.
 ``FpgaDevice`` carries everything tied to a reserved device: design files,
-queries, programming/readback, and fault injection. Both are context managers.
+queries, programming/readback, scrubbing and fault injection. Both are context
+managers.
 
-Both classes wrap the same gRPC stub used by the original ``SkRaftFpga``; the
-mapping from each method to its RPC is noted inline.
+Both classes wrap the gRPC stub generated from the redesigned
+``SKRaftFpga`` service; the mapping from each method to its RPC is noted
+inline. Note that the redesigned proto uses PascalCase RPC names
+(``FpgaConnect``, ``FpgaSetDesignFilePath``, ...) and snake_case field names,
+and
+the generated Python code follows suit.
 """
 
 from __future__ import annotations
@@ -49,10 +54,14 @@ from .datatypes import (
     FpgaFrame,
     FpgaInjectionReport,
     FpgaRandomInjectionReport,
+    FpgaScrubReport,
+    FpgaScrubSummary,
+    FpgaScrubWordSummary,
     FpgaWord,
-    FpgaWordSummary,
+    FpgaFiWordSummary,
     InjectionArea,
     ServerPath,
+    ScrubbingType,
 )
 from .exceptions import (
     BscanError,
@@ -70,6 +79,29 @@ def _rpc_detail(error: grpc.RpcError) -> str:
         return str(error)
 
 
+def _kind_from_area(target: InjectionArea) -> int:
+    """Map an :class:`InjectionArea` to the wire ``FpgaTargetKind`` enum.
+
+    ``FpgaInjectionTarget`` carries a single ``kind``, so at most one
+    storage-element flag may be set for a specific injection.
+    """
+    storage_flags = [
+        (InjectionArea.FLIP_FLOP,
+         skraft_client_pb2.FPGA_TARGET_KIND_FLIP_FLOP),
+        (InjectionArea.LUTRAM, skraft_client_pb2.FPGA_TARGET_KIND_LUTRAM),
+        (InjectionArea.BRAM, skraft_client_pb2.FPGA_TARGET_KIND_BRAM),
+    ]
+    selected = [kind for flag, kind in storage_flags if target & flag]
+    if len(selected) > 1:
+        raise ValueError(
+            "a specific injection targets exactly one memory kind; got a "
+            f"combined InjectionArea: {target!r}"
+        )
+    if selected:
+        return selected[0]
+    return skraft_client_pb2.FPGA_TARGET_KIND_CRAM
+
+
 # --------------------------------------------------------------------------- #
 # FpgaDevice
 # --------------------------------------------------------------------------- #
@@ -83,13 +115,25 @@ class FpgaDevice:
             dev.program()
     """
 
-    # Maps a DesignFiles field to the RPC that pushes its path to the server.
-    _FILE_RPCS = {
-        "bitstream": "fpgaSetBitFilePath",
-        "ebd": "fpgaSetEbdFilePath",
-        "ll": "fpgaSetllFilePath",
-        "rbd": "fpgaSetRbdFilePath",
-        "msd": "fpgaSetMsdFilePath",
+    # Maps a DesignFiles field to the FpgaFileType enum value sent through
+    # the single FpgaSetDesignFilePath RPC (which replaced the five per-type
+    # RPCs).
+    _FILE_TYPES = {
+        "bitstream": skraft_client_pb2.FPGA_FILE_TYPE_BIT,
+        "ebd": skraft_client_pb2.FPGA_FILE_TYPE_EBD,
+        "ll": skraft_client_pb2.FPGA_FILE_TYPE_LL,
+        "rbd": skraft_client_pb2.FPGA_FILE_TYPE_RBD,
+        "msd": skraft_client_pb2.FPGA_FILE_TYPE_MSD,
+    }
+
+    # Maps a bit-statistics label to the FpgaBitCategory enum value used by
+    # the FpgaGetBitCount RPC (which replaced the five per-category RPCs).
+    _BIT_CATEGORIES = {
+        "CRAM": skraft_client_pb2.FPGA_BIT_CATEGORY_CRAM,
+        "essential CRAM": skraft_client_pb2.FPGA_BIT_CATEGORY_ESSENTIAL_CRAM,
+        "BRAM": skraft_client_pb2.FPGA_BIT_CATEGORY_BRAM,
+        "flip-flop": skraft_client_pb2.FPGA_BIT_CATEGORY_FLIP_FLOP,
+        "LUTRAM": skraft_client_pb2.FPGA_BIT_CATEGORY_LUTRAM,
     }
 
     def __init__(self, stub, part_number: Optional[str]):
@@ -105,9 +149,9 @@ class FpgaDevice:
         self.release()
 
     def release(self) -> None:
-        """Free the device's reserved resources (RPC: ``fpgaClose``)."""
+        """Free the device's reserved resources (RPC: ``FpgaClose``)."""
         try:
-            self._stub.fpgaClose(empty_pb2.Empty())
+            self._stub.FpgaClose(empty_pb2.Empty())
         except grpc.RpcError as e:
             raise ConnectionFailedError(
                 f"failed to release device: {_rpc_detail(e)}"
@@ -116,15 +160,19 @@ class FpgaDevice:
     # -- design files ------------------------------------------------------ #
     def load(self, files: DesignFiles) -> None:
         """Associate design files with the device and push each provided path
-        to the server (RPCs: ``fpgaSet*FilePath``). Stores paths only; the
-        server does not read file contents until an operation needs them.
+        to the server (RPC: ``FpgaSetDesignFilePath`` with the matching
+        ``FpgaFileType``). Stores paths only; the server does not read file
+        contents until an operation needs them.
         """
         try:
-            for field_name, rpc_name in self._FILE_RPCS.items():
+            for field_name, file_type in self._FILE_TYPES.items():
                 path = getattr(files, field_name)
                 if path is not None:
-                    request = skraft_client_pb2.FilePath(path=str(path))
-                    getattr(self._stub, rpc_name)(request)
+                    request = skraft_client_pb2.FpgaDesignFilePathRequest(
+                        type=file_type,
+                        path=str(path),
+                    )
+                    self._stub.FpgaSetDesignFilePath(request)
         except grpc.RpcError as e:
             raise ConnectionFailedError(
                 f"failed to configure design file paths: {_rpc_detail(e)}"
@@ -138,10 +186,10 @@ class FpgaDevice:
 
     # -- programming & readback ------------------------------------------- #
     def program(self) -> None:
-        """Upload the loaded bitstream to the device (RPC: ``fpgaProgram``)."""
+        """Upload the loaded bitstream to the device (RPC: ``FpgaProgram``)."""
         self._files.require("bitstream")
         try:
-            self._stub.fpgaProgram(empty_pb2.Empty())
+            self._stub.FpgaProgram(empty_pb2.Empty())
         except grpc.RpcError as e:
             raise ConnectionFailedError(
                 f"failed to program the target FPGA device: {_rpc_detail(e)}"
@@ -150,7 +198,7 @@ class FpgaDevice:
     def readback_range(self, start_far: int,
                        end_far: int) -> list[FpgaFrame]:
         """Read back the frames in ``[start_far, end_far]``
-        (RPC: ``fpgaReadback``).
+        (RPC: ``FpgaReadBackRange``).
         """
         if start_far > end_far:
             raise FrameAddressError(
@@ -158,59 +206,105 @@ class FpgaDevice:
             )
         try:
             request = skraft_client_pb2.FpgaReadbackTarget(
-                startFrameAddress=start_far,
-                endFrameAddress=end_far,
+                start_frame_address=start_far,
+                end_frame_address=end_far,
             )
-            reply = self._stub.fpgaReadback(request)
-
-            frames: list[FpgaFrame] = []
-            for frame in reply.frames:
-                words = [FpgaWord(value) for value in frame.words.values]
-                frames.append(FpgaFrame(frame.frameAddress, words))
-            return frames
+            reply = self._stub.FpgaReadBackRange(request)
+            return self._frames_from_reply(reply)
         except grpc.RpcError as e:
             raise FrameAddressError(
                 f"failed to read frames [{start_far}, {end_far}]: "
                 f"{_rpc_detail(e)}"
             ) from e
 
+    def readback(self) -> list[FpgaFrame]:
+        """Read back every configuration frame of the device
+        (RPC: ``FpgaReadBack``).
+        """
+        try:
+            reply = self._stub.FpgaReadBack(empty_pb2.Empty())
+            return self._frames_from_reply(reply)
+        except grpc.RpcError as e:
+            raise ConnectionFailedError(
+                f"failed to read back the device: {_rpc_detail(e)}"
+            ) from e
+
+    @staticmethod
+    def _frames_from_reply(reply) -> list[FpgaFrame]:
+        # FpgaFrame.words is now a flat repeated uint32 (the FpgaWord
+        # wrapper message was removed from the wire format).
+        frames: list[FpgaFrame] = []
+        for frame in reply.frames:
+            words = [FpgaWord(value) for value in frame.words]
+            frames.append(FpgaFrame(frame.frame_address, words))
+        return frames
+
     # -- device queries (properties) -------------------------------------- #
     @property
     def cram_bits(self) -> int:
-        """Total CRAM bits in the active device (RPC: ``fpgaCramBits``)."""
-        return self._count(self._stub.fpgaCramBits, "CRAM")
+        """Total CRAM bits in the active device
+        (RPC: ``FpgaGetBitCount`` with ``FPGA_BIT_CATEGORY_CRAM``)."""
+        return self._count("CRAM")
 
     @property
     def essential_cram_bits(self) -> int:
         """Essential CRAM bits for the loaded design
-        (RPC: ``fpgaEssentialCramBits``; requires the EBD file)."""
+        (RPC: ``FpgaGetBitCount`` with ``FPGA_BIT_CATEGORY_ESSENTIAL_CRAM``;
+        requires the EBD file)."""
         self._files.require("ebd")
-        return self._count(self._stub.fpgaEssentialCramBits, "essential CRAM")
+        return self._count("essential CRAM")
 
     @property
     def ff_bits(self) -> int:
         """Flip-flop bits used by the loaded design
-        (RPC: ``fpgaFlipFlopBits``; requires the LL file)."""
+        (RPC: ``FpgaGetBitCount`` with ``FPGA_BIT_CATEGORY_FLIP_FLOP``;
+        requires the LL file)."""
         self._files.require("ll")
-        return self._count(self._stub.fpgaFlipFlopBits, "flip-flop")
+        return self._count("flip-flop")
 
     @property
     def bram_bits(self) -> int:
         """BRAM bits used by the loaded design
-        (RPC: ``fpgaBramBits``; requires the LL file)."""
+        (RPC: ``FpgaGetBitCount`` with ``FPGA_BIT_CATEGORY_BRAM``;
+        requires the LL file)."""
         self._files.require("ll")
-        return self._count(self._stub.fpgaBramBits, "BRAM")
+        return self._count("BRAM")
 
     @property
     def lutram_bits(self) -> int:
         """LUTRAM bits used by the loaded design
-        (RPC: ``fpgaLutramBits``; requires the LL file)."""
+        (RPC: ``FpgaGetBitCount`` with ``FPGA_BIT_CATEGORY_LUTRAM``;
+        requires the LL file)."""
         self._files.require("ll")
-        return self._count(self._stub.fpgaLutramBits, "LUTRAM")
+        return self._count("LUTRAM")
 
-    def _count(self, rpc, label: str) -> int:
+    @property
+    def all_bit_counts(self) -> dict[str, int]:
+        """Every bit statistic in a single round trip
+        (RPC: ``FpgaGetAllBitCounts``; requires the EBD and LL files, since
+        the reply covers essential-CRAM and storage-element counts).
+        """
+        self._files.require("ebd", "ll")
         try:
-            return rpc(empty_pb2.Empty()).value
+            reply = self._stub.FpgaGetAllBitCounts(empty_pb2.Empty())
+        except grpc.RpcError as e:
+            raise ConnectionFailedError(
+                f"failed to get the bit counts: {_rpc_detail(e)}"
+            ) from e
+        return {
+            "cram_bits": reply.cram_bits,
+            "essential_cram_bits": reply.essential_cram_bits,
+            "bram_bits": reply.bram_bits,
+            "flip_flop_bits": reply.flip_flop_bits,
+            "lutram_bits": reply.lutram_bits,
+        }
+
+    def _count(self, label: str) -> int:
+        try:
+            request = skraft_client_pb2.FpgaBitCountRequest(
+                category=self._BIT_CATEGORIES[label],
+            )
+            return self._stub.FpgaGetBitCount(request).value
         except grpc.RpcError as e:
             raise ConnectionFailedError(
                 f"failed to get the {label} bits: {_rpc_detail(e)}"
@@ -221,23 +315,23 @@ class FpgaDevice:
         self, target: InjectionArea
     ) -> FpgaRandomInjectionReport:
         """Inject a single random SEU into ``target``
-        (RPC: ``fpgaRandomBitFlip``).
+        (RPC: ``FpgaRandomBitFlip``).
         """
         self._files.require(*target.required_design_files)
         try:
             request = skraft_client_pb2.FpgaRandomInjectionOptions(
-                includeEssential=bool(target & InjectionArea.ESSENTIAL_CRAM),
-                includeFlipFlops=bool(target & InjectionArea.FLIP_FLOP),
-                includeLutRams=bool(target & InjectionArea.LUTRAM),
-                includeBrams=bool(target & InjectionArea.BRAM),
+                include_essential=bool(target & InjectionArea.ESSENTIAL_CRAM),
+                include_flip_flops=bool(target & InjectionArea.FLIP_FLOP),
+                include_lutrams=bool(target & InjectionArea.LUTRAM),
+                include_brams=bool(target & InjectionArea.BRAM),
             )
-            reply = self._stub.fpgaRandomBitFlip(request)
+            reply = self._stub.FpgaRandomBitFlip(request)
             return FpgaRandomInjectionReport(
-                reply.target.frameAddress,
-                reply.target.wordIndex,
-                reply.target.bitIndex,
+                reply.target.frame_address,
+                reply.target.word_index,
+                reply.target.bit_index,
                 target,
-                reply.target.netName,
+                reply.target.net_name or None,
             )
         except grpc.RpcError as e:
             raise ConnectionFailedError(
@@ -247,56 +341,106 @@ class FpgaDevice:
     def inject_at(self, far: int, word_index: int, bit_index: int,
                   target: InjectionArea) -> FpgaInjectionReport:
         """Inject an upset at a specific ``(far, word_index, bit_index)``
-           location, constrained to ``target`` (RPC: ``fpgaBitFlip``).
+        location, constrained to ``target`` (RPC: ``FpgaBitFlip``).
+
+        The wire message now carries a single ``FpgaTargetKind`` enum instead
+        of three booleans, so ``target`` must name at most one storage-element
+        area (``FLIP_FLOP``, ``LUTRAM`` or ``BRAM``); anything else is treated
+        as CRAM.
         """
         self._files.require(*target.required_design_files)
         try:
             request = skraft_client_pb2.FpgaInjectionTarget(
-                frameAddress=far,
-                wordIndex=word_index,
-                bitIndex=bit_index,
-                isFlipFlop=bool(target & InjectionArea.FLIP_FLOP),
-                isLutRam=bool(target & InjectionArea.LUTRAM),
-                isBram=bool(target & InjectionArea.BRAM),
+                frame_address=far,
+                word_index=word_index,
+                bit_index=bit_index,
+                kind=_kind_from_area(target),
             )
-            self._stub.fpgaBitFlip(request)
+            self._stub.FpgaBitFlip(request)
         except grpc.RpcError as e:
             raise ConnectionFailedError(
                 f"failed to perform bit flip: {_rpc_detail(e)}"
             ) from e
-        # fpgaBitFlip returns nothing; echo the requested location.
+        # FpgaBitFlip returns nothing; echo the requested location.
         return FpgaInjectionReport(far, word_index, bit_index, target)
+
+    def scrub(self, option: ScrubbingType, scrub_cycle: int,
+              duration_ms: int, session_id: str = "") -> FpgaScrubReport:
+        """Run a scrubbing session (RPC: ``FpgaScrubbing``).
+
+        ``ESSENTIAL`` scrubbing needs the EBD file so the server can tell
+        essential from non-essential upsets.
+        """
+        if option == ScrubbingType.ESSENTIAL:
+            self._files.require("ebd")
+        try:
+            request = skraft_client_pb2.FpgaScrubSession(
+                scrub_cycle=scrub_cycle,
+                duration_ms=duration_ms,
+                id=session_id,
+            )
+            reply = self._stub.FpgaScrubbing(request)
+        except grpc.RpcError as e:
+            raise ConnectionFailedError(
+                f"failed to perform scrubbing: {_rpc_detail(e)}"
+            ) from e
+
+        summaries: list[FpgaScrubSummary] = []
+        for summary in reply.scrub_summaries:
+            words = [
+                FpgaScrubWordSummary(
+                    ws.far,
+                    ws.word_index,
+                    ws.bit_index,
+                    ws.golden_word_value,
+                    ws.erroneous_word_value,
+                    ws.ebd_word_value,
+                    ws.msd_word_value,
+                    ws.is_essential,
+                )
+                for ws in summary.word_summaries
+            ]
+            summaries.append(
+                FpgaScrubSummary(
+                    summary.scrub_cycle,
+                    summary.correction_time_ms,
+                    summary.idle_time_ms,
+                    summary.scrub_cycle_actual_duration_ms,
+                    words,
+                )
+            )
+        return FpgaScrubReport(summaries)
 
     def run_campaign(self, session: FpgaFiSession) -> FpgaFiSummary:
         """Run a user-defined fault-injection campaign
-        (RPC: ``fpgaFaultInjection``).
+        (RPC: ``FpgaFaultInjection``).
         """
         if session.essential:
             self._files.require("ebd")
         try:
             request = skraft_client_pb2.FpgaFiSession(
-                type=session.fi_type.value,
-                duration=session.duration_ms,
-                correctionTime=session.correction_time_ms,
-                timeBetweenFaults=session.time_between_faults_ms,
-                sbuPercent=session.sbu_percent,
-                mbuPercent=session.mbu_percent,
-                mcuPercent=session.mcu_percent,
+                type=session.fault_type.value,
+                duration_ms=session.duration_ms,
+                correction_time_ms=session.correction_time_ms,
+                time_between_faults_ms=session.time_between_faults_ms,
+                sbu_percent=session.sbu_percent,
+                mbu_percent=session.mbu_percent,
+                mcu_percent=session.mcu_percent,
                 essential=session.essential,
                 correct=session.correct,
             )
-            reply = self._stub.fpgaFaultInjection(request)
+            reply = self._stub.FpgaFaultInjection(request)
 
             words = [
-                FpgaWordSummary(
+                FpgaFiWordSummary(
                     ws.far,
-                    ws.wordIndex,
-                    ws.bitIndex,
-                    ws.goldenWordValue,
-                    ws.injectedWordValue,
-                    ws.isEssential,
+                    ws.word_index,
+                    ws.bit_index,
+                    ws.golden_word_value,
+                    ws.injected_word_value,
+                    ws.is_essential,
                 )
-                for ws in reply.wordSummary
+                for ws in reply.word_summaries
             ]
         except grpc.RpcError as e:
             raise ConnectionFailedError(
@@ -306,18 +450,18 @@ class FpgaDevice:
         # The reply carries only the per-word list, so derive the aggregate
         # counts client-side. Wire real server counts here if they exist.
         faults_injected = len(words)
-        
+
         corrected = faults_injected if session.correct else 0
         return FpgaFiSummary(session, faults_injected, corrected, words)
 
     # -- frame utilities --------------------------------------------------- #
     def exclude_frames(self, fars: list[int]) -> None:
         """Exclude Frame Addresses from bulk operations
-        (RPC: ``fpgaExcludeFars``). ``inject_at`` is unaffected.
+        (RPC: ``FpgaExcludeFars``). ``inject_at`` is unaffected.
         """
         try:
-            request = skraft_client_pb2.FpgaFarListExcludeRequest(values=fars)
-            self._stub.fpgaExcludeFars(request)
+            request = skraft_client_pb2.FpgaFarListExcludeRequest(fars=fars)
+            self._stub.FpgaExcludeFars(request)
         except grpc.RpcError as e:
             raise FrameAddressError(
                 f"failed to exclude the provided FARs: {_rpc_detail(e)}"
@@ -326,7 +470,7 @@ class FpgaDevice:
     # -- boundary scan ----------------------------------------------------- #
     def write_bscan(self, bscan: BscanPrimitive, value: int) -> bytes:
         """Write ``value`` into the given USER register
-        (RPC: ``fpgaWriteBscan`` via ``BscanPrimitive.shift_in``).
+        (RPC: ``FpgaWriteBscan`` via ``BscanPrimitive.shift_in``).
         """
         try:
             total_bytes = bscan.size_in_bits // 8 or 1
@@ -335,6 +479,20 @@ class FpgaDevice:
         except grpc.RpcError as e:
             raise BscanError(
                 f"failed to write bscan register {bscan.user_register_id}: "
+                f"{_rpc_detail(e)}"
+            ) from e
+
+    def read_bscan(self, bscan: BscanPrimitive) -> bytes:
+        """Read the current value of the given USER register
+        (RPC: ``FpgaReadBscan`` via ``BscanPrimitive.shift_in``).
+        """
+        try:
+            total_bytes = bscan.size_in_bits // 8 or 1
+            dummy = bytes(total_bytes)
+            return bscan.shift_in(self._stub, dummy, True)
+        except grpc.RpcError as e:
+            raise BscanError(
+                f"failed to read bscan register {bscan.user_register_id}: "
                 f"{_rpc_detail(e)}"
             ) from e
 
@@ -392,14 +550,14 @@ class SkraftFpga:
     def attach(self, device_part_number: str,
                programmer_part_number: str = "FT2XX") -> FpgaDevice:
         """Reserve a specific device by part number, via the given programmer
-        (RPC: ``fpgaConnect``). Returns a context-manageable ``FpgaDevice``.
+        (RPC: ``FpgaConnect``). Returns a context-manageable ``FpgaDevice``.
         """
         try:
             request = skraft_client_pb2.FpgaDeviceDetails(
-                devicePartNumber=device_part_number,
-                programmerPartNumber=programmer_part_number,
+                device_part_number=device_part_number,
+                programmer_part_number=programmer_part_number,
             )
-            self._stub.fpgaConnect(request)
+            self._stub.FpgaConnect(request)
         except grpc.RpcError as e:
             raise DeviceReservationError(
                 f"failed to reserve device {device_part_number}: "
@@ -411,18 +569,17 @@ class SkraftFpga:
     def extract_fars_from_bitstream(self,
                                     bitstream_path: ServerPath) -> list[int]:
         """Extract every Frame Address in a bitstream file
-        (RPC: ``fpgaExtractFarsFromBitstream``). Requires per-frame CRC in the
+        (RPC: ``FpgaExtractFarsFromBitstream``). Requires per-frame CRC in the
         design.
         """
         try:
             request = skraft_client_pb2.FpgaFarListExtractRequest(
-                bitstreamPath=str(bitstream_path),
+                bitstream_path=str(bitstream_path),
             )
-            reply = self._stub.fpgaExtractFarsFromBitstream(request)
-            return reply.values
+            reply = self._stub.FpgaExtractFarsFromBitstream(request)
+            return list(reply.fars)
         except grpc.RpcError as e:
             raise FrameAddressError(
                 f"failed to extract FARs from {bitstream_path}: "
                 f"{_rpc_detail(e)}"
             ) from e
-

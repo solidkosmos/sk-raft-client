@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13skraft_client.proto\x12\x05proto\x1a\x1bgoogle/protobuf/empty.proto\"\x1d\n\x0c\x46pgaBitCount\x12\r\n\x05value\x18\x01 \x01(\r\"\x1a\n\x08\x46pgaWord\x12\x0e\n\x06values\x18\x01 \x03(\r\"2\n\x19\x46pgaFarListExtractRequest\x12\x15\n\rbitstreamPath\x18\x01 \x01(\t\"*\n\x18\x46pgaFarListExtractResult\x12\x0e\n\x06values\x18\x01 \x03(\r\"+\n\x19\x46pgaFarListExcludeRequest\x12\x0e\n\x06values\x18\x01 \x03(\r\"A\n\tFpgaFrame\x12\x14\n\x0c\x66rameAddress\x18\x01 \x01(\r\x12\x1e\n\x05words\x18\x02 \x03(\x0b\x32\x0f.proto.FpgaWord\"6\n\x12\x46pgaReadbackDetail\x12 \n\x06\x66rames\x18\x01 \x03(\x0b\x32\x10.proto.FpgaFrame\"H\n\x12\x46pgaReadbackTarget\x12\x19\n\x11startFrameAddress\x18\x01 \x01(\r\x12\x17\n\x0f\x65ndFrameAddress\x18\x02 \x01(\r\"K\n\x11\x46pgaDeviceDetails\x12\x18\n\x10\x64\x65vicePartNumber\x18\x01 \x01(\t\x12\x1c\n\x14programmerPartNumber\x18\x02 \x01(\t\"L\n\x0f\x46pgaBscanTarget\x12\x16\n\x0euserRegisterId\x18\x01 \x01(\r\x12\r\n\x05value\x18\x02 \x01(\x0c\x12\x12\n\nusefulBits\x18\x03 \x01(\r\" \n\x0f\x46pgaBscanOutput\x12\r\n\x05value\x18\x02 \x01(\x0c\"\x97\x01\n\x13\x46pgaInjectionTarget\x12\x14\n\x0c\x66rameAddress\x18\x01 \x01(\r\x12\x11\n\twordIndex\x18\x02 \x01(\r\x12\x10\n\x08\x62itIndex\x18\x03 \x01(\r\x12\x12\n\nisFlipFlop\x18\x04 \x01(\x08\x12\x10\n\x08isLutRam\x18\x05 \x01(\x08\x12\x0e\n\x06isBram\x18\x06 \x01(\x08\x12\x0f\n\x07netName\x18\x07 \x01(\t\"G\n\x19\x46pgaRandomInjectionReport\x12*\n\x06target\x18\x01 \x01(\x0b\x32\x1a.proto.FpgaInjectionTarget\"~\n\x1a\x46pgaRandomInjectionOptions\x12\x18\n\x10includeEssential\x18\x01 \x01(\x08\x12\x18\n\x10includeFlipFlops\x18\x02 \x01(\x08\x12\x16\n\x0eincludeLutRams\x18\x03 \x01(\x08\x12\x14\n\x0cincludeBrams\x18\x04 \x01(\x08\"\x18\n\x08\x46ilePath\x12\x0c\n\x04path\x18\x01 \x01(\t\"\xc2\x01\n\rFpgaFiSession\x12\x0c\n\x04type\x18\x01 \x01(\r\x12\x10\n\x08\x64uration\x18\x02 \x01(\r\x12\x16\n\x0e\x63orrectionTime\x18\x03 \x01(\r\x12\x19\n\x11timeBetweenFaults\x18\x04 \x01(\r\x12\x12\n\nsbuPercent\x18\x05 \x01(\x02\x12\x12\n\nmbuPercent\x18\x06 \x01(\x02\x12\x12\n\nmcuPercent\x18\x07 \x01(\x02\x12\x11\n\tessential\x18\x08 \x01(\x08\x12\x0f\n\x07\x63orrect\x18\t \x01(\x08\"\x8c\x01\n\x0f\x46pgaWordSummary\x12\x0b\n\x03\x66\x61r\x18\x01 \x01(\r\x12\x11\n\twordIndex\x18\x02 \x01(\r\x12\x10\n\x08\x62itIndex\x18\x03 \x01(\r\x12\x17\n\x0fgoldenWordValue\x18\x04 \x01(\r\x12\x19\n\x11injectedWordValue\x18\x05 \x01(\r\x12\x13\n\x0bisEssential\x18\x06 \x01(\x08\"\x8f\x01\n\rFpgaFiSummary\x12\x0c\n\x04type\x18\x01 \x01(\r\x12\x10\n\x08\x64uration\x18\x02 \x01(\r\x12\x16\n\x0e\x63orrectionTime\x18\x03 \x01(\r\x12\x19\n\x11timeBetweenFaults\x18\x04 \x01(\r\x12+\n\x0bwordSummary\x18\x05 \x03(\x0b\x32\x16.proto.FpgaWordSummary2\x82\x0b\n\nSKRaftFpga\x12\x41\n\x0b\x66pgaConnect\x12\x18.proto.FpgaDeviceDetails\x1a\x16.google.protobuf.Empty\"\x00\x12=\n\tfpgaClose\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x12?\n\x12\x66pgaSetRbdFilePath\x12\x0f.proto.FilePath\x1a\x16.google.protobuf.Empty\"\x00\x12?\n\x12\x66pgaSetMsdFilePath\x12\x0f.proto.FilePath\x1a\x16.google.protobuf.Empty\"\x00\x12?\n\x12\x66pgaSetEbdFilePath\x12\x0f.proto.FilePath\x1a\x16.google.protobuf.Empty\"\x00\x12>\n\x11\x66pgaSetllFilePath\x12\x0f.proto.FilePath\x1a\x16.google.protobuf.Empty\"\x00\x12?\n\x12\x66pgaSetBitFilePath\x12\x0f.proto.FilePath\x1a\x16.google.protobuf.Empty\"\x00\x12\x42\n\x0e\x66pgaWriteBscan\x12\x16.proto.FpgaBscanTarget\x1a\x16.proto.FpgaBscanOutput\"\x00\x12=\n\x0c\x66pgaCramBits\x12\x16.google.protobuf.Empty\x1a\x13.proto.FpgaBitCount\"\x00\x12\x46\n\x15\x66pgaEssentialCramBits\x12\x16.google.protobuf.Empty\x1a\x13.proto.FpgaBitCount\"\x00\x12=\n\x0c\x66pgaBramBits\x12\x16.google.protobuf.Empty\x1a\x13.proto.FpgaBitCount\"\x00\x12\x41\n\x10\x66pgaFlipFlopBits\x12\x16.google.protobuf.Empty\x1a\x13.proto.FpgaBitCount\"\x00\x12?\n\x0e\x66pgaLutramBits\x12\x16.google.protobuf.Empty\x1a\x13.proto.FpgaBitCount\"\x00\x12\x43\n\x0b\x66pgaBitFlip\x12\x1a.proto.FpgaInjectionTarget\x1a\x16.google.protobuf.Empty\"\x00\x12Z\n\x11\x66pgaRandomBitFlip\x12!.proto.FpgaRandomInjectionOptions\x1a .proto.FpgaRandomInjectionReport\"\x00\x12\x42\n\x12\x66pgaFaultInjection\x12\x14.proto.FpgaFiSession\x1a\x14.proto.FpgaFiSummary\"\x00\x12?\n\x0b\x66pgaProgram\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x12\x63\n\x1c\x66pgaExtractFarsFromBitstream\x12 .proto.FpgaFarListExtractRequest\x1a\x1f.proto.FpgaFarListExtractResult\"\x00\x12M\n\x0f\x66pgaExcludeFars\x12 .proto.FpgaFarListExcludeRequest\x1a\x16.google.protobuf.Empty\"\x00\x12\x46\n\x0c\x66pgaReadBack\x12\x19.proto.FpgaReadbackTarget\x1a\x19.proto.FpgaReadbackDetail\"\x00\x42>Z<bitbucket.org/sk_dev_team/sk-raft-software/cmd/sk_raft/protob\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13skraft_client.proto\x12\x05proto\x1a\x1bgoogle/protobuf/empty.proto\"O\n\x11\x46pgaDeviceDetails\x12\x1a\n\x12\x64\x65vice_part_number\x18\x01 \x01(\t\x12\x1e\n\x16programmer_part_number\x18\x02 \x01(\t\"L\n\x19\x46pgaDesignFilePathRequest\x12!\n\x04type\x18\x01 \x01(\x0e\x32\x13.proto.FpgaFileType\x12\x0c\n\x04path\x18\x02 \x01(\t\"?\n\x13\x46pgaBitCountRequest\x12(\n\x08\x63\x61tegory\x18\x01 \x01(\x0e\x32\x16.proto.FpgaBitCategory\"\x1d\n\x0c\x46pgaBitCount\x12\r\n\x05value\x18\x01 \x01(\r\"\x7f\n\rFpgaBitCounts\x12\x11\n\tcram_bits\x18\x01 \x01(\r\x12\x1b\n\x13\x65ssential_cram_bits\x18\x02 \x01(\r\x12\x11\n\tbram_bits\x18\x03 \x01(\r\x12\x16\n\x0e\x66lip_flop_bits\x18\x04 \x01(\r\x12\x13\n\x0blutram_bits\x18\x05 \x01(\r\"H\n\x10\x46pgaScrubSession\x12\x13\n\x0bscrub_cycle\x18\x01 \x01(\r\x12\x13\n\x0b\x64uration_ms\x18\x02 \x01(\r\x12\n\n\x02id\x18\x03 \x01(\t\"\xb6\x01\n\x10\x46pgaScrubSummary\x12\x13\n\x0bscrub_cycle\x18\x01 \x01(\r\x12\x1a\n\x12\x63orrection_time_ms\x18\x02 \x01(\r\x12\x14\n\x0cidle_time_ms\x18\x03 \x01(\r\x12&\n\x1escrub_cycle_actual_duration_ms\x18\x04 \x01(\r\x12\x33\n\x0eword_summaries\x18\x05 \x03(\x0b\x32\x1b.proto.FpgaScrubWordSummary\"C\n\x0f\x46pgaScrubReport\x12\x30\n\x0fscrub_summaries\x18\x01 \x03(\x0b\x32\x17.proto.FpgaScrubSummary\"\xc9\x01\n\x14\x46pgaScrubWordSummary\x12\x0b\n\x03\x66\x61r\x18\x01 \x01(\r\x12\x12\n\nword_index\x18\x02 \x01(\r\x12\x11\n\tbit_index\x18\x03 \x01(\r\x12\x19\n\x11golden_word_value\x18\x04 \x01(\r\x12\x1c\n\x14\x65rroneous_word_value\x18\x05 \x01(\r\x12\x16\n\x0e\x65\x62\x64_word_value\x18\x06 \x01(\r\x12\x16\n\x0emsd_word_value\x18\x07 \x01(\r\x12\x14\n\x0cis_essential\x18\x08 \x01(\x08\"3\n\x19\x46pgaFarListExtractRequest\x12\x16\n\x0e\x62itstream_path\x18\x01 \x01(\t\"*\n\x1a\x46pgaFarListExtractResponse\x12\x0c\n\x04\x66\x61rs\x18\x01 \x03(\r\")\n\x19\x46pgaFarListExcludeRequest\x12\x0c\n\x04\x66\x61rs\x18\x01 \x03(\r\"L\n\x12\x46pgaReadbackTarget\x12\x1b\n\x13start_frame_address\x18\x01 \x01(\r\x12\x19\n\x11\x65nd_frame_address\x18\x02 \x01(\r\"1\n\tFpgaFrame\x12\x15\n\rframe_address\x18\x01 \x01(\r\x12\r\n\x05words\x18\x02 \x03(\r\"6\n\x12\x46pgaReadbackDetail\x12 \n\x06\x66rames\x18\x01 \x03(\x0b\x32\x10.proto.FpgaFrame\"O\n\x0f\x46pgaBscanTarget\x12\x18\n\x10user_register_id\x18\x01 \x01(\r\x12\r\n\x05value\x18\x02 \x01(\x0c\x12\x13\n\x0buseful_bits\x18\x03 \x01(\r\" \n\x0f\x46pgaBscanOutput\x12\r\n\x05value\x18\x01 \x01(\x0c\"\x8a\x01\n\x13\x46pgaInjectionTarget\x12\x15\n\rframe_address\x18\x01 \x01(\r\x12\x12\n\nword_index\x18\x02 \x01(\r\x12\x11\n\tbit_index\x18\x03 \x01(\r\x12#\n\x04kind\x18\x04 \x01(\x0e\x32\x15.proto.FpgaTargetKind\x12\x10\n\x08net_name\x18\x05 \x01(\t\"\x83\x01\n\x1a\x46pgaRandomInjectionOptions\x12\x19\n\x11include_essential\x18\x01 \x01(\x08\x12\x1a\n\x12include_flip_flops\x18\x02 \x01(\x08\x12\x17\n\x0finclude_lutrams\x18\x03 \x01(\x08\x12\x15\n\rinclude_brams\x18\x04 \x01(\x08\"G\n\x19\x46pgaRandomInjectionReport\x12*\n\x06target\x18\x01 \x01(\x0b\x32\x1a.proto.FpgaInjectionTarget\"\xe7\x01\n\rFpgaFiSession\x12\"\n\x04type\x18\x01 \x01(\x0e\x32\x14.proto.FpgaFaultType\x12\x13\n\x0b\x64uration_ms\x18\x02 \x01(\r\x12\x1a\n\x12\x63orrection_time_ms\x18\x03 \x01(\r\x12\x1e\n\x16time_between_faults_ms\x18\x04 \x01(\r\x12\x13\n\x0bsbu_percent\x18\x05 \x01(\x02\x12\x13\n\x0bmbu_percent\x18\x06 \x01(\x02\x12\x13\n\x0bmcu_percent\x18\x07 \x01(\x02\x12\x11\n\tessential\x18\x08 \x01(\x08\x12\x0f\n\x07\x63orrect\x18\t \x01(\x08\"\x95\x01\n\x11\x46pgaFiWordSummary\x12\x0b\n\x03\x66\x61r\x18\x01 \x01(\r\x12\x12\n\nword_index\x18\x02 \x01(\r\x12\x11\n\tbit_index\x18\x03 \x01(\r\x12\x19\n\x11golden_word_value\x18\x04 \x01(\r\x12\x1b\n\x13injected_word_value\x18\x05 \x01(\r\x12\x14\n\x0cis_essential\x18\x06 \x01(\x08\"\xb6\x01\n\rFpgaFiSummary\x12\"\n\x04type\x18\x01 \x01(\x0e\x32\x14.proto.FpgaFaultType\x12\x13\n\x0b\x64uration_ms\x18\x02 \x01(\r\x12\x1a\n\x12\x63orrection_time_ms\x18\x03 \x01(\r\x12\x1e\n\x16time_between_faults_ms\x18\x04 \x01(\r\x12\x30\n\x0eword_summaries\x18\x05 \x03(\x0b\x32\x18.proto.FpgaFiWordSummary*\xa5\x01\n\x0c\x46pgaFileType\x12\x1e\n\x1a\x46PGA_FILE_TYPE_UNSPECIFIED\x10\x00\x12\x16\n\x12\x46PGA_FILE_TYPE_RBD\x10\x01\x12\x16\n\x12\x46PGA_FILE_TYPE_MSD\x10\x02\x12\x16\n\x12\x46PGA_FILE_TYPE_EBD\x10\x03\x12\x15\n\x11\x46PGA_FILE_TYPE_LL\x10\x04\x12\x16\n\x12\x46PGA_FILE_TYPE_BIT\x10\x05*\xd1\x01\n\x0f\x46pgaBitCategory\x12!\n\x1d\x46PGA_BIT_CATEGORY_UNSPECIFIED\x10\x00\x12\x1a\n\x16\x46PGA_BIT_CATEGORY_CRAM\x10\x01\x12$\n FPGA_BIT_CATEGORY_ESSENTIAL_CRAM\x10\x02\x12\x1a\n\x16\x46PGA_BIT_CATEGORY_BRAM\x10\x03\x12\x1f\n\x1b\x46PGA_BIT_CATEGORY_FLIP_FLOP\x10\x04\x12\x1c\n\x18\x46PGA_BIT_CATEGORY_LUTRAM\x10\x05*\xa5\x01\n\x0e\x46pgaTargetKind\x12 \n\x1c\x46PGA_TARGET_KIND_UNSPECIFIED\x10\x00\x12\x19\n\x15\x46PGA_TARGET_KIND_CRAM\x10\x01\x12\x1e\n\x1a\x46PGA_TARGET_KIND_FLIP_FLOP\x10\x02\x12\x1b\n\x17\x46PGA_TARGET_KIND_LUTRAM\x10\x03\x12\x19\n\x15\x46PGA_TARGET_KIND_BRAM\x10\x04*\x96\x01\n\rFpgaFaultType\x12\x1f\n\x1b\x46PGA_FAULT_TYPE_UNSPECIFIED\x10\x00\x12\x17\n\x13\x46PGA_FAULT_TYPE_SBU\x10\x01\x12\x17\n\x13\x46PGA_FAULT_TYPE_MBU\x10\x02\x12\x17\n\x13\x46PGA_FAULT_TYPE_MCU\x10\x03\x12\x19\n\x15\x46PGA_FAULT_TYPE_MIXED\x10\x04\x32\xa9\t\n\nSKRaftFpga\x12\x41\n\x0b\x46pgaConnect\x12\x18.proto.FpgaDeviceDetails\x1a\x16.google.protobuf.Empty\"\x00\x12=\n\tFpgaClose\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x12S\n\x15\x46pgaSetDesignFilePath\x12 .proto.FpgaDesignFilePathRequest\x1a\x16.google.protobuf.Empty\"\x00\x12\x44\n\x0f\x46pgaGetBitCount\x12\x1a.proto.FpgaBitCountRequest\x1a\x13.proto.FpgaBitCount\"\x00\x12\x45\n\x13\x46pgaGetAllBitCounts\x12\x16.google.protobuf.Empty\x1a\x14.proto.FpgaBitCounts\"\x00\x12\x42\n\rFpgaScrubbing\x12\x17.proto.FpgaScrubSession\x1a\x16.proto.FpgaScrubReport\"\x00\x12\x42\n\x0e\x46pgaWriteBscan\x12\x16.proto.FpgaBscanTarget\x1a\x16.proto.FpgaBscanOutput\"\x00\x12\x41\n\rFpgaReadBscan\x12\x16.proto.FpgaBscanTarget\x1a\x16.proto.FpgaBscanOutput\"\x00\x12\x43\n\x0b\x46pgaBitFlip\x12\x1a.proto.FpgaInjectionTarget\x1a\x16.google.protobuf.Empty\"\x00\x12Z\n\x11\x46pgaRandomBitFlip\x12!.proto.FpgaRandomInjectionOptions\x1a .proto.FpgaRandomInjectionReport\"\x00\x12\x42\n\x12\x46pgaFaultInjection\x12\x14.proto.FpgaFiSession\x1a\x14.proto.FpgaFiSummary\"\x00\x12?\n\x0b\x46pgaProgram\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x12\x65\n\x1c\x46pgaExtractFarsFromBitstream\x12 .proto.FpgaFarListExtractRequest\x1a!.proto.FpgaFarListExtractResponse\"\x00\x12M\n\x0f\x46pgaExcludeFars\x12 .proto.FpgaFarListExcludeRequest\x1a\x16.google.protobuf.Empty\"\x00\x12K\n\x11\x46pgaReadBackRange\x12\x19.proto.FpgaReadbackTarget\x1a\x19.proto.FpgaReadbackDetail\"\x00\x12\x43\n\x0c\x46pgaReadBack\x12\x16.google.protobuf.Empty\x1a\x19.proto.FpgaReadbackDetail\"\x00\x42>Z<bitbucket.org/sk_dev_team/sk-raft-software/cmd/sk_raft/protob\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,42 +33,60 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'skraft_client_pb2', _global
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'Z<bitbucket.org/sk_dev_team/sk-raft-software/cmd/sk_raft/proto'
-  _globals['_FPGABITCOUNT']._serialized_start=59
-  _globals['_FPGABITCOUNT']._serialized_end=88
-  _globals['_FPGAWORD']._serialized_start=90
-  _globals['_FPGAWORD']._serialized_end=116
-  _globals['_FPGAFARLISTEXTRACTREQUEST']._serialized_start=118
-  _globals['_FPGAFARLISTEXTRACTREQUEST']._serialized_end=168
-  _globals['_FPGAFARLISTEXTRACTRESULT']._serialized_start=170
-  _globals['_FPGAFARLISTEXTRACTRESULT']._serialized_end=212
-  _globals['_FPGAFARLISTEXCLUDEREQUEST']._serialized_start=214
-  _globals['_FPGAFARLISTEXCLUDEREQUEST']._serialized_end=257
-  _globals['_FPGAFRAME']._serialized_start=259
-  _globals['_FPGAFRAME']._serialized_end=324
-  _globals['_FPGAREADBACKDETAIL']._serialized_start=326
-  _globals['_FPGAREADBACKDETAIL']._serialized_end=380
-  _globals['_FPGAREADBACKTARGET']._serialized_start=382
-  _globals['_FPGAREADBACKTARGET']._serialized_end=454
-  _globals['_FPGADEVICEDETAILS']._serialized_start=456
-  _globals['_FPGADEVICEDETAILS']._serialized_end=531
-  _globals['_FPGABSCANTARGET']._serialized_start=533
-  _globals['_FPGABSCANTARGET']._serialized_end=609
-  _globals['_FPGABSCANOUTPUT']._serialized_start=611
-  _globals['_FPGABSCANOUTPUT']._serialized_end=643
-  _globals['_FPGAINJECTIONTARGET']._serialized_start=646
-  _globals['_FPGAINJECTIONTARGET']._serialized_end=797
-  _globals['_FPGARANDOMINJECTIONREPORT']._serialized_start=799
-  _globals['_FPGARANDOMINJECTIONREPORT']._serialized_end=870
-  _globals['_FPGARANDOMINJECTIONOPTIONS']._serialized_start=872
-  _globals['_FPGARANDOMINJECTIONOPTIONS']._serialized_end=998
-  _globals['_FILEPATH']._serialized_start=1000
-  _globals['_FILEPATH']._serialized_end=1024
-  _globals['_FPGAFISESSION']._serialized_start=1027
-  _globals['_FPGAFISESSION']._serialized_end=1221
-  _globals['_FPGAWORDSUMMARY']._serialized_start=1224
-  _globals['_FPGAWORDSUMMARY']._serialized_end=1364
-  _globals['_FPGAFISUMMARY']._serialized_start=1367
-  _globals['_FPGAFISUMMARY']._serialized_end=1510
-  _globals['_SKRAFTFPGA']._serialized_start=1513
-  _globals['_SKRAFTFPGA']._serialized_end=2923
+  _globals['_FPGAFILETYPE']._serialized_start=2335
+  _globals['_FPGAFILETYPE']._serialized_end=2500
+  _globals['_FPGABITCATEGORY']._serialized_start=2503
+  _globals['_FPGABITCATEGORY']._serialized_end=2712
+  _globals['_FPGATARGETKIND']._serialized_start=2715
+  _globals['_FPGATARGETKIND']._serialized_end=2880
+  _globals['_FPGAFAULTTYPE']._serialized_start=2883
+  _globals['_FPGAFAULTTYPE']._serialized_end=3033
+  _globals['_FPGADEVICEDETAILS']._serialized_start=59
+  _globals['_FPGADEVICEDETAILS']._serialized_end=138
+  _globals['_FPGADESIGNFILEPATHREQUEST']._serialized_start=140
+  _globals['_FPGADESIGNFILEPATHREQUEST']._serialized_end=216
+  _globals['_FPGABITCOUNTREQUEST']._serialized_start=218
+  _globals['_FPGABITCOUNTREQUEST']._serialized_end=281
+  _globals['_FPGABITCOUNT']._serialized_start=283
+  _globals['_FPGABITCOUNT']._serialized_end=312
+  _globals['_FPGABITCOUNTS']._serialized_start=314
+  _globals['_FPGABITCOUNTS']._serialized_end=441
+  _globals['_FPGASCRUBSESSION']._serialized_start=443
+  _globals['_FPGASCRUBSESSION']._serialized_end=515
+  _globals['_FPGASCRUBSUMMARY']._serialized_start=518
+  _globals['_FPGASCRUBSUMMARY']._serialized_end=700
+  _globals['_FPGASCRUBREPORT']._serialized_start=702
+  _globals['_FPGASCRUBREPORT']._serialized_end=769
+  _globals['_FPGASCRUBWORDSUMMARY']._serialized_start=772
+  _globals['_FPGASCRUBWORDSUMMARY']._serialized_end=973
+  _globals['_FPGAFARLISTEXTRACTREQUEST']._serialized_start=975
+  _globals['_FPGAFARLISTEXTRACTREQUEST']._serialized_end=1026
+  _globals['_FPGAFARLISTEXTRACTRESPONSE']._serialized_start=1028
+  _globals['_FPGAFARLISTEXTRACTRESPONSE']._serialized_end=1070
+  _globals['_FPGAFARLISTEXCLUDEREQUEST']._serialized_start=1072
+  _globals['_FPGAFARLISTEXCLUDEREQUEST']._serialized_end=1113
+  _globals['_FPGAREADBACKTARGET']._serialized_start=1115
+  _globals['_FPGAREADBACKTARGET']._serialized_end=1191
+  _globals['_FPGAFRAME']._serialized_start=1193
+  _globals['_FPGAFRAME']._serialized_end=1242
+  _globals['_FPGAREADBACKDETAIL']._serialized_start=1244
+  _globals['_FPGAREADBACKDETAIL']._serialized_end=1298
+  _globals['_FPGABSCANTARGET']._serialized_start=1300
+  _globals['_FPGABSCANTARGET']._serialized_end=1379
+  _globals['_FPGABSCANOUTPUT']._serialized_start=1381
+  _globals['_FPGABSCANOUTPUT']._serialized_end=1413
+  _globals['_FPGAINJECTIONTARGET']._serialized_start=1416
+  _globals['_FPGAINJECTIONTARGET']._serialized_end=1554
+  _globals['_FPGARANDOMINJECTIONOPTIONS']._serialized_start=1557
+  _globals['_FPGARANDOMINJECTIONOPTIONS']._serialized_end=1688
+  _globals['_FPGARANDOMINJECTIONREPORT']._serialized_start=1690
+  _globals['_FPGARANDOMINJECTIONREPORT']._serialized_end=1761
+  _globals['_FPGAFISESSION']._serialized_start=1764
+  _globals['_FPGAFISESSION']._serialized_end=1995
+  _globals['_FPGAFIWORDSUMMARY']._serialized_start=1998
+  _globals['_FPGAFIWORDSUMMARY']._serialized_end=2147
+  _globals['_FPGAFISUMMARY']._serialized_start=2150
+  _globals['_FPGAFISUMMARY']._serialized_end=2332
+  _globals['_SKRAFTFPGA']._serialized_start=3036
+  _globals['_SKRAFTFPGA']._serialized_end=4229
 # @@protoc_insertion_point(module_scope)

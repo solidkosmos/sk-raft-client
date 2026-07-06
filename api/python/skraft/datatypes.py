@@ -1,5 +1,5 @@
 #   Copyright(C) 2024 SOLIDKOSMOS S.A.
-#   All rights reserved. Confidential Information.
+#   All rights reserved.
 #
 #   This software ("Software") is supplied by SOLIDKOSMOS S.A. ("SolidKosmos").
 #   SolidKosmos grants you a personal, non-exclusive, non-transferable, revocable,
@@ -23,13 +23,18 @@
 
 """Data structures exchanged with the SK-RAFT API.
 
-This module matches the revised data-types documentation:
-- ``InjectionArea`` is an ``IntFlag`` (combinable), replacing the single-choice
-  ``FpgaTargetSelector`` enum.
-- ``InjectionType`` is a string enum, replacing the bare ``int`` fault type.
-- ``DesignFiles`` groups the per-design paths into one validated object.
-- ``FpgaFiSession`` carries an ``InjectionArea`` target and millisecond-suffixed
-  timings; ``FpgaFiSummary`` reports outcomes instead of echoing the inputs.
+This module matches the redesigned proto definition:
+- ``InjectionArea`` is an ``IntFlag`` (combinable) used for random injection;
+  a specific injection is narrowed to a single wire ``FpgaTargetKind``.
+- ``FaultType`` mirrors the wire ``FpgaFaultType`` enum (SBU/MBU/MCU/MIXED),
+  replacing the opaque integer fault type.
+- ``DesignFiles`` groups the per-design paths into one validated object; all
+  of them are pushed through the single ``FpgaSetDesignFilePath`` RPC.
+- ``FpgaFiSession`` carries millisecond-suffixed timings matching the wire
+  field names; ``FpgaFiSummary`` reports outcomes instead of echoing inputs.
+- ``FpgaScrubReport`` wraps per-cycle ``FpgaScrubSummary`` entries (each with
+  its ``FpgaScrubWordSummary`` list), mirroring the ``FpgaScrubbing`` RPC
+  reply.
 """
 
 from __future__ import annotations
@@ -53,9 +58,14 @@ class InjectionArea(IntFlag):
 
         target = InjectionArea.FLIP_FLOP | InjectionArea.BRAM
 
-    The wire protocol supports this: ``FpgaRandomInjectionOptions`` carries
-    independent ``includeFlipFlops`` / ``includeLutRams`` / ``includeBrams``
-    booleans. ``CRAM`` is the absence of any narrowing flag (whole CRAM).
+    The wire protocol supports this for *random* injection:
+    ``FpgaRandomInjectionOptions`` carries independent ``include_flip_flops``
+    / ``include_lutrams`` / ``include_brams`` booleans. ``CRAM`` is the
+    absence of any narrowing flag (whole CRAM).
+
+    A *specific* injection (``FpgaInjectionTarget``) carries a single
+    ``FpgaTargetKind`` enum, so only one storage-element flag may be set
+    there.
     """
 
     CRAM = 0
@@ -77,12 +87,26 @@ class InjectionArea(IntFlag):
         return tuple(files)
 
 
-class InjectionType(str, Enum):
-    """Campaign injection mode.
+class ScrubbingType(int, Enum):
+    """Scrubbing mode."""
+
+    READBACK = 0
+    ESSENTIAL = 1
+
+
+class FaultType(int, Enum):
+    """Fault model used by a fault-injection campaign.
+
+    Mirrors the wire ``FpgaFaultType`` enum, which replaced the opaque
+    ``uint32 type`` field (and the former ``InjectionType`` on the Python
+    side).
     """
 
-    EXHAUSTIVE = 0
-    RANDOM = 1
+    UNSPECIFIED = skraft_client_pb2.FPGA_FAULT_TYPE_UNSPECIFIED
+    SBU = skraft_client_pb2.FPGA_FAULT_TYPE_SBU        # Single bit upset
+    MBU = skraft_client_pb2.FPGA_FAULT_TYPE_MBU        # Multiple bit upset
+    MCU = skraft_client_pb2.FPGA_FAULT_TYPE_MCU        # Multiple cell upset
+    MIXED = skraft_client_pb2.FPGA_FAULT_TYPE_MIXED    # Mix per percentages
 
 
 # --------------------------------------------------------------------------- #
@@ -124,11 +148,17 @@ class DesignFiles:
                 f"operation requires design file(s): {', '.join(missing)}"
             )
 
+
 # --------------------------------------------------------------------------- #
 # Configuration-memory primitives
 # --------------------------------------------------------------------------- #
 class FpgaWord:
-    """An FPGA word: a single 32-bit value."""
+    """An FPGA word: a single 32-bit value.
+
+    Note: the wire format no longer has an ``FpgaWord`` message (frames carry
+    a flat ``repeated uint32``); this class is kept as a client-side
+    convenience wrapper.
+    """
 
     def __init__(self, value: int):
         self.__value = value
@@ -188,13 +218,22 @@ class BscanPrimitive:
     def size_in_bits(self) -> int:
         return self.__size_in_bits
 
-    def shift_in(self, grpc_client, value: bytes) -> bytes:
+    def shift_in(self, grpc_client, value: bytes,
+                 readonly: bool = False) -> bytes:
+        """Shift ``value`` through the register and return what comes out.
+
+        Uses ``FpgaReadBscan`` when ``readonly`` is set (leaving the register
+        contents untouched) and ``FpgaWriteBscan`` otherwise.
+        """
         request = skraft_client_pb2.FpgaBscanTarget(
-            userRegisterId=self.__user_register_id,
+            user_register_id=self.__user_register_id,
             value=value,
-            usefulBits=self.__size_in_bits,
+            useful_bits=self.__size_in_bits,
         )
-        reply = grpc_client.fpgaWriteBscan(request)
+        if readonly:
+            reply = grpc_client.FpgaReadBscan(request)
+        else:
+            reply = grpc_client.FpgaWriteBscan(request)
         return bytes(reply.value)
 
 
@@ -204,7 +243,7 @@ class BscanPrimitive:
 class FpgaInjectionReport:
     """Result of a single *specific* injection (:meth:`FpgaDevice.inject_at`).
 
-    The wire ``fpgaBitFlip`` RPC returns nothing, so the report echoes the
+    The wire ``FpgaBitFlip`` RPC returns nothing, so the report echoes the
     requested location; ``net_name`` is therefore always ``None`` here.
     """
 
@@ -277,6 +316,119 @@ class FpgaRandomInjectionReport:
 
 
 # --------------------------------------------------------------------------- #
+# Scrubbing
+# --------------------------------------------------------------------------- #
+class FpgaScrubWordSummary:
+    """Per-word detail for a word touched during a scrubbing session."""
+
+    def __init__(self, far: int, word_index: int, bit_index: int,
+                 golden_word_value: int, erroneous_word_value: int,
+                 ebd_word_value: int, msd_word_value: int,
+                 is_essential: bool):
+        self.__far = far
+        self.__word_index = word_index
+        self.__bit_index = bit_index
+        self.__golden_word_value = golden_word_value
+        self.__erroneous_word_value = erroneous_word_value
+        self.__ebd_word_value = ebd_word_value
+        self.__msd_word_value = msd_word_value
+        self.__is_essential = is_essential
+
+    @property
+    def far(self) -> int:
+        """Frame Address (FAR) of the affected frame."""
+        return self.__far
+
+    @property
+    def word_index(self) -> int:
+        """Index of the affected word."""
+        return self.__word_index
+
+    @property
+    def bit_index(self) -> int:
+        """Index of the affected bit."""
+        return self.__bit_index
+
+    @property
+    def golden_word_value(self) -> int:
+        """Expected (golden) word value."""
+        return self.__golden_word_value
+
+    @property
+    def erroneous_word_value(self) -> int:
+        """Word value observed before correction."""
+        return self.__erroneous_word_value
+
+    @property
+    def ebd_word_value(self) -> int:
+        """Matching word from the essential-bits (EBD) file."""
+        return self.__ebd_word_value
+
+    @property
+    def msd_word_value(self) -> int:
+        """Matching word from the readback-mask (MSD) file."""
+        return self.__msd_word_value
+
+    @property
+    def is_essential(self) -> bool:
+        """Whether the affected bit was essential."""
+        return self.__is_essential
+
+
+class FpgaScrubSummary:
+    """Outcome of one scrub cycle within a scrubbing session."""
+
+    def __init__(self, scrub_cycle: int, correction_time_ms: int,
+                 idle_time_ms: int, scrub_cycle_actual_duration_ms: int,
+                 word_summaries: list[FpgaScrubWordSummary]):
+        self.__scrub_cycle = scrub_cycle
+        self.__correction_time_ms = correction_time_ms
+        self.__idle_time_ms = idle_time_ms
+        self.__scrub_cycle_actual_duration_ms = scrub_cycle_actual_duration_ms
+        self.__word_summaries = word_summaries
+
+    @property
+    def scrub_cycle(self) -> int:
+        """The scrub cycle this summary belongs to."""
+        return self.__scrub_cycle
+
+    @property
+    def correction_time_ms(self) -> int:
+        """Time spent correcting upsets, in milliseconds."""
+        return self.__correction_time_ms
+
+    @property
+    def idle_time_ms(self) -> int:
+        """Idle time within the cycle, in milliseconds."""
+        return self.__idle_time_ms
+
+    @property
+    def scrub_cycle_actual_duration_ms(self) -> int:
+        """Measured duration of the scrub cycle, in milliseconds."""
+        return self.__scrub_cycle_actual_duration_ms
+
+    @property
+    def word_summaries(self) -> list[FpgaScrubWordSummary]:
+        """Per-word detail for the words touched during the cycle."""
+        return self.__word_summaries
+
+
+class FpgaScrubReport:
+    """Outcome of a completed scrubbing session (RPC: ``FpgaScrubbing``).
+
+    The wire reply carries one :class:`FpgaScrubSummary` per scrub cycle.
+    """
+
+    def __init__(self, scrub_summaries: list[FpgaScrubSummary]):
+        self.__scrub_summaries = scrub_summaries
+
+    @property
+    def scrub_summaries(self) -> list[FpgaScrubSummary]:
+        """Per-cycle summaries for the session."""
+        return self.__scrub_summaries
+
+
+# --------------------------------------------------------------------------- #
 # Fault-injection campaign
 # --------------------------------------------------------------------------- #
 @dataclass
@@ -292,7 +444,7 @@ class FpgaFiSession:
     targets are rejected.
     """
 
-    fi_type: InjectionType
+    fault_type: FaultType
     duration_ms: int
     correction_time_ms: int
     time_between_faults_ms: int
@@ -323,7 +475,7 @@ class FpgaFiSession:
         return bool(self.target & InjectionArea.ESSENTIAL_CRAM)
 
 
-class FpgaWordSummary:
+class FpgaFiWordSummary:
     """Per-word detail for a word affected during a campaign."""
 
     def __init__(self, far: int, word_index: int, bit_index: int,
@@ -371,14 +523,14 @@ class FpgaFiSummary:
     """Outcome of a completed fault-injection campaign.
 
     Note: the wire reply only carries the per-word list (plus echoed session
-    parameters). ``faults_injected`` / ``failures`` / ``corrected`` are
-    therefore derived client-side from ``affected_words`` and the session's
-    ``correct`` flag. If the server later reports explicit counts, populate
-    them directly instead.
+    parameters). ``faults_injected`` / ``corrected`` are therefore derived
+    client-side from ``affected_words`` and the session's ``correct`` flag.
+    If the server later reports explicit counts, populate them directly
+    instead.
     """
 
     def __init__(self, session: FpgaFiSession, faults_injected: int,
-                 corrected: int, affected_words: list[FpgaWordSummary]):
+                 corrected: int, affected_words: list[FpgaFiWordSummary]):
         self.__session = session
         self.__faults_injected = faults_injected
         self.__corrected = corrected
@@ -400,7 +552,6 @@ class FpgaFiSummary:
         return self.__corrected
 
     @property
-    def affected_words(self) -> list[FpgaWordSummary]:
+    def affected_words(self) -> list[FpgaFiWordSummary]:
         """Per-word detail for the affected words."""
         return self.__affected_words
-
