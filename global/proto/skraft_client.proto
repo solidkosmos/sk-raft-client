@@ -110,7 +110,8 @@ message FpgaBitCounts {
 message FpgaScrubSession {
     uint32 scrub_cycle     = 1;
     uint32 duration_ms     = 2; // Session duration in milliseconds
-    string id              = 3;
+    bool essential = 3; // scrub only into essential bits
+    string id              = 4;
 }
 
 message FpgaScrubSummary {

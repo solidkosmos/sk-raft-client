@@ -42,7 +42,7 @@ def main() -> None:
 
             # One random upset into essential CRAM or flip-flops.
             report = dev.inject_random(
-                InjectionArea.ESSENTIAL_CRAM | InjectionArea.FLIP_FLOP
+                InjectionArea.CRAM
             )
             print(f"hit FAR 0x{report.far:08x} "
                   f"word {report.word_index} bit {report.bit_index} "

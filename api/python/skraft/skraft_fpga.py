@@ -374,9 +374,14 @@ class FpgaDevice:
         if option == ScrubbingType.ESSENTIAL:
             self._files.require("ebd")
         try:
+            essential = False 
+            if option == ScrubbingType.ESSENTIAL:
+                essential = True
+
             request = skraft_client_pb2.FpgaScrubSession(
                 scrub_cycle=scrub_cycle,
                 duration_ms=duration_ms,
+                essential=essential,
                 id=session_id,
             )
             reply = self._stub.FpgaScrubbing(request)

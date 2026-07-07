@@ -107,14 +107,16 @@ class FpgaBitCounts(_message.Message):
     def __init__(self, cram_bits: _Optional[int] = ..., essential_cram_bits: _Optional[int] = ..., bram_bits: _Optional[int] = ..., flip_flop_bits: _Optional[int] = ..., lutram_bits: _Optional[int] = ...) -> None: ...
 
 class FpgaScrubSession(_message.Message):
-    __slots__ = ("scrub_cycle", "duration_ms", "id")
+    __slots__ = ("scrub_cycle", "duration_ms", "essential", "id")
     SCRUB_CYCLE_FIELD_NUMBER: _ClassVar[int]
     DURATION_MS_FIELD_NUMBER: _ClassVar[int]
+    ESSENTIAL_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
     scrub_cycle: int
     duration_ms: int
+    essential: bool
     id: str
-    def __init__(self, scrub_cycle: _Optional[int] = ..., duration_ms: _Optional[int] = ..., id: _Optional[str] = ...) -> None: ...
+    def __init__(self, scrub_cycle: _Optional[int] = ..., duration_ms: _Optional[int] = ..., essential: bool = ..., id: _Optional[str] = ...) -> None: ...
 
 class FpgaScrubSummary(_message.Message):
     __slots__ = ("scrub_cycle", "correction_time_ms", "idle_time_ms", "scrub_cycle_actual_duration_ms", "word_summaries")
