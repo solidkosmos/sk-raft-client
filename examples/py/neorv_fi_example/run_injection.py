@@ -7,7 +7,7 @@ import bscan_helpers as bscan
 from skraft import SkraftFpga, DesignFiles, ServerPath
 
 # --- User-specific settings: update these for your setup ---
-DESIGN_DIR  = "/path/to/designs/hardened_neorv"     # directory on the SK-RAFT server holding the design files
+DESIGN_DIR  = "/path/to/designs/neorv"               # directory on the SK-RAFT server holding the bit/ebd/ll files
 RESULTS_DIR = "/path/to/injection_results"           # directory on this machine to write campaign results to
 UART_PORT   = "/dev/ttyUSBx"                         # serial port of the DUT's UART
 # -------------------------------------------------------------
@@ -86,7 +86,6 @@ if __name__ == "__main__":
     data           = bytearray()
 
     steps = first_run_step_start()
-    bscan.enable_reset(dev)
 
     if bscan.start_clean_run(dev, steps[0]) == 0:
         for idx in range(len(steps) - 1):
@@ -129,7 +128,7 @@ if __name__ == "__main__":
     print(f"Target: {injection_type}  Runs: {run_counts[target_idx]}")
     print(f"CSV: {csv_filename}")
 
-    observed_error = restarts = done = not_done = hw_error = uart_error = 0
+    observed_error = restarts = done = not_done = hw_error = uart_error = corrections = 0
     data = bytearray()
 
     with open(csv_filename, mode='w', newline='') as csv_file, \
@@ -168,7 +167,7 @@ if __name__ == "__main__":
                         break
 
                 # Validate that the counter reached an expected sentinel value
-                if bscan_counter not in (bytes([0x00, 0x00, 0xca, 0xca]),
+                if bscan_counter not in (bytes([0x00, 0x00, 0xbe, 0xef]),
                                          bytes([0x00, 0x00, 0x00, 0x00])):
                     print(f"[ERROR] r-{run+1}: unexpected counter {bscan_counter}, reprogramming.")
                     dev.program()
@@ -213,13 +212,18 @@ if __name__ == "__main__":
                                  calculated_crc != golden_calculated_crc)
 
                 status = "ERROR" if finished and crc_deviated else "HUNG" if not finished and crc_deviated else None
-
+                
+                # Add to corrections to subtract in the final AVF calculation, 
+                # only for BRAMS and FFs to show ECC hardening in DMEM, REG File and EXE ENGINE 
+                if injection_type in ("BRAM", "FF"):
+                    corrections += 1 if b"correction" in data else 0
+                
                 if status:
                     print(f"[{status}] r-{run+1}: CRC deviation detected.")
                     observed_error += 1
                     writer.writerow([run+1, inject_report.far, inject_report.word_index,
                                      inject_report.bit_index, status])
-                    raw_data_file.write(f"\n--- RUN {run+1} ---\n".encode())
+                    raw_data_file.write(f"\n\n---------------- RUN {run+1} ----------------n".encode())
                     raw_data_file.write(data)
                     raw_data_file.write(f"\nHW CRC: {hw_crc}  INJECTION CYCLE: {steps[0]}\n".encode())
                     if not finished:
@@ -241,16 +245,17 @@ if __name__ == "__main__":
             else:
                 print(f"[RESTART] r-{run+1}: discarding run.")
 
-        avf = observed_error / (run + 1) * 100
+        avf = observed_error - corrections / (run + 1) * 100
         writer.writerow(["OBSERVED ERROR RATE:",
                          f"Observed errors: {observed_error}",
                          f"Total runs: {run+1}",
-                         f"AVF: {avf:.2f}"])
+                         f"AVF: {avf:.2f}",
+                         f"Corrections : {corrections}"])
 
     print(f"\nCompleted: {run+1}  Done: {done}  Hung: {not_done}  Restarts: {restarts}")
     print(f"AVF: {avf:.2f}%")
     print(f"HW CRC mismatches: {hw_error}  UART mismatches: {uart_error}")
-
+    print(f"Corrected faults : {corrections}") if injection_type in ("BRAM", "FF") else None
     if ser.is_open:
         ser.close()
 

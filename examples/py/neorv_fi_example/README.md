@@ -5,7 +5,7 @@ measures the observed error rate (AVF) by comparing UART/CRC output against a
 golden run. `run_injection.py` drives the campaign; `bscan_helpers.py` wraps
 the low-level BSCAN register access used to control/read the DUT.
 
-## skraft features exercised
+## SK-RAFT features exercised
 
 - **Connection & device reservation** — `SkraftFpga.connect()`, `client.attach()`, `dev.release()`, `client.disconnect()`
 - **Design loading** — `DesignFiles` + `ServerPath`, resolved server-side (bitstream, `.ebd`, `.ll`)
