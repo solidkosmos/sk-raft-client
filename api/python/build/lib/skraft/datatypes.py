@@ -86,6 +86,10 @@ class InjectionArea(IntFlag):
             files.append("ll")
         return tuple(files)
 
+class ReadbackOption(int, Enum):
+    """Readkback options."""
+    READBACK = 0
+    READBACK_CAPTURE = 1
 
 class ScrubbingType(int, Enum):
     """Scrubbing mode."""

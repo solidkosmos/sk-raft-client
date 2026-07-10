@@ -48,6 +48,7 @@ service SKRaftFpga {
 
     rpc FpgaShutdown(google.protobuf.Empty) returns (google.protobuf.Empty) {}
     rpc FpgaStartupSequence(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    rpc FpgaRestoreApplication(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 }
 
 // ---------------------------------------------------------------------------

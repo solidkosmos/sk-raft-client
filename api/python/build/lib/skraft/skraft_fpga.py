@@ -62,6 +62,7 @@ from .datatypes import (
     InjectionArea,
     ServerPath,
     ScrubbingType,
+    ReadbackOption,
 )
 from .exceptions import (
     BscanError,
@@ -208,6 +209,7 @@ class FpgaDevice:
             request = skraft_client_pb2.FpgaReadbackTarget(
                 start_frame_address=start_far,
                 end_frame_address=end_far,
+                capture=False, 
             )
             reply = self._stub.FpgaReadBackRange(request)
             return self._frames_from_reply(reply)
@@ -217,12 +219,45 @@ class FpgaDevice:
                 f"{_rpc_detail(e)}"
             ) from e
 
-    def readback(self) -> list[FpgaFrame]:
+    def shutdown(self): 
+        """Shutdowns the FPGA device."""
+        try:
+            self._stub.FpgaShutdown(empty_pb2.Empty())
+        except grpc.RpcError as e:
+            raise ConnectionFailedError(
+                f"failed to shutdown the device: {_rpc_detail(e)}"
+            ) from e
+
+    def startup_sequence(self):
+        try:
+            self._stub.FpgaStartupSequence(empty_pb2.Empty())
+        except grpc.RpcError as e:
+            raise ConnectionFailedError(
+                f"Startup sequence failed: {_rpc_detail(e)}"
+            ) from e
+
+    def restore_application_layer(self):
+        try:
+            self._stub.FpgaRestoreApplication(empty_pb2.Empty())
+        except grpc.RpcError as e:
+            raise ConnectionFailedError(
+                f"Failed to restore application layer: {_rpc_detail(e)}"
+            ) from e
+
+    def readback(self, option: ReadbackOption) -> list[FpgaFrame]:
         """Read back every configuration frame of the device
         (RPC: ``FpgaReadBack``).
         """
         try:
-            reply = self._stub.FpgaReadBack(empty_pb2.Empty())
+            capture = True if option == ReadbackOption.READBACK_CAPTURE else False
+                
+            request = skraft_client_pb2.FpgaReadbackTarget(
+                start_frame_address=0, # Ignored.
+                end_frame_address=0,   # Ignored.
+                capture=capture
+            )
+
+            reply = self._stub.FpgaReadBack(request)
             return self._frames_from_reply(reply)
         except grpc.RpcError as e:
             raise ConnectionFailedError(

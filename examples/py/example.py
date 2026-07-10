@@ -15,8 +15,11 @@ from skraft.datatypes import (
     InjectionArea,
     ScrubbingType,
     ServerPath,
+    ReadbackOption,
 )
 from skraft.exceptions import SkraftError
+
+import time
 
 
 def main() -> None:
@@ -37,7 +40,7 @@ def main() -> None:
             print("essential:", dev.essential_cram_bits)
             print("all counts:", dev.all_bit_counts)
 
-            everything = dev.readback()
+            everything = dev.readback(ReadbackOption.READBACK)
             print("total frames read back:", len(everything))
 
             # One random upset into essential CRAM or flip-flops.
@@ -76,6 +79,40 @@ def main() -> None:
             print(f"campaign: {summary.faults_injected} injected, "
                   f"{summary.corrected} corrected")
             """
+
+            print("Shutdown the device.")
+
+            dev.shutdown()
+
+            time.sleep(5)
+
+            print("Readback capture.")
+
+            frames_1 = dev.readback(ReadbackOption.READBACK_CAPTURE)
+
+            print("Restore application layer.")
+            dev.restore_application_layer() 
+
+            print("Readback capture.")
+            frames_2 = dev.readback(ReadbackOption.READBACK_CAPTURE)
+
+            found_mismatch = False
+            for i in range(0, len(frames_1)):
+                print(hex(frames_1[i].far))
+
+                blockType = ((frames_1[i].far >> 23) & 0x7)
+                # DO NOT check the CFG_CLB!!
+                if blockType != 0x0 and blockType != 0x1:
+                    continue
+
+                for j in range(0, len(frames_1[i].words)):
+                    if frames_1[i].words[j].value != frames_2[i].words[j].value:
+                        found_mismatch = True
+
+            if not found_mismatch:
+                print("No mismatch found.")
+            else:
+                print("Mismached!!")
 
 
 if __name__ == "__main__":

@@ -114,8 +114,23 @@ class SKRaftFpgaStub(object):
                 _registered_method=True)
         self.FpgaReadBack = channel.unary_unary(
                 '/proto.SKRaftFpga/FpgaReadBack',
-                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                request_serializer=skraft__client__pb2.FpgaReadbackTarget.SerializeToString,
                 response_deserializer=skraft__client__pb2.FpgaReadbackDetail.FromString,
+                _registered_method=True)
+        self.FpgaShutdown = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaShutdown',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
+        self.FpgaStartupSequence = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaStartupSequence',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
+        self.FpgaRestoreApplication = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaRestoreApplication',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 _registered_method=True)
 
 
@@ -232,6 +247,24 @@ class SKRaftFpgaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def FpgaShutdown(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaStartupSequence(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaRestoreApplication(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SKRaftFpgaServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -312,8 +345,23 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
             ),
             'FpgaReadBack': grpc.unary_unary_rpc_method_handler(
                     servicer.FpgaReadBack,
-                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    request_deserializer=skraft__client__pb2.FpgaReadbackTarget.FromString,
                     response_serializer=skraft__client__pb2.FpgaReadbackDetail.SerializeToString,
+            ),
+            'FpgaShutdown': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaShutdown,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'FpgaStartupSequence': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaStartupSequence,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'FpgaRestoreApplication': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaRestoreApplication,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -748,8 +796,89 @@ class SKRaftFpga(object):
             request,
             target,
             '/proto.SKRaftFpga/FpgaReadBack',
-            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            skraft__client__pb2.FpgaReadbackTarget.SerializeToString,
             skraft__client__pb2.FpgaReadbackDetail.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaShutdown(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaShutdown',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaStartupSequence(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaStartupSequence',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaRestoreApplication(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaRestoreApplication',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,
             channel_credentials,
             insecure,
