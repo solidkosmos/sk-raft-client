@@ -25,10 +25,10 @@ def main() -> None:
 
             # Push design files (one FpgaSetDesignFilePath call per set path).
             dev.load(DesignFiles(
-                bitstream=ServerPath("/home/embeddedcat/Documents/SolidKosmos/Products/SK_RAFT/Boards/Tests/7Series/Basys3/unittests/designs/flipflop/tester.bit"),
-                ebd=ServerPath("/home/embeddedcat/Documents/SolidKosmos/Products/SK_RAFT/Boards/Tests/7Series/Basys3/unittests/designs/flipflop/tester.ebd"),
-                msd=ServerPath("/home/embeddedcat/Documents/SolidKosmos/Products/SK_RAFT/Boards/Tests/7Series/Basys3/unittests/designs/flipflop/tester.msd"),
-                ll=ServerPath("/home/embeddedcat/Documents/SolidKosmos/Products/SK_RAFT/Boards/Tests/7Series/Basys3/unittests/designs/flipflop/tester.ll"),
+                bitstream=ServerPath("/home/embeddedcat/Documents/SolidKosmos/Products/SK_RAFT/Boards/Tests/7Series/Basys3/unittests/designs/bram/tester.bit"),
+                ebd=ServerPath("/home/embeddedcat/Documents/SolidKosmos/Products/SK_RAFT/Boards/Tests/7Series/Basys3/unittests/designs/bram/tester.ebd"),
+                msd=ServerPath("/home/embeddedcat/Documents/SolidKosmos/Products/SK_RAFT/Boards/Tests/7Series/Basys3/unittests/designs/bram/tester.msd"),
+                ll=ServerPath("/home/embeddedcat/Documents/SolidKosmos/Products/SK_RAFT/Boards/Tests/7Series/Basys3/unittests/designs/bram/tester.ll"),
             ))
             dev.program()
 
@@ -42,7 +42,7 @@ def main() -> None:
 
             # One random upset into essential CRAM or flip-flops.
             report = dev.inject_random(
-                InjectionArea.CRAM
+                InjectionArea.BRAM
             )
             print(f"hit FAR 0x{report.far:08x} "
                   f"word {report.word_index} bit {report.bit_index} "

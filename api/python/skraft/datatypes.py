@@ -68,11 +68,11 @@ class InjectionArea(IntFlag):
     there.
     """
 
-    CRAM = 0
-    ESSENTIAL_CRAM = auto()
-    FLIP_FLOP = auto()
-    LUTRAM = auto()
-    BRAM = auto()
+    CRAM = 1 << 0
+    ESSENTIAL_CRAM = 1 << 1
+    FLIP_FLOP = 1 << 2
+    LUTRAM = 1 << 3
+    BRAM = 1 << 4
 
     @property
     def required_design_files(self) -> tuple[str, ...]:
@@ -86,6 +86,10 @@ class InjectionArea(IntFlag):
             files.append("ll")
         return tuple(files)
 
+class ReadbackOption(int, Enum):
+    """Readkback options."""
+    READBACK = 0
+    READBACK_CAPTURE = 1
 
 class ScrubbingType(int, Enum):
     """Scrubbing mode."""

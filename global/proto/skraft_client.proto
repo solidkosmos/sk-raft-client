@@ -44,8 +44,10 @@ service SKRaftFpga {
 
     // Readback
     rpc FpgaReadBackRange(FpgaReadbackTarget) returns (FpgaReadbackDetail) {}
-    rpc FpgaReadBack(google.protobuf.Empty) returns (FpgaReadbackDetail) {}
+    rpc FpgaReadBack(FpgaReadbackTarget) returns (FpgaReadbackDetail) {}
 
+    rpc FpgaShutdown(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    rpc FpgaStartupSequence(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 }
 
 // ---------------------------------------------------------------------------
@@ -161,6 +163,7 @@ message FpgaFarListExcludeRequest {
 message FpgaReadbackTarget {
     uint32 start_frame_address = 1;
     uint32 end_frame_address   = 2;
+    bool capture = 3;
 }
 
 // A configuration frame is a flat sequence of 32-bit words, so the extra

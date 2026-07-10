@@ -208,6 +208,7 @@ class FpgaDevice:
             request = skraft_client_pb2.FpgaReadbackTarget(
                 start_frame_address=start_far,
                 end_frame_address=end_far,
+                capture=False, 
             )
             reply = self._stub.FpgaReadBackRange(request)
             return self._frames_from_reply(reply)
@@ -215,6 +216,23 @@ class FpgaDevice:
             raise FrameAddressError(
                 f"failed to read frames [{start_far}, {end_far}]: "
                 f"{_rpc_detail(e)}"
+            ) from e
+
+    def shutdown(self): 
+        """Shutdowns the FPGA device."""
+        try:
+            self._stub.FpgaShutdown(empty_pb2.Empty())
+        except grpc.RpcError as e:
+            raise ConnectionFailedError(
+                f"failed to shutdown the device: {_rpc_detail(e)}"
+            ) from e
+
+    def startup_sequence(self):
+        try:
+            self._stub.FpgaStartupSequence(empty_pb2.Empty())
+        except grpc.RpcError as e:
+            raise ConnectionFailedError(
+                f"Startup sequence failed: {_rpc_detail(e)}"
             ) from e
 
     def readback(self) -> list[FpgaFrame]:

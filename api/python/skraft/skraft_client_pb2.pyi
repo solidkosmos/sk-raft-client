@@ -177,12 +177,14 @@ class FpgaFarListExcludeRequest(_message.Message):
     def __init__(self, fars: _Optional[_Iterable[int]] = ...) -> None: ...
 
 class FpgaReadbackTarget(_message.Message):
-    __slots__ = ("start_frame_address", "end_frame_address")
+    __slots__ = ("start_frame_address", "end_frame_address", "capture")
     START_FRAME_ADDRESS_FIELD_NUMBER: _ClassVar[int]
     END_FRAME_ADDRESS_FIELD_NUMBER: _ClassVar[int]
+    CAPTURE_FIELD_NUMBER: _ClassVar[int]
     start_frame_address: int
     end_frame_address: int
-    def __init__(self, start_frame_address: _Optional[int] = ..., end_frame_address: _Optional[int] = ...) -> None: ...
+    capture: bool
+    def __init__(self, start_frame_address: _Optional[int] = ..., end_frame_address: _Optional[int] = ..., capture: bool = ...) -> None: ...
 
 class FpgaFrame(_message.Message):
     __slots__ = ("frame_address", "words")
