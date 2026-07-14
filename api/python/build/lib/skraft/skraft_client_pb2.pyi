@@ -64,6 +64,12 @@ FPGA_FAULT_TYPE_MBU: FpgaFaultType
 FPGA_FAULT_TYPE_MCU: FpgaFaultType
 FPGA_FAULT_TYPE_MIXED: FpgaFaultType
 
+class VersionDetails(_message.Message):
+    __slots__ = ("version",)
+    VERSION_FIELD_NUMBER: _ClassVar[int]
+    version: str
+    def __init__(self, version: _Optional[str] = ...) -> None: ...
+
 class FpgaDeviceDetails(_message.Message):
     __slots__ = ("device_part_number", "programmer_part_number")
     DEVICE_PART_NUMBER_FIELD_NUMBER: _ClassVar[int]

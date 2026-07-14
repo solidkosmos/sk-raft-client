@@ -23,82 +23,30 @@ import time
 
 
 def main() -> None:
-    with SkraftFpga.connect(ip="127.0.0.1", port=50052) as client:
+    with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
         with client.attach("xcku040") as dev:
 
             # Push design files (one FpgaSetDesignFilePath call per set path).
             dev.load(DesignFiles(
-                bitstream=ServerPath("/home/embeddedcat/Documents/SolidKosmos/Products/SK_RAFT/Boards/Tests/7Series/Basys3/unittests/designs/bram/tester.bit"),
-                ebd=ServerPath("/home/embeddedcat/Documents/SolidKosmos/Products/SK_RAFT/Boards/Tests/7Series/Basys3/unittests/designs/bram/tester.ebd"),
-                msd=ServerPath("/home/embeddedcat/Documents/SolidKosmos/Products/SK_RAFT/Boards/Tests/7Series/Basys3/unittests/designs/bram/tester.msd"),
-                ll=ServerPath("/home/embeddedcat/Documents/SolidKosmos/Products/SK_RAFT/Boards/Tests/7Series/Basys3/unittests/designs/bram/tester.ll"),
+                bitstream=ServerPath("/home/embeddedcat/Desktop/far_neo/tester.bit"),
+                ebd=ServerPath("/home/embeddedcat/Desktop/far_neo/tester.ebd"),
+                ll=ServerPath("/home/embeddedcat/Desktop/far_neo/tester.ll"),
             ))
             dev.program()
 
-            # Bit statistics — five per-category calls, or all at once.
-            print("CRAM bits:", dev.cram_bits)
-            print("essential:", dev.essential_cram_bits)
-            print("all counts:", dev.all_bit_counts)
-
-            everything = dev.readback(ReadbackOption.READBACK)
-            print("total frames read back:", len(everything))
-
-            # One random upset into essential CRAM or flip-flops.
-            report = dev.inject_random(
-                InjectionArea.BRAM
-            )
-            print(f"hit FAR 0x{report.far:08x} "
-                  f"word {report.word_index} bit {report.bit_index} "
-                  f"net={report.net_name}")
-
-            # Scrub for 5 s; the report is now nested per scrub cycle.
-            scrub = dev.scrub(
-                ScrubbingType.ESSENTIAL,
-                scrub_cycle=1000,       # ms between cycles
-                duration_ms=5000,
-                session_id="demo-1",
-            )
-            for cycle in scrub.scrub_summaries:
-                print(f"cycle {cycle.scrub_cycle}: "
-                      f"{len(cycle.word_summaries)} upsets, "
-                      f"correction {cycle.correction_time_ms} ms")
-
-            # A short mixed fault-injection campaign on essential bits.
-            """
-            summary = dev.run_campaign(FpgaFiSession(
-                fault_type=FaultType.MIXED,
-                duration_ms=10_000,
-                correction_time_ms=100,
-                time_between_faults_ms=500,
-                sbu_percent=80.0,
-                mbu_percent=15.0,
-                mcu_percent=5.0,
-                target=InjectionArea.ESSENTIAL_CRAM,
-                correct=True,
-            ))
-            print(f"campaign: {summary.faults_injected} injected, "
-                  f"{summary.corrected} corrected")
-            """
-
-            print("Shutdown the device.")
-
-            dev.shutdown()
-
-            time.sleep(5)
+            input("Please disable the clock")
 
             print("Readback capture.")
-
+    
             frames_1 = dev.readback(ReadbackOption.READBACK_CAPTURE)
-
-            print("Restore application layer.")
-            dev.restore_application_layer() 
-
+        
             print("Readback capture.")
             frames_2 = dev.readback(ReadbackOption.READBACK_CAPTURE)
 
+            dev.restore_application_layer()
+
             found_mismatch = False
             for i in range(0, len(frames_1)):
-                print(hex(frames_1[i].far))
 
                 blockType = ((frames_1[i].far >> 23) & 0x7)
                 # DO NOT check the CFG_CLB!!
@@ -107,12 +55,14 @@ def main() -> None:
 
                 for j in range(0, len(frames_1[i].words)):
                     if frames_1[i].words[j].value != frames_2[i].words[j].value:
+                        print(hex(frames_1[i].far))
                         found_mismatch = True
 
             if not found_mismatch:
                 print("No mismatch found.")
             else:
                 print("Mismached!!")
+
 
 
 if __name__ == "__main__":

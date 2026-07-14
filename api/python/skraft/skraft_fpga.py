@@ -72,6 +72,8 @@ from .exceptions import (
 )
 
 
+SK_RAFT_VERSION = "1.0.0.alpha.3"
+
 def _rpc_detail(error: grpc.RpcError) -> str:
     """Best-effort extraction of a gRPC error detail string."""
     try:
@@ -571,7 +573,20 @@ class SkraftFpga:
                 f"failed to connect to gRPC server at {ip}:{port}: "
                 f"{_rpc_detail(e)}"
             ) from e
+
+        if SK_RAFT_VERSION not in client.version():
+            print(f"WARNING: expected version {SK_RAFT_VERSION}, got {client.version()}")
+
         return client
+
+    def version(self) -> str:
+        try:
+            reply = self._stub.Version(empty_pb2.Empty())
+        except grpc.RpcError as e:
+            raise ConnectionFailedError(
+                f"failed to get the bit counts: {_rpc_detail(e)}"
+            ) from e
+        return reply.version
 
     def __enter__(self) -> "SkraftFpga":
         return self
