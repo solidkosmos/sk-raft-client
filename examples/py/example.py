@@ -28,41 +28,15 @@ def main() -> None:
 
             # Push design files (one FpgaSetDesignFilePath call per set path).
             dev.load(DesignFiles(
-                bitstream=ServerPath("/home/embeddedcat/Desktop/far_neo/tester.bit"),
-                ebd=ServerPath("/home/embeddedcat/Desktop/far_neo/tester.ebd"),
-                ll=ServerPath("/home/embeddedcat/Desktop/far_neo/tester.ll"),
+                bitstream=ServerPath("/home/embeddedcat/Downloads/bits/tester.bit"),
+                ebd=ServerPath("/home/embeddedcat/Downloads/bits/tester.ebd"),
+                ll=ServerPath("/home/embeddedcat/Downloads/bits/tester.ll"),
             ))
             dev.program()
+ 
+            dev.write_register(8192, 0x10)
 
-            input("Please disable the clock")
-
-            print("Readback capture.")
-    
-            frames_1 = dev.readback(ReadbackOption.READBACK_CAPTURE)
-        
-            print("Readback capture.")
-            frames_2 = dev.readback(ReadbackOption.READBACK_CAPTURE)
-
-            dev.restore_application_layer()
-
-            found_mismatch = False
-            for i in range(0, len(frames_1)):
-
-                blockType = ((frames_1[i].far >> 23) & 0x7)
-                # DO NOT check the CFG_CLB!!
-                if blockType != 0x0 and blockType != 0x1:
-                    continue
-
-                for j in range(0, len(frames_1[i].words)):
-                    if frames_1[i].words[j].value != frames_2[i].words[j].value:
-                        print(hex(frames_1[i].far))
-                        found_mismatch = True
-
-            if not found_mismatch:
-                print("No mismatch found.")
-            else:
-                print("Mismached!!")
-
+            print(dev.read_register(8192))
 
 
 if __name__ == "__main__":

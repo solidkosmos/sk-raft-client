@@ -50,7 +50,37 @@ service SKRaftFpga {
     rpc FpgaStartupSequence(google.protobuf.Empty) returns (google.protobuf.Empty) {}
     rpc FpgaRestoreApplication(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 
+    rpc FpgaReadRegister(FpgaReadRegisterRequest) returns (FpgaRegisterContent) {}
+    rpc FpgaWriteRegister(FpgaWriteRegisterRequest) returns (google.protobuf.Empty) {}
+  
+    rpc FpgaDecodeFrameAddress(FpgaFarDecodeRequest) returns (FpgaFarDecodeResponse) {}
+
     rpc Version(google.protobuf.Empty) returns (VersionDetails) {}
+}
+
+message FpgaFarDecodeRequest {
+    uint32 value = 1;
+}
+
+message FpgaFarDecodeResponse {
+    uint32 block_type     = 1;
+    uint32 top_bottom     = 2;
+    uint32 row_address    = 3;
+    uint32 column_address = 4;
+    uint32 minor_address  = 5;
+}
+
+message FpgaReadRegisterRequest {
+    uint32 addr = 1;
+}
+
+message FpgaWriteRegisterRequest {
+    uint32 addr = 1;
+    uint32 value = 2;
+}
+
+message FpgaRegisterContent {
+    uint32 value = 1;
 }
 
 message VersionDetails {
