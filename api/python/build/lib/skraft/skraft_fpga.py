@@ -73,7 +73,7 @@ from .exceptions import (
 )
 
 
-SK_RAFT_VERSION = "1.0.0.alpha.3"
+SK_RAFT_VERSION = "1.0.0.alpha.5"
 
 def _rpc_detail(error: grpc.RpcError) -> str:
     """Best-effort extraction of a gRPC error detail string."""
