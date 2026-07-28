@@ -64,6 +64,46 @@ FPGA_FAULT_TYPE_MBU: FpgaFaultType
 FPGA_FAULT_TYPE_MCU: FpgaFaultType
 FPGA_FAULT_TYPE_MIXED: FpgaFaultType
 
+class FpgaFarDecodeRequest(_message.Message):
+    __slots__ = ("value",)
+    VALUE_FIELD_NUMBER: _ClassVar[int]
+    value: int
+    def __init__(self, value: _Optional[int] = ...) -> None: ...
+
+class FpgaFarDecodeResponse(_message.Message):
+    __slots__ = ("block_type", "top_bottom", "row_address", "column_address", "minor_address")
+    BLOCK_TYPE_FIELD_NUMBER: _ClassVar[int]
+    TOP_BOTTOM_FIELD_NUMBER: _ClassVar[int]
+    ROW_ADDRESS_FIELD_NUMBER: _ClassVar[int]
+    COLUMN_ADDRESS_FIELD_NUMBER: _ClassVar[int]
+    MINOR_ADDRESS_FIELD_NUMBER: _ClassVar[int]
+    block_type: int
+    top_bottom: int
+    row_address: int
+    column_address: int
+    minor_address: int
+    def __init__(self, block_type: _Optional[int] = ..., top_bottom: _Optional[int] = ..., row_address: _Optional[int] = ..., column_address: _Optional[int] = ..., minor_address: _Optional[int] = ...) -> None: ...
+
+class FpgaReadRegisterRequest(_message.Message):
+    __slots__ = ("addr",)
+    ADDR_FIELD_NUMBER: _ClassVar[int]
+    addr: int
+    def __init__(self, addr: _Optional[int] = ...) -> None: ...
+
+class FpgaWriteRegisterRequest(_message.Message):
+    __slots__ = ("addr", "value")
+    ADDR_FIELD_NUMBER: _ClassVar[int]
+    VALUE_FIELD_NUMBER: _ClassVar[int]
+    addr: int
+    value: int
+    def __init__(self, addr: _Optional[int] = ..., value: _Optional[int] = ...) -> None: ...
+
+class FpgaRegisterContent(_message.Message):
+    __slots__ = ("value",)
+    VALUE_FIELD_NUMBER: _ClassVar[int]
+    value: int
+    def __init__(self, value: _Optional[int] = ...) -> None: ...
+
 class VersionDetails(_message.Message):
     __slots__ = ("version",)
     VERSION_FIELD_NUMBER: _ClassVar[int]

@@ -49,6 +49,7 @@ from . import skraft_client_pb2_grpc
 from .datatypes import (
     BscanPrimitive,
     DesignFiles,
+    FpgaFar,
     FpgaFiSession,
     FpgaFiSummary,
     FpgaFrame,
@@ -72,7 +73,7 @@ from .exceptions import (
 )
 
 
-SK_RAFT_VERSION = "1.0.0.alpha.3"
+SK_RAFT_VERSION = "1.0.0.alpha.5"
 
 def _rpc_detail(error: grpc.RpcError) -> str:
     """Best-effort extraction of a gRPC error detail string."""
@@ -538,6 +539,45 @@ class FpgaDevice:
                 f"{_rpc_detail(e)}"
             ) from e
 
+    def read_register(self, reg_addr: int) -> int:
+        try:
+            request = skraft_client_pb2.FpgaReadRegisterRequest(addr=reg_addr)
+            reply = self._stub.FpgaReadRegister(request)
+
+            return reply.value
+        except grpc.RpcError as e:
+            raise FrameAddressError(
+                f"failed to read register: {_rpc_detail(e)}"
+            ) from e
+
+    def write_register(self, reg_addr: int, value: int):
+        try:
+            request = skraft_client_pb2.FpgaWriteRegisterRequest(addr=reg_addr, 
+                                                                 value=value)
+            self._stub.FpgaWriteRegister(request)
+        except grpc.RpcError as e:
+            raise FrameAddressError(
+                f"failed to write register: {_rpc_detail(e)}"
+            ) from e
+
+    def decode_far(self, far: int) -> FpgaFar:
+        try:
+            request = skraft_client_pb2.FpgaFarDecodeRequest(value=far)
+            reply = self._stub.FpgaDecodeFrameAddress(request)
+
+            far_decoded = FpgaFar(
+                            far,
+                            reply.block_type,
+                            reply.top_bottom,
+                            reply.row_address,
+                            reply.column_address,
+                            reply.minor_address)
+            return far_decoded
+
+        except grpc.RpcError as e:
+            raise FrameAddressError(
+                f"failed to decode Frame Address: {_rpc_detail(e)}"
+            ) from e
 
 # --------------------------------------------------------------------------- #
 # SkraftFpga

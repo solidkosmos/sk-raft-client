@@ -153,6 +153,42 @@ class DesignFiles:
             )
 
 
+class FpgaFar:
+    def __init__(self, raw: int, blocktype: int, topbottom: int,
+                 row_address: int, column_address: int, 
+                 minor_address: int) -> None:
+        self.__raw = raw
+        self.__blocktype      = blocktype
+        self.__topbottom      = topbottom
+        self.__row_address    = row_address
+        self.__column_address = column_address
+        self.__minor_address  = minor_address
+
+    @property
+    def raw(self) -> int:
+        return self.__raw
+    
+    @property
+    def blocktype(self) -> int:
+        return self.__blocktype
+    
+    @property
+    def topbottom(self) -> int:
+        return self.__topbottom
+
+    @property
+    def row_address(self) -> int:
+        return self.__row_address
+
+    @property
+    def column_address(self) -> int:
+        return self.__column_address
+
+    @property
+    def minor_address(self) -> int:
+        return self.__minor_address
+
+
 # --------------------------------------------------------------------------- #
 # Configuration-memory primitives
 # --------------------------------------------------------------------------- #
