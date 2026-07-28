@@ -7,6 +7,26 @@
 set_property -dict {PACKAGE_PIN W5 IOSTANDARD LVCMOS33} [get_ports clk_i]
 create_clock -period 10.000 -name sys_clk_pin -waveform {0.000 5.000} -add [get_ports clk_i]
 
+# ---------------------------------------------------------------------------
+# Clock definitions
+# ---------------------------------------------------------------------------
+
+# NOTE: clk_out1 already has its own generated-clock constraint from the
+# Clocking Wizard IP (clk_wiz_0), derived from clk_in1 via the MMCM's actual
+# programmed M/D/phase settings -- do NOT create_clock on it here, that would
+# silently discard the derived relationship. If clk_out1 needs to be at
+# 100MHz, set that in the IP's own "Output Clocks" configuration (re-customize
+# clk_wiz_0) instead.
+
+# JTAG TCK, buffered per BSCANE2 channel (USER1 / USER2) inside bscan_tester
+create_clock -period 66.667 -name tck_u1 [get_pins clk_reset_ctrl/bscan/BUFG_tck_1/O]
+create_clock -period 66.667 -name tck_u2 [get_pins clk_reset_ctrl/bscan/BUFG_tck_2/O]
+
+# ---------------------------------------------------------------------------
+# Clock domain crossing: JTAG TCK domains are asynchronous to the core clock
+# ---------------------------------------------------------------------------
+set_clock_groups -asynchronous -group [get_clocks -of_objects [get_pins mmcm_safe_startup/clk_out1]] -group [get_clocks {tck_u1 tck_u2}]
+
 
 ## Switches
 #set_property -dict { PACKAGE_PIN V17   IOSTANDARD LVCMOS33 } [get_ports {bscan_ce}]
@@ -158,7 +178,7 @@ set_property CFGBVS VCCO [current_design]
 set_property BITSTREAM.GENERAL.COMPRESS FALSE [current_design]
 set_property BITSTREAM.CONFIG.CONFIGRATE 33 [current_design]
 set_property CONFIG_MODE SPIx4 [current_design]
-set_property BITSTREAM.READBACK.SECURITY None [current_design]
+set_property BITSTREAM.READBACK.SECURITY NONE [current_design]
 
 # NOTE: BITSTREAM.SEU.ESSENTIALBITS / BITSTREAM.GENERAL.PERFRAMECRC are kept
 # active -- needed for SK-RAFT injections.
@@ -167,19 +187,21 @@ set_property BITSTREAM.GENERAL.PERFRAMECRC YES [current_design]
 
 #--- Pblock for Clock/Reset Controller ---
 create_pblock pblock_clk_cyc_ctrlr
-resize_pblock [get_pblocks pblock_clk_cyc_ctrlr] -add {SLICE_X14Y23:SLICE_X37Y48}
 add_cells_to_pblock [get_pblocks pblock_clk_cyc_ctrlr] [get_cells -quiet [list clk_reset_ctrl/clk_cyc_ctrlr]]
+resize_pblock [get_pblocks pblock_clk_cyc_ctrlr] -add {SLICE_X14Y23:SLICE_X37Y48}
+set_property SNAPPING_MODE ON [get_pblocks pblock_clk_cyc_ctrlr]
 
+
+#SNAPPING_MODE property can be applied to Reconfigurable Partition (RP) Pblocks to have them automatically adjusted to meet Partial Reconfiguration floorplan requirements.
+
+
+set_property HD.RECONFIGURABLE true [get_cells clk_reset_ctrl/clk_cyc_ctrlr]
 
 
 # NEORV32 Processor
 
-create_pblock pblock_1
-add_cells_to_pblock [get_pblocks pblock_1] [get_cells -quiet [list {neorv32_top_inst/core_complex_gen[0].neorv32_cpu_inst}]]
-resize_pblock [get_pblocks pblock_1] -add {SLICE_X38Y62:SLICE_X57Y87}
-resize_pblock [get_pblocks pblock_1] -add {DSP48_X1Y26:DSP48_X1Y33}
-resize_pblock [get_pblocks pblock_1] -add {RAMB18_X1Y26:RAMB18_X1Y33}
-resize_pblock [get_pblocks pblock_1] -add {RAMB36_X1Y13:RAMB36_X1Y16}
+
+
 
 
 

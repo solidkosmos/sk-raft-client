@@ -53,8 +53,36 @@ architecture neorv32_test_setup_bootloader_rtl of neorv32_test_setup_bootloader 
   -- Test signals
   signal clk_to_neo, rst_to_neo : std_logic;
   signal check_tx               : std_ulogic;
+  
+  -- MMCM 
+  component clk_wiz_0 is
+    port (
+      -- Clock out ports
+      clk_out1 : out std_ulogic;
+     -- Clock in ports
+      clk_in1  : in std_ulogic
+    );
+  end component clk_wiz_0;
+  
+  -- MMCM clk out port 
+  signal clk_to_logic : std_ulogic;
 
 begin
+    
+   -- IMPORTANT GUIDELINE -- 
+   -- We instantitate a Mixed Mode Clock Manager/Phase Locked Loop ---------------
+   -- in safe startup mode to ensure clean clock propagation throughout ----------
+   -- the circuit during SHUTDOWN and START-UP sequences, preventing metastable --
+   -- initialization sequences. ------------------------------------------------ 
+   mmcm_safe_startup: clk_wiz_0
+    port map(
+      -- Clock out ports
+      clk_out1 => clk_to_logic,
+     -- Clock in ports
+      clk_in1  => clk_i
+    );
+
+  
 
   -- The Core Of The Problem ----------------------------------------------------------------
   -- -------------------------------------------------------------------------------------------
@@ -109,7 +137,7 @@ begin
 
   clk_reset_ctrl: entity work.tester(Behavioral)
   port map(
-     clk        => clk_i,
+     clk        => clk_to_logic,
      clk_out    => clk_to_neo,
      crc_data   => std_logic_vector(bscan_crc_data),
      rst_out    => rst_to_neo,

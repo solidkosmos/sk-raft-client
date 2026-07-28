@@ -2,7 +2,7 @@
 
 Vendor | Board | Design Name | Version | Vivado | License
 ------ | ----- | ----------- | ------- | ------ | -------
-SolidKosmos S.A. | Digilent Basys-3 (Xilinx Artix-7 xc7a35tcpg236-1) | test_neo_hardened | 1.0 | 2019.1 | BSD-3-Clause
+SolidKosmos S.A. | Digilent Basys-3 (Xilinx Artix-7 xc7a35tcpg236-1) | test_neo_hardened | 1.0 | 2025.2 | BSD-3-Clause
 
 ## Content
 
@@ -35,7 +35,7 @@ uploaded separately over UART after configuration. See
 
 ## 2. Design Flow
 
-1. Install Vivado 2019.1 (or compatible) and the board files for the Basys-3.
+1. Install Vivado 2025.2 (or compatible) and the board files for the Basys-3.
 2. Clone/copy this repository to a local path with no spaces.
 3. Open Vivado, switch to the **Tcl Console**, `cd` into the repository root,
    and run:
