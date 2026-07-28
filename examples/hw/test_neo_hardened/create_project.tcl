@@ -130,6 +130,7 @@
 #    "<project_root>/test_neo.srcs/sources_1/imports/rtl/core/neorv32_top.vhd"
 #    "<project_root>/test_neo.srcs/sources_1/new/secded_enc8b.vhd"
 #    "<project_root>/test_neo.srcs/sources_1/new/secded_dec8b.vhd"
+#    "<project_root>/test_neo.srcs/sources_1/new/mmcm_wrapper.vhd"
 #    "<project_root>/test_neo.srcs/sources_1/imports/rtl/test_setups/neorv32_test_setup_bootloader.vhd"
 #    "<project_root>/test_neo.srcs/constrs_1/imports/Downloads/Basys-3-Master.xdc"
 #
@@ -313,6 +314,7 @@ set files [list \
  [file normalize "${origin_dir}/test_neo.srcs/sources_1/imports/rtl/core/neorv32_top.vhd"] \
  [file normalize "${origin_dir}/test_neo.srcs/sources_1/new/secded_enc8b.vhd"] \
  [file normalize "${origin_dir}/test_neo.srcs/sources_1/new/secded_dec8b.vhd"] \
+ [file normalize "${origin_dir}/test_neo.srcs/sources_1/new/mmcm_wrapper.vhd"] \
  [file normalize "${origin_dir}/test_neo.srcs/sources_1/imports/rtl/test_setups/neorv32_test_setup_bootloader.vhd"] \
 ]
 add_files -norecurse -fileset $obj $files
@@ -349,6 +351,12 @@ set_property -name "file_type" -value "VHDL" -objects $file_obj
 set_property -name "library" -value "neorv32" -objects $file_obj
 
 set file "$origin_dir/test_neo.srcs/sources_1/new/secded_dec8b.vhd"
+set file [file normalize $file]
+set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+set_property -name "file_type" -value "VHDL" -objects $file_obj
+set_property -name "library" -value "neorv32" -objects $file_obj
+
+set file "$origin_dir/test_neo.srcs/sources_1/new/mmcm_wrapper.vhd"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
 set_property -name "file_type" -value "VHDL" -objects $file_obj

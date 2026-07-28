@@ -55,14 +55,14 @@ architecture neorv32_test_setup_bootloader_rtl of neorv32_test_setup_bootloader 
   signal check_tx               : std_ulogic;
   
   -- MMCM 
-  component clk_wiz_0 is
+  component mmcm_wrapper is
     port (
       -- Clock out ports
       clk_out1 : out std_ulogic;
      -- Clock in ports
       clk_in1  : in std_ulogic
     );
-  end component clk_wiz_0;
+  end component mmcm_wrapper;
   
   -- MMCM clk out port 
   signal clk_to_logic : std_ulogic;
@@ -74,7 +74,7 @@ begin
    -- in safe startup mode to ensure clean clock propagation throughout ----------
    -- the circuit during SHUTDOWN and START-UP sequences, preventing metastable --
    -- initialization sequences. ------------------------------------------------ 
-   mmcm_safe_startup: clk_wiz_0
+   mmcm_safe_startup: mmcm_wrapper
     port map(
       -- Clock out ports
       clk_out1 => clk_to_logic,

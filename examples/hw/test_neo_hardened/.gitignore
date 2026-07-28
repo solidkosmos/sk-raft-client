@@ -2,7 +2,15 @@
 # Vivado -- only sources, the project script, constraints, and docs are
 # meant to be tracked. See README.md's Design Flow section.
 
-# Vivado project file and generated project directories
+# The full generated Vivado project directory (created the first time
+# create_project.tcl is run -- default project name is "test_neo", see
+# _xil_proj_name_ in create_project.tcl). Entirely disposable: .xpr, caches,
+# runs, sim, IP output products (including clk_wiz_0), everything -- all of
+# it is regenerated from test_neo.srcs/ + create_project.tcl on demand.
+/test_neo/
+
+# Defensive fallback in case create_project.tcl is ever run with a custom
+# --project_name (the folder name would then differ from "test_neo" above)
 *.xpr
 *.cache/
 *.hw/
