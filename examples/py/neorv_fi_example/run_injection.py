@@ -131,8 +131,7 @@ if __name__ == "__main__":
     observed_error = restarts = done = not_done = hw_error = uart_error = corrections = 0
     data = bytearray()
 
-    with open(csv_filename, mode='w', newline='') as csv_file, \
-         open(raw_data_filename, mode='ab') as raw_data_file:
+    with open(csv_filename, mode='w', newline='') as csv_file:
 
         writer = csv.writer(csv_file)
         writer.writerow(["RUN #", "FAR_Address", "Word_Index", "Bit_Index", "Status"])
@@ -223,9 +222,10 @@ if __name__ == "__main__":
                     observed_error += 1
                     writer.writerow([run+1, inject_report.far, inject_report.word_index,
                                      inject_report.bit_index, status])
-                    raw_data_file.write(f"\n\n---------------- RUN {run+1} ----------------n".encode())
-                    raw_data_file.write(data)
-                    raw_data_file.write(f"\nHW CRC: {hw_crc}  INJECTION CYCLE: {steps[0]}\n".encode())
+                    with open(raw_data_filename, mode='ab') as raw_data_file:
+                        raw_data_file.write(f"\n\n---------------- RUN {run+1} ----------------n".encode())
+                        raw_data_file.write(data)
+                        raw_data_file.write(f"\nHW CRC: {hw_crc}  INJECTION CYCLE: {steps[0]}\n".encode())
                     if not finished:
                         dev.program()
                         not_done += 1
