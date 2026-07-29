@@ -1,3 +1,4 @@
+import os
 import time
 import serial
 import csv
@@ -124,6 +125,10 @@ if __name__ == "__main__":
 
     csv_filename      = f"{RESULTS_DIR}/csvs/csvs_{injection_type}/injection_results_{injection_type}_{date}.csv"
     raw_data_filename = f"{RESULTS_DIR}/raw_data/raw_data_{injection_type}/injection_raw_data_{injection_type}_{date}.txt"
+
+    # Create the output directories if they don't exist yet
+    os.makedirs(os.path.dirname(csv_filename), exist_ok=True)
+    os.makedirs(os.path.dirname(raw_data_filename), exist_ok=True)
 
     print(f"Target: {injection_type}  Runs: {run_counts[target_idx]}")
     print(f"CSV: {csv_filename}")
