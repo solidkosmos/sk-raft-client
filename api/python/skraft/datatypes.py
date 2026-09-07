@@ -105,13 +105,8 @@ class FaultType(int, Enum):
     ``uint32 type`` field (and the former ``InjectionType`` on the Python
     side).
     """
-
-    UNSPECIFIED = skraft_client_pb2.FPGA_FAULT_TYPE_UNSPECIFIED
-    SBU = skraft_client_pb2.FPGA_FAULT_TYPE_SBU        # Single bit upset
-    MBU = skraft_client_pb2.FPGA_FAULT_TYPE_MBU        # Multiple bit upset
-    MCU = skraft_client_pb2.FPGA_FAULT_TYPE_MCU        # Multiple cell upset
-    MIXED = skraft_client_pb2.FPGA_FAULT_TYPE_MIXED    # Mix per percentages
-
+    RANDOM = skraft_client_pb2.FPGA_FAULT_TYPE_RANDOM
+    EXHAUSTIVE = skraft_client_pb2.FPGA_FAULT_TYPE_EXHAUSTIVE
 
 # --------------------------------------------------------------------------- #
 # Design-file configuration

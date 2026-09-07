@@ -263,14 +263,9 @@ message FpgaRandomInjectionReport {
     FpgaInjectionTarget target = 1;
 }
 
-// Fault model used by a fault-injection session. Replaces the opaque
-// "uint32 type" field.
 enum FpgaFaultType {
-    FPGA_FAULT_TYPE_UNSPECIFIED = 0;
-    FPGA_FAULT_TYPE_SBU         = 1; // Single bit upset
-    FPGA_FAULT_TYPE_MBU         = 2; // Multiple bit upset
-    FPGA_FAULT_TYPE_MCU         = 3; // Multiple cell upset
-    FPGA_FAULT_TYPE_MIXED       = 4; // Mix governed by the percentages below
+    FPGA_FAULT_TYPE_RANDOM = 0;
+    FPGA_FAULT_TYPE_EXHAUSTIVE = 1;
 }
 
 message FpgaFiSession {

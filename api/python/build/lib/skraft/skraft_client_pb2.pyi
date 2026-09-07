@@ -36,11 +36,8 @@ class FpgaTargetKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
 
 class FpgaFaultType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
-    FPGA_FAULT_TYPE_UNSPECIFIED: _ClassVar[FpgaFaultType]
-    FPGA_FAULT_TYPE_SBU: _ClassVar[FpgaFaultType]
-    FPGA_FAULT_TYPE_MBU: _ClassVar[FpgaFaultType]
-    FPGA_FAULT_TYPE_MCU: _ClassVar[FpgaFaultType]
-    FPGA_FAULT_TYPE_MIXED: _ClassVar[FpgaFaultType]
+    FPGA_FAULT_TYPE_RANDOM: _ClassVar[FpgaFaultType]
+    FPGA_FAULT_TYPE_EXHAUSTIVE: _ClassVar[FpgaFaultType]
 FPGA_FILE_TYPE_UNSPECIFIED: FpgaFileType
 FPGA_FILE_TYPE_RBD: FpgaFileType
 FPGA_FILE_TYPE_MSD: FpgaFileType
@@ -58,11 +55,8 @@ FPGA_TARGET_KIND_CRAM: FpgaTargetKind
 FPGA_TARGET_KIND_FLIP_FLOP: FpgaTargetKind
 FPGA_TARGET_KIND_LUTRAM: FpgaTargetKind
 FPGA_TARGET_KIND_BRAM: FpgaTargetKind
-FPGA_FAULT_TYPE_UNSPECIFIED: FpgaFaultType
-FPGA_FAULT_TYPE_SBU: FpgaFaultType
-FPGA_FAULT_TYPE_MBU: FpgaFaultType
-FPGA_FAULT_TYPE_MCU: FpgaFaultType
-FPGA_FAULT_TYPE_MIXED: FpgaFaultType
+FPGA_FAULT_TYPE_RANDOM: FpgaFaultType
+FPGA_FAULT_TYPE_EXHAUSTIVE: FpgaFaultType
 
 class FpgaFarDecodeRequest(_message.Message):
     __slots__ = ("value",)
