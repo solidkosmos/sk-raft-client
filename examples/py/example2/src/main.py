@@ -1,50 +1,54 @@
+"""TEST 2 - Program the device, then inject cumulative random CRAM upsets.
+
+Same injection loop as TEST 1, but the design is programmed first, so the
+corrupted bits belong to a known configuration.
+
+BITSTREAM is resolved on the SK-RAFT *server* filesystem, not on this machine
+- that is what ``ServerPath`` marks.
+"""
+
 from skraft import InjectionArea
-from skraft import FaultType, FpgaFiSession
+from skraft.datatypes import DesignFiles, ServerPath
+from skraft.exceptions import SkraftError
 from skraft.skraft_fpga import SkraftFpga
-from skraft.datatypes import (
-    DesignFiles,
-    ServerPath
-)
 
 NUMBER_OF_INJECTIONS = 1000
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 DEVICE = "xc7a35t"
 
-BITSTREAM_PATH = "/home/embeddedcat/Desktop/tester.bit"
+BITSTREAM = ServerPath("/home/embeddedcat/Desktop/tester.bit")
 
 
-def main():
-    with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP, port=SK_RAFT_SERVER_PORT) as client:
-        with client.attach(DEVICE) as dev:
-            dev.load(DesignFiles(
-                bitstream=ServerPath(BITSTREAM_PATH),
-            ))
-            dev.program()
+def inject_random_cram(dev, injections: int) -> None:
+    """Inject ``injections`` random single-bit upsets into the whole CRAM."""
+    for i in range(1, injections + 1):
+        report = dev.inject_random(InjectionArea.CRAM)
 
-            session = FpgaFiSession(
-                    fault_type=FaultType.RANDOM,
-                    duration_ms=5000,
-                    correction_time_ms=0,
-                    time_between_faults_ms=20,
-                    sbu_percent=100,
-                    mbu_percent=0,
-                    mcu_percent=0,
-                    target=InjectionArea.CRAM,
-                    correct=False 
-            )
+        print(f"----- INJECTION {i}/{injections} -----")
+        print(f"FAR:        {report.far:#010x}")
+        print(f"WORD_INDEX: {report.word_index}")
+        print(f"BIT_INDEX:  {report.bit_index}")
 
-            report = dev.run_campaign(session)
-            
-            print("----- INJECTION REPORT -----")
-            print("Total Injections: ", report.faults_injected)
-            for word in report.affected_words:
-                print(f"FAR: {word.far:#010x}")
-                print("WORD INDEX: ", word.word_index)
-                print("BIT INDEX: ", word.bit_index)
-                print("GOLDEN WORD VALUE: ", word.golden_word_value)
-                print("WORD VALUE AFTER FAULT INJECTION: ", word.injected_word_value)
-                print("---------------------------------")
+
+def main() -> None:
+    print("TEST 2: program the device, then random CRAM injection.")
+
+    try:
+        with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
+                                port=SK_RAFT_SERVER_PORT) as client:
+            with client.attach(DEVICE) as dev:
+                dev.load(DesignFiles(bitstream=BITSTREAM, ebd=ServerPath("/home/embeddedcat/Desktop/tester.ebd")))
+                dev.program()
+                print(f"Programmed {DEVICE} with {BITSTREAM}.")
+
+                inject_random_cram(dev, NUMBER_OF_INJECTIONS)
+    except SkraftError as e:
+        print(f"TEST 2 failed: {e}")
+        return
+
+    print(f"TEST 2 done: {NUMBER_OF_INJECTIONS} upsets injected.")
+
 
 if __name__ == "__main__":
     main()

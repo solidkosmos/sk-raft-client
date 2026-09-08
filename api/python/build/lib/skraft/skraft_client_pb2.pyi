@@ -234,6 +234,12 @@ class FpgaFrame(_message.Message):
     words: _containers.RepeatedScalarFieldContainer[int]
     def __init__(self, frame_address: _Optional[int] = ..., words: _Optional[_Iterable[int]] = ...) -> None: ...
 
+class FpgaFrames(_message.Message):
+    __slots__ = ("frames",)
+    FRAMES_FIELD_NUMBER: _ClassVar[int]
+    frames: _containers.RepeatedCompositeFieldContainer[FpgaFrame]
+    def __init__(self, frames: _Optional[_Iterable[_Union[FpgaFrame, _Mapping]]] = ...) -> None: ...
+
 class FpgaReadbackDetail(_message.Message):
     __slots__ = ("frames",)
     FRAMES_FIELD_NUMBER: _ClassVar[int]
@@ -270,7 +276,7 @@ class FpgaInjectionTarget(_message.Message):
     net_name: str
     def __init__(self, frame_address: _Optional[int] = ..., word_index: _Optional[int] = ..., bit_index: _Optional[int] = ..., kind: _Optional[_Union[FpgaTargetKind, str]] = ..., net_name: _Optional[str] = ...) -> None: ...
 
-class FpgaRandomInjectionOptions(_message.Message):
+class FpgaInjectionOptions(_message.Message):
     __slots__ = ("include_essential", "include_flip_flops", "include_lutrams", "include_brams")
     INCLUDE_ESSENTIAL_FIELD_NUMBER: _ClassVar[int]
     INCLUDE_FLIP_FLOPS_FIELD_NUMBER: _ClassVar[int]
@@ -282,11 +288,19 @@ class FpgaRandomInjectionOptions(_message.Message):
     include_brams: bool
     def __init__(self, include_essential: bool = ..., include_flip_flops: bool = ..., include_lutrams: bool = ..., include_brams: bool = ...) -> None: ...
 
-class FpgaRandomInjectionReport(_message.Message):
+class FpgaSingleInjectionReport(_message.Message):
     __slots__ = ("target",)
     TARGET_FIELD_NUMBER: _ClassVar[int]
     target: FpgaInjectionTarget
     def __init__(self, target: _Optional[_Union[FpgaInjectionTarget, _Mapping]] = ...) -> None: ...
+
+class FpgaExhaustiveInjectionReport(_message.Message):
+    __slots__ = ("targets", "injected_bit_count")
+    TARGETS_FIELD_NUMBER: _ClassVar[int]
+    INJECTED_BIT_COUNT_FIELD_NUMBER: _ClassVar[int]
+    targets: _containers.RepeatedCompositeFieldContainer[FpgaInjectionTarget]
+    injected_bit_count: int
+    def __init__(self, targets: _Optional[_Iterable[_Union[FpgaInjectionTarget, _Mapping]]] = ..., injected_bit_count: _Optional[int] = ...) -> None: ...
 
 class FpgaFiSession(_message.Message):
     __slots__ = ("type", "duration_ms", "correction_time_ms", "time_between_faults_ms", "sbu_percent", "mbu_percent", "mcu_percent", "essential", "correct")

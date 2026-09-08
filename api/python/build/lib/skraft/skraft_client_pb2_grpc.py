@@ -84,8 +84,13 @@ class SKRaftFpgaStub(object):
                 _registered_method=True)
         self.FpgaRandomBitFlip = channel.unary_unary(
                 '/proto.SKRaftFpga/FpgaRandomBitFlip',
-                request_serializer=skraft__client__pb2.FpgaRandomInjectionOptions.SerializeToString,
-                response_deserializer=skraft__client__pb2.FpgaRandomInjectionReport.FromString,
+                request_serializer=skraft__client__pb2.FpgaInjectionOptions.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaSingleInjectionReport.FromString,
+                _registered_method=True)
+        self.FpgaExhaustiveBitFlip = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaExhaustiveBitFlip',
+                request_serializer=skraft__client__pb2.FpgaInjectionOptions.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaExhaustiveInjectionReport.FromString,
                 _registered_method=True)
         self.FpgaFaultInjection = channel.unary_unary(
                 '/proto.SKRaftFpga/FpgaFaultInjection',
@@ -106,6 +111,16 @@ class SKRaftFpgaStub(object):
                 '/proto.SKRaftFpga/FpgaExcludeFars',
                 request_serializer=skraft__client__pb2.FpgaFarListExcludeRequest.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
+        self.FpgaEssentialFrames = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaEssentialFrames',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaFrames.FromString,
+                _registered_method=True)
+        self.FpgaMaskFrames = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaMaskFrames',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaFrames.FromString,
                 _registered_method=True)
         self.FpgaReadBackRange = channel.unary_unary(
                 '/proto.SKRaftFpga/FpgaReadBackRange',
@@ -228,6 +243,12 @@ class SKRaftFpgaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def FpgaExhaustiveBitFlip(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def FpgaFaultInjection(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -249,6 +270,18 @@ class SKRaftFpgaServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def FpgaExcludeFars(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaEssentialFrames(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaMaskFrames(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -359,8 +392,13 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
             ),
             'FpgaRandomBitFlip': grpc.unary_unary_rpc_method_handler(
                     servicer.FpgaRandomBitFlip,
-                    request_deserializer=skraft__client__pb2.FpgaRandomInjectionOptions.FromString,
-                    response_serializer=skraft__client__pb2.FpgaRandomInjectionReport.SerializeToString,
+                    request_deserializer=skraft__client__pb2.FpgaInjectionOptions.FromString,
+                    response_serializer=skraft__client__pb2.FpgaSingleInjectionReport.SerializeToString,
+            ),
+            'FpgaExhaustiveBitFlip': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaExhaustiveBitFlip,
+                    request_deserializer=skraft__client__pb2.FpgaInjectionOptions.FromString,
+                    response_serializer=skraft__client__pb2.FpgaExhaustiveInjectionReport.SerializeToString,
             ),
             'FpgaFaultInjection': grpc.unary_unary_rpc_method_handler(
                     servicer.FpgaFaultInjection,
@@ -381,6 +419,16 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
                     servicer.FpgaExcludeFars,
                     request_deserializer=skraft__client__pb2.FpgaFarListExcludeRequest.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'FpgaEssentialFrames': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaEssentialFrames,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=skraft__client__pb2.FpgaFrames.SerializeToString,
+            ),
+            'FpgaMaskFrames': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaMaskFrames,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=skraft__client__pb2.FpgaFrames.SerializeToString,
             ),
             'FpgaReadBackRange': grpc.unary_unary_rpc_method_handler(
                     servicer.FpgaReadBackRange,
@@ -698,8 +746,35 @@ class SKRaftFpga(object):
             request,
             target,
             '/proto.SKRaftFpga/FpgaRandomBitFlip',
-            skraft__client__pb2.FpgaRandomInjectionOptions.SerializeToString,
-            skraft__client__pb2.FpgaRandomInjectionReport.FromString,
+            skraft__client__pb2.FpgaInjectionOptions.SerializeToString,
+            skraft__client__pb2.FpgaSingleInjectionReport.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaExhaustiveBitFlip(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaExhaustiveBitFlip',
+            skraft__client__pb2.FpgaInjectionOptions.SerializeToString,
+            skraft__client__pb2.FpgaExhaustiveInjectionReport.FromString,
             options,
             channel_credentials,
             insecure,
@@ -808,6 +883,60 @@ class SKRaftFpga(object):
             '/proto.SKRaftFpga/FpgaExcludeFars',
             skraft__client__pb2.FpgaFarListExcludeRequest.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaEssentialFrames(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaEssentialFrames',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            skraft__client__pb2.FpgaFrames.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaMaskFrames(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaMaskFrames',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            skraft__client__pb2.FpgaFrames.FromString,
             options,
             channel_credentials,
             insecure,

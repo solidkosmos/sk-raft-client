@@ -73,7 +73,7 @@ from .exceptions import (
 )
 
 
-SK_RAFT_VERSION = "1.0.0.alpha.5"
+SK_RAFT_VERSION = "1.0.0.alpha.11-3-g9355663"
 
 def _rpc_detail(error: grpc.RpcError) -> str:
     """Best-effort extraction of a gRPC error detail string."""
@@ -357,7 +357,7 @@ class FpgaDevice:
         """
         self._files.require(*target.required_design_files)
         try:
-            request = skraft_client_pb2.FpgaRandomInjectionOptions(
+            request = skraft_client_pb2.FpgaInjectionOptions(
                 include_essential=bool(target & InjectionArea.ESSENTIAL_CRAM),
                 include_flip_flops=bool(target & InjectionArea.FLIP_FLOP),
                 include_lutrams=bool(target & InjectionArea.LUTRAM),
@@ -374,6 +374,44 @@ class FpgaDevice:
         except grpc.RpcError as e:
             raise ConnectionFailedError(
                 f"failed to perform random bit flip: {_rpc_detail(e)}"
+            ) from e
+
+    def inject_exhaustive(
+        self, target: InjectionArea
+    ) -> tuple[list[FpgaInjectionReport], int]:
+        """Inject an upset into every bit of ``target``
+        (RPC: ``FpgaExhaustiveBitFlip``).
+
+        Takes the same ``FpgaInjectionOptions`` selector as
+        :meth:`inject_random`, so the areas in ``target`` may be combined.
+        Returns the per-location reports together with the server-reported
+        ``injected_bit_count``, which is authoritative: it may differ from
+        ``len(reports)`` if the server truncates or aggregates the target
+        list.
+        """
+        self._files.require(*target.required_design_files)
+        try:
+            request = skraft_client_pb2.FpgaInjectionOptions(
+                include_essential=bool(target & InjectionArea.ESSENTIAL_CRAM),
+                include_flip_flops=bool(target & InjectionArea.FLIP_FLOP),
+                include_lutrams=bool(target & InjectionArea.LUTRAM),
+                include_brams=bool(target & InjectionArea.BRAM),
+            )
+            reply = self._stub.FpgaExhaustiveBitFlip(request)
+            reports = [
+                FpgaInjectionReport(
+                    t.frame_address,
+                    t.word_index,
+                    t.bit_index,
+                    target,
+                    t.net_name or None,
+                )
+                for t in reply.targets
+            ]
+            return reports, reply.injected_bit_count
+        except grpc.RpcError as e:
+            raise ConnectionFailedError(
+                f"failed to perform exhaustive bit flip: {_rpc_detail(e)}"
             ) from e
 
     def inject_at(self, far: int, word_index: int, bit_index: int,
@@ -498,6 +536,39 @@ class FpgaDevice:
         return FpgaFiSummary(session, faults_injected, corrected, words)
 
     # -- frame utilities --------------------------------------------------- #
+    def essential_frames(self) -> list[FpgaFrame]:
+        """Frames derived from the essential-bits (EBD) file
+        (RPC: ``FpgaEssentialFrames``).
+
+        A set bit in a returned word marks an essential bit at that position,
+        so the frames are masks rather than configuration data. Requires the
+        EBD file.
+        """
+        self._files.require("ebd")
+        try:
+            reply = self._stub.FpgaEssentialFrames(empty_pb2.Empty())
+            return self._frames_from_reply(reply)
+        except grpc.RpcError as e:
+            raise ConnectionFailedError(
+                f"failed to get the essential frames: {_rpc_detail(e)}"
+            ) from e
+
+    def mask_frames(self) -> list[FpgaFrame]:
+        """Frames derived from the readback-mask (MSD) file
+        (RPC: ``FpgaMaskFrames``).
+
+        A set bit marks a position to be ignored when comparing a readback
+        against the golden data. Requires the MSD file.
+        """
+        self._files.require("msd")
+        try:
+            reply = self._stub.FpgaMaskFrames(empty_pb2.Empty())
+            return self._frames_from_reply(reply)
+        except grpc.RpcError as e:
+            raise ConnectionFailedError(
+                f"failed to get the mask frames: {_rpc_detail(e)}"
+            ) from e
+
     def exclude_frames(self, fars: list[int]) -> None:
         """Exclude Frame Addresses from bulk operations
         (RPC: ``FpgaExcludeFars``). ``inject_at`` is unaffected.

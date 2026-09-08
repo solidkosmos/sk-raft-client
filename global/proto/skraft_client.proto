@@ -32,7 +32,8 @@ service SKRaftFpga {
 
     // Fault injection
     rpc FpgaBitFlip(FpgaInjectionTarget) returns (google.protobuf.Empty) {}
-    rpc FpgaRandomBitFlip(FpgaRandomInjectionOptions) returns (FpgaRandomInjectionReport) {}
+    rpc FpgaRandomBitFlip(FpgaInjectionOptions) returns (FpgaSingleInjectionReport) {}
+    rpc FpgaExhaustiveBitFlip(FpgaInjectionOptions) returns (FpgaExhaustiveInjectionReport) {}
     rpc FpgaFaultInjection(FpgaFiSession) returns (FpgaFiSummary) {}
 
     // Programming
@@ -41,6 +42,9 @@ service SKRaftFpga {
     // Frame address (FAR) list management
     rpc FpgaExtractFarsFromBitstream(FpgaFarListExtractRequest) returns (FpgaFarListExtractResponse) {}
     rpc FpgaExcludeFars(FpgaFarListExcludeRequest) returns (google.protobuf.Empty) {}
+
+    rpc FpgaEssentialFrames(google.protobuf.Empty) returns (FpgaFrames) {}
+    rpc FpgaMaskFrames(google.protobuf.Empty) returns (FpgaFrames) {}
 
     // Readback
     rpc FpgaReadBackRange(FpgaReadbackTarget) returns (FpgaReadbackDetail) {}
@@ -52,7 +56,7 @@ service SKRaftFpga {
 
     rpc FpgaReadRegister(FpgaReadRegisterRequest) returns (FpgaRegisterContent) {}
     rpc FpgaWriteRegister(FpgaWriteRegisterRequest) returns (google.protobuf.Empty) {}
-  
+
     rpc FpgaDecodeFrameAddress(FpgaFarDecodeRequest) returns (FpgaFarDecodeResponse) {}
 
     rpc Version(google.protobuf.Empty) returns (VersionDetails) {}
@@ -114,9 +118,6 @@ message FpgaDesignFilePathRequest {
     string path       = 2;
 }
 
-// ---------------------------------------------------------------------------
-// Bit statistics
-// ---------------------------------------------------------------------------
 enum FpgaBitCategory {
     FPGA_BIT_CATEGORY_UNSPECIFIED    = 0;
     FPGA_BIT_CATEGORY_CRAM           = 1;
@@ -211,6 +212,12 @@ message FpgaFrame {
     repeated uint32 words = 2;
 }
 
+// Plain list of frames. Returned by FpgaEssentialFrames (frames derived from
+// the EBD file) and FpgaMaskFrames (frames derived from the MSD file).
+message FpgaFrames {
+    repeated FpgaFrame frames = 1;
+}
+
 message FpgaReadbackDetail {
     repeated FpgaFrame frames = 1;
 }
@@ -252,15 +259,20 @@ message FpgaInjectionTarget {
     string net_name      = 5;
 }
 
-message FpgaRandomInjectionOptions {
+message FpgaInjectionOptions {
     bool include_essential  = 1;
     bool include_flip_flops = 2;
     bool include_lutrams    = 3;
     bool include_brams      = 4;
 }
 
-message FpgaRandomInjectionReport {
+message FpgaSingleInjectionReport {
     FpgaInjectionTarget target = 1;
+}
+
+message FpgaExhaustiveInjectionReport {
+    repeated FpgaInjectionTarget targets = 1;
+    uint32 injected_bit_count            = 2;
 }
 
 enum FpgaFaultType {
