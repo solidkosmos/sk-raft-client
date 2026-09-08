@@ -38,7 +38,7 @@ def main() -> None:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
             with client.attach(DEVICE) as dev:
-                dev.load(DesignFiles(bitstream=BITSTREAM, ebd=ServerPath("/home/embeddedcat/Desktop/tester.ebd")))
+                dev.load(DesignFiles(bitstream=BITSTREAM))
                 dev.program()
                 print(f"Programmed {DEVICE} with {BITSTREAM}.")
 
