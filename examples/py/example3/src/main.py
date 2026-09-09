@@ -10,12 +10,6 @@ guaranteed to land on a bit the design actually uses:
 * ``inject_exhaustive_essential`` - walks every essential bit exactly once.
 
 The mode is chosen interactively at start-up.
-
-Note on the frames returned by ``essential_frames()``: each 32-bit word is a
-*mask*, and a set bit marks an essential bit at that position. The mapping used
-here is bit 0 = LSB of the word = ``bit_index`` 0, matching the ``bit_index``
-that ``inject_at`` expects. If your server uses the opposite bit order inside a
-word, flip the shift in ``essential_bit_locations``.
 """
 
 from __future__ import annotations

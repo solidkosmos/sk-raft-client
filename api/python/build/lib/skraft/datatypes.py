@@ -20,23 +20,6 @@
 #   SHALL TAKE PRECEDENCE. BY CONTINUING TO USE THIS SOFTWARE, YOU AGREE TO THE TERMS OF
 #   THIS NOTICE. IF YOU DO NOT AGREE TO THESE TERMS, YOU ARE NOT PERMITTED TO USE THIS
 #   SOFTWARE
-
-"""Data structures exchanged with the SK-RAFT API.
-
-This module matches the redesigned proto definition:
-- ``InjectionArea`` is an ``IntFlag`` (combinable) used for random injection;
-  a specific injection is narrowed to a single wire ``FpgaTargetKind``.
-- ``FaultType`` mirrors the wire ``FpgaFaultType`` enum (SBU/MBU/MCU/MIXED),
-  replacing the opaque integer fault type.
-- ``DesignFiles`` groups the per-design paths into one validated object; all
-  of them are pushed through the single ``FpgaSetDesignFilePath`` RPC.
-- ``FpgaFiSession`` carries millisecond-suffixed timings matching the wire
-  field names; ``FpgaFiSummary`` reports outcomes instead of echoing inputs.
-- ``FpgaScrubReport`` wraps per-cycle ``FpgaScrubSummary`` entries (each with
-  its ``FpgaScrubWordSummary`` list), mirroring the ``FpgaScrubbing`` RPC
-  reply.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -138,6 +121,7 @@ class DesignFiles:
     ll: Optional[ServerPath] = None          # logic location
     rbd: Optional[ServerPath] = None         # readback data (self-test)
     msd: Optional[ServerPath] = None         # mask (self-test)
+    xdc: Optional[ServerPath] = None         # constraints (pblock clauses)
 
     def require(self, *fields: str) -> None:
         """Raise :class:`DesignFileError` if any named field is unset."""
@@ -182,6 +166,89 @@ class FpgaFar:
     @property
     def minor_address(self) -> int:
         return self.__minor_address
+
+
+# --------------------------------------------------------------------------- #
+# Pblocks
+# --------------------------------------------------------------------------- #
+class FpgaPblockRange:
+    """An inclusive ``from``..``to`` index range (wire ``FpgaPblockRange``).
+    """
+
+    def __init__(self, start: int, end: int) -> None:
+        self.__start = start
+        self.__end = end
+
+    @property
+    def start(self) -> int:
+        """First index of the range."""
+        return self.__start
+
+    @property
+    def end(self) -> int:
+        """Last index of the range."""
+        return self.__end
+
+
+class FpgaPblockAreaRange:
+    def __init__(self, bit_range: FpgaPblockRange,
+                 word_range: FpgaPblockRange) -> None:
+        self.__bit_range = bit_range
+        self.__word_range = word_range
+
+    @property
+    def bit_range(self) -> FpgaPblockRange:
+        """Bit indexes occupied inside each word of :attr:`word_range`."""
+        return self.__bit_range
+
+    @property
+    def word_range(self) -> FpgaPblockRange:
+        """Word indexes occupied inside the frame."""
+        return self.__word_range
+
+
+class FpgaPblockFar:
+    """One Frame Address covered by a pblock.
+    """
+
+    def __init__(self, far: int,
+                 occupied_area: list[FpgaPblockAreaRange]) -> None:
+        self.__far = far
+        self.__occupied_area = occupied_area
+
+    @property
+    def far(self) -> int:
+        """The Frame Address (FAR)."""
+        return self.__far
+
+    @property
+    def occupied_area(self) -> list[FpgaPblockAreaRange]:
+        """The areas of this frame occupied by the pblock."""
+        return self.__occupied_area
+
+
+class FpgaPblock:
+    """A pblock declared in the constraints file (wire ``FpgaPblock``).
+
+    ``clauses`` are the range expressions attached to the pblock, e.g.
+    ``"SLICE_X0Y0:SLICE_X7Y49"``. They are carried on the wire as
+    ``FpgaPblockClause`` messages and unwrapped to plain strings here, so a
+    clause can be passed straight to :meth:`FpgaDevice.pblock_by_clause`.
+    """
+
+    def __init__(self, name: str, clauses: list[str]) -> None:
+        self.__name = name
+        self.__clauses = clauses
+
+    @property
+    def name(self) -> str:
+        """The pblock name as written in the constraints."""
+        return self.__name
+
+    @property
+    def clauses(self) -> list[str]:
+        """The range expressions belonging to the pblock."""
+        return self.__clauses
 
 
 # --------------------------------------------------------------------------- #

@@ -59,7 +59,42 @@ service SKRaftFpga {
 
     rpc FpgaDecodeFrameAddress(FpgaFarDecodeRequest) returns (FpgaFarDecodeResponse) {}
 
+    rpc FpgaGetPblocks(google.protobuf.Empty) returns (FpgaPblocks) {}
+    rpc FpgaGetPblockFarsByClause(FpgaPblockClause) returns (FpgaPblockFars) {}
+
     rpc Version(google.protobuf.Empty) returns (VersionDetails) {}
+}
+
+message FpgaPblock {
+    string name = 1;
+    repeated FpgaPblockClause clauses = 2;
+}
+
+message FpgaPblocks {
+    repeated FpgaPblock pblocks = 1;
+}
+
+message FpgaPblockClause {
+    string value = 1;
+}
+
+message FpgaPblockRange {
+    uint32 from = 1;
+    uint32 to = 2;
+}
+
+message FpgaPblockAreaRange {
+    FpgaPblockRange bit_range = 1;
+    FpgaPblockRange word_range = 2;
+}
+
+message FpgaPblockFar {
+    uint32 far = 1;
+    repeated FpgaPblockAreaRange occupied_area = 2;
+}
+
+message FpgaPblockFars {
+    repeated FpgaPblockFar fars = 1;
 }
 
 message FpgaFarDecodeRequest {
@@ -111,6 +146,7 @@ enum FpgaFileType {
     FPGA_FILE_TYPE_EBD         = 3; // Essential bits data file
     FPGA_FILE_TYPE_LL          = 4; // Logic location file
     FPGA_FILE_TYPE_BIT         = 5; // Bitstream file
+    FPGA_FILE_TYPE_XDC         = 6; // Constrain file (XDC).
 }
 
 message FpgaDesignFilePathRequest {

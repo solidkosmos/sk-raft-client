@@ -16,6 +16,7 @@ class FpgaFileType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     FPGA_FILE_TYPE_EBD: _ClassVar[FpgaFileType]
     FPGA_FILE_TYPE_LL: _ClassVar[FpgaFileType]
     FPGA_FILE_TYPE_BIT: _ClassVar[FpgaFileType]
+    FPGA_FILE_TYPE_XDC: _ClassVar[FpgaFileType]
 
 class FpgaBitCategory(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -44,6 +45,7 @@ FPGA_FILE_TYPE_MSD: FpgaFileType
 FPGA_FILE_TYPE_EBD: FpgaFileType
 FPGA_FILE_TYPE_LL: FpgaFileType
 FPGA_FILE_TYPE_BIT: FpgaFileType
+FPGA_FILE_TYPE_XDC: FpgaFileType
 FPGA_BIT_CATEGORY_UNSPECIFIED: FpgaBitCategory
 FPGA_BIT_CATEGORY_CRAM: FpgaBitCategory
 FPGA_BIT_CATEGORY_ESSENTIAL_CRAM: FpgaBitCategory
@@ -57,6 +59,55 @@ FPGA_TARGET_KIND_LUTRAM: FpgaTargetKind
 FPGA_TARGET_KIND_BRAM: FpgaTargetKind
 FPGA_FAULT_TYPE_RANDOM: FpgaFaultType
 FPGA_FAULT_TYPE_EXHAUSTIVE: FpgaFaultType
+
+class FpgaPblock(_message.Message):
+    __slots__ = ("name", "clauses")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    CLAUSES_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    clauses: _containers.RepeatedCompositeFieldContainer[FpgaPblockClause]
+    def __init__(self, name: _Optional[str] = ..., clauses: _Optional[_Iterable[_Union[FpgaPblockClause, _Mapping]]] = ...) -> None: ...
+
+class FpgaPblocks(_message.Message):
+    __slots__ = ("pblocks",)
+    PBLOCKS_FIELD_NUMBER: _ClassVar[int]
+    pblocks: _containers.RepeatedCompositeFieldContainer[FpgaPblock]
+    def __init__(self, pblocks: _Optional[_Iterable[_Union[FpgaPblock, _Mapping]]] = ...) -> None: ...
+
+class FpgaPblockClause(_message.Message):
+    __slots__ = ("value",)
+    VALUE_FIELD_NUMBER: _ClassVar[int]
+    value: str
+    def __init__(self, value: _Optional[str] = ...) -> None: ...
+
+class FpgaPblockRange(_message.Message):
+    __slots__ = ("to",)
+    FROM_FIELD_NUMBER: _ClassVar[int]
+    TO_FIELD_NUMBER: _ClassVar[int]
+    to: int
+    def __init__(self, to: _Optional[int] = ..., **kwargs) -> None: ...
+
+class FpgaPblockAreaRange(_message.Message):
+    __slots__ = ("bit_range", "word_range")
+    BIT_RANGE_FIELD_NUMBER: _ClassVar[int]
+    WORD_RANGE_FIELD_NUMBER: _ClassVar[int]
+    bit_range: FpgaPblockRange
+    word_range: FpgaPblockRange
+    def __init__(self, bit_range: _Optional[_Union[FpgaPblockRange, _Mapping]] = ..., word_range: _Optional[_Union[FpgaPblockRange, _Mapping]] = ...) -> None: ...
+
+class FpgaPblockFar(_message.Message):
+    __slots__ = ("far", "occupied_area")
+    FAR_FIELD_NUMBER: _ClassVar[int]
+    OCCUPIED_AREA_FIELD_NUMBER: _ClassVar[int]
+    far: int
+    occupied_area: _containers.RepeatedCompositeFieldContainer[FpgaPblockAreaRange]
+    def __init__(self, far: _Optional[int] = ..., occupied_area: _Optional[_Iterable[_Union[FpgaPblockAreaRange, _Mapping]]] = ...) -> None: ...
+
+class FpgaPblockFars(_message.Message):
+    __slots__ = ("fars",)
+    FARS_FIELD_NUMBER: _ClassVar[int]
+    fars: _containers.RepeatedCompositeFieldContainer[FpgaPblockFar]
+    def __init__(self, fars: _Optional[_Iterable[_Union[FpgaPblockFar, _Mapping]]] = ...) -> None: ...
 
 class FpgaFarDecodeRequest(_message.Message):
     __slots__ = ("value",)

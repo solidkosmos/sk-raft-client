@@ -54,6 +54,10 @@ from .datatypes import (
     FpgaFiSummary,
     FpgaFrame,
     FpgaInjectionReport,
+    FpgaPblock,
+    FpgaPblockAreaRange,
+    FpgaPblockFar,
+    FpgaPblockRange,
     FpgaRandomInjectionReport,
     FpgaScrubReport,
     FpgaScrubSummary,
@@ -128,6 +132,7 @@ class FpgaDevice:
         "ll": skraft_client_pb2.FPGA_FILE_TYPE_LL,
         "rbd": skraft_client_pb2.FPGA_FILE_TYPE_RBD,
         "msd": skraft_client_pb2.FPGA_FILE_TYPE_MSD,
+        "xdc": skraft_client_pb2.FPGA_FILE_TYPE_XDC,
     }
 
     # Maps a bit-statistics label to the FpgaBitCategory enum value used by
@@ -581,7 +586,67 @@ class FpgaDevice:
                 f"failed to exclude the provided FARs: {_rpc_detail(e)}"
             ) from e
 
-    # -- boundary scan ----------------------------------------------------- #
+    def pblocks(self) -> list[FpgaPblock]:
+        """List every pblock declared in the constraints
+        (RPC: ``FpgaGetPblocks``).
+
+        Each returned :class:`FpgaPblock` carries its name and its range
+        clauses; a clause can be handed to :meth:`pblock_by_clause` to get the
+        frames it occupies. Requires the XDC file.
+        """
+        self._files.require("xdc")
+        try:
+            reply = self._stub.FpgaGetPblocks(empty_pb2.Empty())
+            return [
+                FpgaPblock(
+                    pblock.name,
+                    [clause.value for clause in pblock.clauses],
+                )
+                for pblock in reply.pblocks
+            ]
+        except grpc.RpcError as e:
+            raise FrameAddressError(
+                f"failed to get the pblocks: {_rpc_detail(e)}"
+            ) from e
+
+    def pblock_by_clause(self, clause: str) -> list[FpgaPblockFar]:
+        """Resolve a pblock clause to the frames it occupies
+        (RPC: ``FpgaGetPblockFarsByClause``).
+
+        ``clause`` is the pblock range expression as written in the
+        constraints, e.g. ``"SLICE_X0Y0:SLICE_X7Y49"``. Each returned
+        :class:`FpgaPblockFar` names a Frame Address and the word/bit
+        rectangles of it the pblock covers, so the result can be fed straight
+        to :meth:`inject_at` to confine injection to one region of the
+        device. Requires the XDC file.
+        """
+        self._files.require("xdc")
+        try:
+            request = skraft_client_pb2.FpgaPblockClause(value=clause)
+            reply = self._stub.FpgaGetPblockFarsByClause(request)
+            return [
+                FpgaPblockFar(
+                    entry.far,
+                    [
+                        FpgaPblockAreaRange(
+                            self._pblock_range(area.bit_range),
+                            self._pblock_range(area.word_range),
+                        )
+                        for area in entry.occupied_area
+                    ],
+                )
+                for entry in reply.fars
+            ]
+        except grpc.RpcError as e:
+            raise FrameAddressError(
+                f"failed to get the pblock for clause {clause!r}: "
+                f"{_rpc_detail(e)}"
+            ) from e
+
+    @staticmethod
+    def _pblock_range(message) -> FpgaPblockRange:
+        return FpgaPblockRange(getattr(message, "from"), message.to)
+
     def write_bscan(self, bscan: BscanPrimitive, value: int) -> bytes:
         """Write ``value`` into the given USER register
         (RPC: ``FpgaWriteBscan`` via ``BscanPrimitive.shift_in``).
