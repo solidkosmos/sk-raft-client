@@ -28,9 +28,6 @@ bit outside the memory is ever touched.
 * ``exhaustive`` calls ``dev.inject_exhaustive()`` once. That sweep happens in
   a single server-side pass, so the memory is read once afterwards and every
   word is reported.
-
-Edit the settings below and run. Requires a logic location file for the
-design (``write_debug_probes`` or the ``.ll`` produced with the bitstream).
 """
 
 from __future__ import annotations

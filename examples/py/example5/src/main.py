@@ -32,9 +32,6 @@ from skraft.datatypes import DesignFiles, ServerPath
 from skraft.exceptions import SkraftError
 from skraft.skraft_fpga import SkraftFpga
 
-# --------------------------------------------------------------------------- #
-# Settings
-# --------------------------------------------------------------------------- #
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 DEVICE = "xc7a35t"
@@ -66,9 +63,6 @@ WORDS_PER_FRAME = 101  # a 7-series configuration frame
 AREA = InjectionArea.ESSENTIAL_CRAM if ESSENTIAL_ONLY else InjectionArea.CRAM
 
 
-# --------------------------------------------------------------------------- #
-# Choosing the target bits
-# --------------------------------------------------------------------------- #
 def find_pblock(dev, name: str):
     """Return the named pblock of the loaded XDC."""
     available = dev.pblocks()

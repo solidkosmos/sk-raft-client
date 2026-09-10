@@ -43,9 +43,6 @@ from skraft.datatypes import BscanPrimitive, DesignFiles, ServerPath
 from skraft.exceptions import SkraftError
 from skraft.skraft_fpga import SkraftFpga
 
-# --------------------------------------------------------------------------- #
-# Settings
-# --------------------------------------------------------------------------- #
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 DEVICE = "xc7a35t"
@@ -82,9 +79,6 @@ WORD_BITS = 32
 RESULT_MASK = (1 << USER_RESULT.size_in_bits) - 1
 
 
-# --------------------------------------------------------------------------- #
-# Locating the essential bits
-# --------------------------------------------------------------------------- #
 def essential_bits(dev) -> list[tuple[int, int, int]]:
     """Every essential bit as ``(far, word_index, bit_index)``.
 
@@ -103,10 +97,6 @@ def essential_bits(dev) -> list[tuple[int, int, int]]:
     stage(f"{len(sites)} essential bits found")
     return sites
 
-
-# --------------------------------------------------------------------------- #
-# Adder self-test
-# --------------------------------------------------------------------------- #
 def read_adder(dev, a: int, b: int) -> int:
     """Apply operands ``a`` and ``b`` and return the adder's result.
 
@@ -133,10 +123,6 @@ def test_adder(dev, context: str) -> int:
                  f"{expected:#06x}, got {actual:#06x}")
     return failures
 
-
-# --------------------------------------------------------------------------- #
-# Injecting
-# --------------------------------------------------------------------------- #
 def chosen_bits(sites: list[tuple[int, int, int]]
                 ) -> list[tuple[int, int, int]]:
     """The bits this run will upset, in the order they will be upset."""
@@ -174,10 +160,6 @@ def campaign(dev, sites: list[tuple[int, int, int]], started: float) -> int:
     stage(f"{broken}/{len(targets)} upsets broke the adder")
     return broken
 
-
-# --------------------------------------------------------------------------- #
-# Entry point
-# --------------------------------------------------------------------------- #
 def main() -> None:
     configure(verbose=VERBOSE, warning_noun="adder errors",
               warning_hint="the ADDER column reports them all")

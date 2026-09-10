@@ -28,10 +28,6 @@ Two sources decide where an upset may land, and only their overlap is used:
   afterwards and the run starts from a clean design.
 * the XDC declares a pblock around the shift register. ``dev.pblocks()`` and
   ``dev.pblock_by_clause()`` turn it into the frames and bits it occupies.
-
-The clock is briefly enabled so the shift register holds live data, then
-stopped, so its contents are stable and every later change is down to an
-injected fault rather than the design running on.
 """
 
 from __future__ import annotations
@@ -54,9 +50,6 @@ from skraft.datatypes import BscanPrimitive, DesignFiles, ServerPath
 from skraft.exceptions import SkraftError
 from skraft.skraft_fpga import SkraftFpga
 
-# --------------------------------------------------------------------------- #
-# Settings
-# --------------------------------------------------------------------------- #
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 DEVICE = "xc7a35t"
@@ -90,9 +83,6 @@ SR_MASK = (1 << USER_SR.size_in_bits) - 1
 SETTLE_S = 0.1
 
 
-# --------------------------------------------------------------------------- #
-# Talking to the shift register over BSCAN
-# --------------------------------------------------------------------------- #
 def set_clock(dev, enabled: bool) -> None:
     """Start or stop the design's clock through USER1."""
     dev.write_bscan(USER_CLK_EN, 1 if enabled else 0)
@@ -113,9 +103,6 @@ def freeze(dev) -> int:
     return snapshot
 
 
-# --------------------------------------------------------------------------- #
-# Choosing the target bits
-# --------------------------------------------------------------------------- #
 def area_bits(area):
     """Yield the ``(word_index, bit_index)`` pairs an occupied area covers.
 
@@ -173,9 +160,6 @@ def target_bits(dev) -> list[tuple[int, int, int]]:
     return sites
 
 
-# --------------------------------------------------------------------------- #
-# Injecting
-# --------------------------------------------------------------------------- #
 def chosen_bits(sites: list[tuple[int, int, int]]
                 ) -> list[tuple[int, int, int]]:
     """The bits this run will upset, in the order they will be upset."""
@@ -218,9 +202,6 @@ def campaign(dev, sites: list[tuple[int, int, int]], frozen: int,
     stage(f"USER4 started at {frozen:#04x} and ended at {state:#04x}")
 
 
-# --------------------------------------------------------------------------- #
-# Entry point
-# --------------------------------------------------------------------------- #
 def main() -> None:
     configure(verbose=VERBOSE, warning_noun="silent upsets",
               warning_hint="the CHANGED column reports them all")
