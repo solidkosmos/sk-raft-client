@@ -21,21 +21,6 @@
 #   THIS NOTICE. IF YOU DO NOT AGREE TO THESE TERMS, YOU ARE NOT PERMITTED TO USE THIS
 #   SOFTWARE
 
-"""SK-RAFT FPGA control client, matching the redesigned proto definition.
-
-``SkraftFpga`` owns the server connection and hands out ``FpgaDevice`` handles.
-``FpgaDevice`` carries everything tied to a reserved device: design files,
-queries, programming/readback, scrubbing and fault injection. Both are context
-managers.
-
-Both classes wrap the gRPC stub generated from the redesigned
-``SKRaftFpga`` service; the mapping from each method to its RPC is noted
-inline. Note that the redesigned proto uses PascalCase RPC names
-(``FpgaConnect``, ``FpgaSetDesignFilePath``, ...) and snake_case field names,
-and
-the generated Python code follows suit.
-"""
-
 from __future__ import annotations
 
 from typing import Optional
