@@ -54,9 +54,9 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 DEVICE = "xc7a35t"
 
-BITSTREAM = ServerPath("/home/embeddedcat/Desktop/test_lut_ff.bit")
-LL = ServerPath("/home/embeddedcat/Desktop/test_lut_ff.ll")
-XDC = ServerPath("/home/embeddedcat/Desktop/test_lut_ff.xdc")
+BITSTREAM = ServerPath("/home/embeddedcat/Desktop/skraft_examples_designs/memories/tester.bit")
+LL = ServerPath("/home/embeddedcat/Desktop/skraft_examples_designs/memories/tester.ll")
+XDC = ServerPath("/home/embeddedcat/Desktop/skraft_examples_designs/memories/tester.xdc")
 
 # The pblock around the shift register, as named in the XDC.
 PBLOCK = "pblock_ff_sr_inst"

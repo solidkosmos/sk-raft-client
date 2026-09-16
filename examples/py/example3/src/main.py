@@ -1,4 +1,4 @@
-"""TEST 3 - Targeted injection into essential bits, random or exhaustive.
+"""TEST 3 - Injection into essential bits, random or exhaustive.
 
 The EBD file is loaded and the device programmed, then ``dev.essential_frames()``
 is used to build the list of essential bit locations. Both injection functions
@@ -26,8 +26,8 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 DEVICE = "xc7a35t"
 
-BITSTREAM = ServerPath("/home/embeddedcat/Desktop/tester.bit")
-EBD = ServerPath("/home/embeddedcat/Desktop/tester.ebd")
+BITSTREAM = ServerPath("/home/embeddedcat/Desktop/skraft_examples_designs/plain/tester.bit")
+EBD = ServerPath("/home/embeddedcat/Desktop/skraft_examples_designs/plain/tester.ebd")
 
 WORD_BITS = 32
 PROGRESS_EVERY = 100

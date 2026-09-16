@@ -6,7 +6,6 @@ through four BSCAN USER registers:
     USER1    1 bit     CLK_EN, clock enable    (read/write)
     USER2    4 bits    address select          (read/write)
     USER3   32 bits    data                    (read/write)
-    USER4    8 bits    shift register          (read)
 
 A known pattern is written into the ten memory words and the clock is
 stopped, so nothing but an injected fault can change them. The LUTRAM bits
@@ -53,8 +52,8 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 DEVICE = "xc7a35t"
 
-BITSTREAM = ServerPath("/home/embeddedcat/Desktop/test_lut_ff.bit")
-LL = ServerPath("/home/embeddedcat/Desktop/test_lut_ff.ll")
+BITSTREAM = ServerPath("/home/embeddedcat/Desktop/skraft_examples_designs/memories/tester.bit")
+LL = ServerPath("/home/embeddedcat/Desktop/skraft_examples_designs/memories/tester.ll")
 
 # "random" samples LUTRAM bits one at a time; "exhaustive" sweeps every one
 # of them in a single call.
@@ -71,7 +70,7 @@ USER_CLK_EN = BscanPrimitive(1, 1)
 USER_ADDR = BscanPrimitive(2, 4)
 USER_DATA = BscanPrimitive(3, 32)
 
-MEMORY_DEPTH = 10  # words reachable through USER2
+MEMORY_DEPTH = 1 << USER_ADDR.size_in_bits
 DATA_MASK = (1 << USER_DATA.size_in_bits) - 1
 
 def set_clock(dev, enabled: bool) -> None:
@@ -80,7 +79,8 @@ def set_clock(dev, enabled: bool) -> None:
 
 def write_word(dev, address: int, value: int) -> None:
     """Write one 32-bit word, address on USER2 and data on USER3."""
-    dev.write_bscan(USER_ADDR, address)
+    prev = dev.write_bscan(USER_ADDR, address)
+    print(int.from_bytes(prev) & 0xF)
     dev.write_bscan(USER_DATA, value)
 
 
@@ -95,7 +95,7 @@ def pattern(address: int) -> int:
     Alternating bits, so a single upset anywhere in the word shows up, and a
     different value per address, so a mis-addressed read is visible too.
     """
-    return (0xA5A5A5A5 ^ (address * 0x01010101)) & DATA_MASK
+    return (0xA5A5A5A5 ^ (address)) & DATA_MASK
 
 def fill_memory(dev) -> None:
     """Write the pattern into every word, then stop the clock."""

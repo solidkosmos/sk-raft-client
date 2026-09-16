@@ -21,21 +21,6 @@
 #   THIS NOTICE. IF YOU DO NOT AGREE TO THESE TERMS, YOU ARE NOT PERMITTED TO USE THIS
 #   SOFTWARE
 
-"""SK-RAFT FPGA control client, matching the redesigned proto definition.
-
-``SkraftFpga`` owns the server connection and hands out ``FpgaDevice`` handles.
-``FpgaDevice`` carries everything tied to a reserved device: design files,
-queries, programming/readback, scrubbing and fault injection. Both are context
-managers.
-
-Both classes wrap the gRPC stub generated from the redesigned
-``SKRaftFpga`` service; the mapping from each method to its RPC is noted
-inline. Note that the redesigned proto uses PascalCase RPC names
-(``FpgaConnect``, ``FpgaSetDesignFilePath``, ...) and snake_case field names,
-and
-the generated Python code follows suit.
-"""
-
 from __future__ import annotations
 
 from typing import Optional
@@ -652,7 +637,7 @@ class FpgaDevice:
         (RPC: ``FpgaWriteBscan`` via ``BscanPrimitive.shift_in``).
         """
         try:
-            total_bytes = bscan.size_in_bits // 8 or 1
+            total_bytes = -(-bscan.size_in_bits // 8) or 1
             value_bytes = value.to_bytes(total_bytes, "big")
             return bscan.shift_in(self._stub, value_bytes)
         except grpc.RpcError as e:
@@ -666,7 +651,7 @@ class FpgaDevice:
         (RPC: ``FpgaReadBscan`` via ``BscanPrimitive.shift_in``).
         """
         try:
-            total_bytes = bscan.size_in_bits // 8 or 1
+            total_bytes = -(-bscan.size_in_bits // 8) or 1
             dummy = bytes(total_bytes)
             return bscan.shift_in(self._stub, dummy, True)
         except grpc.RpcError as e:

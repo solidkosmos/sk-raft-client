@@ -17,7 +17,7 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 DEVICE = "xc7a35t"
 
-BITSTREAM = ServerPath("/home/embeddedcat/Desktop/tester.bit")
+BITSTREAM = ServerPath("/home/embeddedcat/Desktop/skraft_examples_designs/plain/tester.bit")
 
 
 def inject_random_cram(dev, injections: int) -> None:

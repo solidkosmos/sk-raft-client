@@ -36,9 +36,9 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 DEVICE = "xc7a35t"
 
-BITSTREAM = ServerPath("/home/embeddedcat/Desktop/targeted.bit")
-EBD = ServerPath("/home/embeddedcat/Desktop/targeted.ebd")
-XDC = ServerPath("/home/embeddedcat/Desktop/targeted.xdc")
+BITSTREAM = ServerPath("/home/embeddedcat/Desktop/skraft_examples_designs/pblock/tester.bit")
+EBD = ServerPath("/home/embeddedcat/Desktop/skraft_examples_designs/pblock/tester.ebd")
+XDC = ServerPath("/home/embeddedcat/Desktop/skraft_examples_designs/pblock/tester.xdc")
 
 # The pblock to attack, as named in the XDC.
 PBLOCK = "pblock_fast_heartbeat"

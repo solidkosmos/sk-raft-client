@@ -47,8 +47,8 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 DEVICE = "xc7a35t"
 
-BITSTREAM = ServerPath("/home/embeddedcat/Desktop/bscan_tester.bit")
-EBD = ServerPath("/home/embeddedcat/Desktop/bscan_tester.ebd")
+BITSTREAM = ServerPath("/home/embeddedcat/Desktop/skraft_examples_designs/bscan/tester.bit")
+EBD = ServerPath("/home/embeddedcat/Desktop/skraft_examples_designs/bscan/tester.ebd")
 
 # "random" samples INJECTIONS essential bits; "exhaustive" upsets every one
 # of them, in order.
@@ -60,7 +60,7 @@ INJECTIONS = 1000
 # True flips each bit back after its test, so every test sees exactly one
 # fault. False leaves the upsets in place and lets them accumulate; the
 # device is re-programmed at the end of the run to clear them.
-CORRECT = True
+CORRECT = False
 
 # The adder's BSCAN USER registers.
 USER_A = BscanPrimitive(1, 8)        # operand A, shifted in

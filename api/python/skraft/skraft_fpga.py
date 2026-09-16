@@ -637,7 +637,7 @@ class FpgaDevice:
         (RPC: ``FpgaWriteBscan`` via ``BscanPrimitive.shift_in``).
         """
         try:
-            total_bytes = bscan.size_in_bits // 8 or 1
+            total_bytes = -(-bscan.size_in_bits // 8) or 1
             value_bytes = value.to_bytes(total_bytes, "big")
             return bscan.shift_in(self._stub, value_bytes)
         except grpc.RpcError as e:
@@ -651,7 +651,7 @@ class FpgaDevice:
         (RPC: ``FpgaReadBscan`` via ``BscanPrimitive.shift_in``).
         """
         try:
-            total_bytes = bscan.size_in_bits // 8 or 1
+            total_bytes = -(-bscan.size_in_bits // 8) or 1
             dummy = bytes(total_bytes)
             return bscan.shift_in(self._stub, dummy, True)
         except grpc.RpcError as e:
