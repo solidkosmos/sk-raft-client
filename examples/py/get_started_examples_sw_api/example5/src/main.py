@@ -1,33 +1,6 @@
-"""JTAG/BSCAN-driven adder: simplex versus TMR, compared bit-flip by bit-flip.
+"""Example 5 - program the device, then compare a clean DSP48 reference against a fault-injection target."""
 
-Two independent adders - a plain (``simplex``) adder and one built from
-three replicated adders and a majority voter (``TMR``) - each with its own
-BSCAN operand-write channel (USER1/USER2), so an upset can't corrupt both
-adders' inputs through a shared path. That's a deliberate fix: an earlier,
-single-channel version of this test found exactly that failure mode on real
-hardware. See README.md for the register map and operand packing.
-
-Each adder sits in its own pblock (``pblock_sngl_add``, ``pblock_tmr_add``),
-resolved to essential bits the same way the rest of this suite confines a
-pblock. Neither pblock sets ``CONTAIN_ROUTING``, so a bit inside one's
-footprint can still belong to logic or routing shared with the other; with
-separate operand channels, that overlap can no longer be a shared-input
-effect, so when the *other* adder also goes wrong the campaign flags it per
-trial rather than treating it as a plain pass/fail.
-
-Two independent campaigns, one per pblock, each run ``REPEATS`` single-bit
-trials: inject one upset at a random essential bit, apply a fresh random
-operand pair and check both adders, then inject the same
-``(far, word_index, bit_index)`` again to revert it (``FpgaBitFlip``
-toggles, so hitting the same spot twice is a plain revert) before the next
-trial starts. Nothing accumulates across trials or between campaigns.
-
-The device is re-programmed between the two campaigns and once more at the
-end, as a safety net rather than a necessity.
-"""
-
-from __future__ import annotations
-
+import argparse
 import random
 import time
 
@@ -45,78 +18,119 @@ from skraft.datatypes import BscanPrimitive, DesignFiles, ServerPath
 from skraft.exceptions import SkraftError
 from skraft.skraft_fpga import SkraftFpga
 
+DEFAULT_RANDOM_INJECTIONS = 200
 SK_RAFT_SERVER_IP = "<SK_RAFT_SERVER_IP>"  # e.g. "192.168.1.50"
 SK_RAFT_SERVER_PORT = 50051
 DEVICE = "xc7a35t"
 
-DESIGN = "<DESIGN_PATH_ON_SERVER>"  # server-side folder holding this design's tester.* files
-BITSTREAM = ServerPath(f"{DESIGN}/tester.bit")
-EBD = ServerPath(f"{DESIGN}/tester.ebd")
-XDC = ServerPath(f"{DESIGN}/tester.xdc")
+# The two pblocks under test, as named in the XDC. Only the target is ever
+# injected into; the clean one is the untouched hardware reference.
+PBLOCK_CLEAN = "pblock_dsp_clean"
+PBLOCK_TARGET = "pblock_dsp_target"
 
-# The two pblocks under test, as named in the XDC.
-PBLOCK_SIMPLEX = "pblock_sngl_add"
-PBLOCK_TMR = "pblock_tmr_add"
+# The design's a_len/b_len generics. Widen USER1-4 if the design is rebuilt
+# with different values.
+A_LEN = 16
+B_LEN = 16
 
-# The design's op_len generic. Widens USER1/USER2 and, with the carry bit,
-# USER3/USER4 if the design is rebuilt with a different value.
-OP_LEN = 4
-
-# How many single-bit inject/check/revert trials to run against each pblock.
-REPEATS = 80
-
-LOG_PATH = "adder_tmr_injection.log"  # None disables the transcript
+LOG_PATH = "dsp_target_injection.log"  # None disables the transcript
 VERBOSE = False
 
 WORD_BITS = 32
 
-# The design's BSCAN USER registers, from the specification above. USER1
-# and USER2 each carry one adder's whole operand pair, packed as
-# (operand B << OP_LEN) | operand A.
-PAIR_LEN = OP_LEN * 2
-USER_SIMPLEX_OPERANDS = BscanPrimitive(1, PAIR_LEN)
-USER_TMR_OPERANDS = BscanPrimitive(2, PAIR_LEN)
-USER_SIMPLEX_RESULT = BscanPrimitive(3, OP_LEN + 1)
-USER_TMR_RESULT = BscanPrimitive(4, OP_LEN + 1)
+# The design's BSCAN USER registers. USER1 and USER2 each carry one
+# instance's whole operand pair, packed as (operand B << A_LEN) | operand A.
+PAIR_LEN = A_LEN + B_LEN
+USER_CLEAN_OPERANDS = BscanPrimitive(1, PAIR_LEN)
+USER_TARGET_OPERANDS = BscanPrimitive(2, PAIR_LEN)
+RESULT_LEN = A_LEN + B_LEN
+USER_CLEAN_RESULT = BscanPrimitive(3, RESULT_LEN)
+USER_TARGET_RESULT = BscanPrimitive(4, RESULT_LEN)
 
-RESULT_MASK = (1 << (OP_LEN + 1)) - 1
-OP_MASK = (1 << OP_LEN) - 1
-
-# How many random operand pairs check() applies per round.
-NUM_TEST_VECTORS = 2
+RESULT_MASK = (1 << RESULT_LEN) - 1
 
 
+# CLI flags: bitstream/EBD/XDC paths, all/essential of the target pblock,
+# random[N]/exhaustive mode, accumulative/non-accumulative revert.
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Program the device, then compare a clean DSP48 "
+                    "reference against a fault-injection target.")
+    parser.add_argument(
+        "--program", metavar="BITSTREAM_PATH", required=True,
+        help="Server-side path to the .bit file to program before "
+             "injecting.")
+    parser.add_argument(
+        "--ebd", metavar="EBD_PATH", required=True,
+        help="Server-side path to the .ebd file.")
+    parser.add_argument(
+        "--xdc", metavar="XDC_PATH", required=True,
+        help="Server-side path to the .xdc file declaring both pblocks.")
+
+    area = parser.add_mutually_exclusive_group()
+    area.add_argument(
+        "--all", action="store_true",
+        help="Target the whole footprint of the target pblock, not just "
+             "its essential bits.")
+    area.add_argument(
+        "--essential", action="store_true",
+        help="Target only the essential bits of the target pblock, from "
+             "the EBD (default).")
+
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--random", nargs="?", type=int, const=DEFAULT_RANDOM_INJECTIONS,
+        default=DEFAULT_RANDOM_INJECTIONS, metavar="N",
+        help=f"Inject N random bits against the target pblock, one "
+             f"at a time (default: {DEFAULT_RANDOM_INJECTIONS}; this "
+             f"is also the default mode). Whether each is reverted "
+             f"before the next depends on --accumulative/"
+             f"--non-accumulative.")
+    mode.add_argument(
+        "--exhaustive", action="store_true",
+        help="Sweep every targeted bit of the target pblock once; N "
+             "from --random has no effect.")
+
+    accumulation = parser.add_mutually_exclusive_group()
+    accumulation.add_argument(
+        "--accumulative", action="store_true",
+        help="Leave every upset in place; faults accumulate over the run "
+             "(default).")
+    accumulation.add_argument(
+        "--non-accumulative", action="store_true",
+        help="Undo each upset right after checking, so every trial is "
+             "independent.")
+
+    return parser.parse_args()
+
+
+# Return the named pblock of the loaded XDC.
 def find_pblock(dev, name: str):
-    """Return the named pblock of the loaded XDC."""
-    for pblock in dev.pblocks():
+    for pblock in dev.pblocks():  # SK-RAFT: pblocks declared in the loaded XDC
         if pblock.name == name:
             return pblock
-    raise SkraftError(f"{name} is not declared in {XDC}")
+    raise SkraftError(f"{name} is not declared in the XDC")
 
 
+# Yield the (word_index, bit_index) pairs an occupied area covers.
 def area_bits(area):
-    """Yield the ``(word_index, bit_index)`` pairs an occupied area covers.
-
-    ``bit_range`` counts bits along the frame from its start, so bits 0 to
-    31 are word 0, bits 32 to 63 are word 1, and so on.
-    """
     for position in range(area.bit_range.start, area.bit_range.end + 1):
         yield position // WORD_BITS, position % WORD_BITS
 
 
+# Yield (far, word_index, bit_index) for every CRAM bit of a pblock.
 def pblock_bits(dev, pblock):
-    """Yield ``(far, word_index, bit_index)`` for every CRAM bit of a pblock."""
     for clause in pblock.clauses:
-        for frame in dev.pblock_by_clause(clause):
+        for frame in dev.pblock_by_clause(clause):  # SK-RAFT: clause -> frames + occupied areas
             for area in frame.occupied_area:
                 for word, bit in area_bits(area):
                     yield frame.far, word, bit
 
 
+# The essential bits of the given frames, from the EBD file.
 def essential_bits_in(dev, fars: set[int]) -> set[tuple[int, int, int]]:
-    """The essential bits of the given frames, from the EBD file."""
     bits = set()
-    for frame in dev.essential_frames():
+    for frame in dev.essential_frames():  # SK-RAFT: EBD-derived essential-bit frames
         if frame.far not in fars:
             continue
         for word_index, word in enumerate(frame.words):
@@ -126,13 +140,15 @@ def essential_bits_in(dev, fars: set[int]) -> set[tuple[int, int, int]]:
     return bits
 
 
-def target_bits(dev, pblock_name: str) -> list[tuple[int, int, int]]:
-    """The essential bits of one adder's pblock: footprint intersected with
-    the design's essential bits, so every upset lands on a bit that adder
-    actually depends on."""
+# Bits inside the target pblock this run may inject into - its whole
+# footprint, or just the essential ones, per --all/--essential.
+def target_bits(dev, pblock_name: str, essential_only: bool) -> list[tuple[int, int, int]]:
     pblock = find_pblock(dev, pblock_name)
     sites = sorted(set(pblock_bits(dev, pblock)))
     stage(f"{pblock_name}: {len(sites)} CRAM bits in the footprint")
+
+    if not essential_only:
+        return sites
 
     essential = essential_bits_in(dev, {far for far, _, _ in sites})
     sites = [site for site in sites if site in essential]
@@ -140,139 +156,171 @@ def target_bits(dev, pblock_name: str) -> list[tuple[int, int, int]]:
     return sites
 
 
-def pack_operands(a: int, b: int) -> int:
-    """Pack two raw operand patterns into one USER1/USER2-wide word: bits
-    ``OP_LEN - 1`` down to ``0`` are operand A, bits ``PAIR_LEN - 1`` down
-    to ``OP_LEN`` are operand B."""
-    return (b << OP_LEN) | a
+# Interpret a raw bits-wide bit pattern as two's-complement signed.
+def to_signed(value: int, bits: int) -> int:
+    if value & (1 << (bits - 1)):
+        value -= 1 << bits
+    return value
 
 
-def apply_operands(dev, a: int, b: int) -> None:
-    """Write the same operand pair, packed into one word each, into both
-    adders' own operand registers."""
-    packed = pack_operands(a, b)
-    dev.write_bscan(USER_SIMPLEX_OPERANDS, packed)
-    dev.write_bscan(USER_TMR_OPERANDS, packed)
+# Encode a signed value as its bits-wide two's-complement pattern.
+def to_unsigned(value: int, bits: int) -> int:
+    return value & ((1 << bits) - 1)
 
 
+# A random bits-wide two's-complement bit pattern.
+def random_operand(bits: int) -> int:
+    return random.randint(0, (1 << bits) - 1)
+
+
+# Pack two raw operand patterns into one USER1/USER2-wide word.
+def pack_operands(a_bits: int, b_bits: int) -> int:
+    return (b_bits << A_LEN) | a_bits
+
+
+# Write the same operand pair, packed, into both instances' own registers.
+def apply_operands(dev, a_bits: int, b_bits: int) -> None:
+    packed = pack_operands(a_bits, b_bits)
+    dev.write_bscan(USER_CLEAN_OPERANDS, packed)   # SK-RAFT: clean operand channel
+    dev.write_bscan(USER_TARGET_OPERANDS, packed)  # SK-RAFT: target operand channel
+
+
+# Read a product out of USER3 or USER4.
 def read_result(dev, register: BscanPrimitive) -> int:
-    """Read a sum, with its carry bit, out of USER3 or USER4."""
-    return int.from_bytes(dev.read_bscan(register), "big") & RESULT_MASK
+    return int.from_bytes(dev.read_bscan(register), "big") & RESULT_MASK  # SK-RAFT: read a result register
 
 
-def check(dev) -> tuple[int, int]:
-    """Apply ``NUM_TEST_VECTORS`` random operand pairs and return how many
-    each adder got wrong.
-
-    The same operand pair is written to both adders' own channels, so they
-    always see identical inputs; the two results are read back separately.
-    Returns ``(simplex_failures, tmr_failures)``.
-    """
-    simplex_failures = 0
-    tmr_failures = 0
-    for _ in range(NUM_TEST_VECTORS):
-        a = random.randint(0, OP_MASK)
-        b = random.randint(0, OP_MASK)
-        expected = (a + b) & RESULT_MASK
-        apply_operands(dev, a, b)
-        if read_result(dev, USER_SIMPLEX_RESULT) != expected:
-            simplex_failures += 1
-        if read_result(dev, USER_TMR_RESULT) != expected:
-            tmr_failures += 1
-    return simplex_failures, tmr_failures
+# The true signed product of two raw operand patterns, encoded the same
+# way the DSP's result registers are.
+def expected_product(a_bits: int, b_bits: int) -> int:
+    product = to_signed(a_bits, A_LEN) * to_signed(b_bits, B_LEN)
+    return to_unsigned(product, RESULT_LEN)
 
 
-def campaign(dev, label: str, pblock_name: str,
-             sites: list[tuple[int, int, int]], watching: str,
-             started: float) -> int:
-    """Run ``REPEATS`` independent single-bit trials against ``pblock_name``.
+# Apply one fresh random operand pair; compare both instances against the
+# true product. Returns (clean_wrong, target_wrong, a, b, expected, clean, target).
+def check(dev) -> tuple[bool, bool, int, int, int, int, int]:
+    a_bits = random_operand(A_LEN)
+    b_bits = random_operand(B_LEN)
+    expected = expected_product(a_bits, b_bits)
+    apply_operands(dev, a_bits, b_bits)
+    clean_value = read_result(dev, USER_CLEAN_RESULT)
+    target_value = read_result(dev, USER_TARGET_RESULT)
 
-    Each trial injects one upset at a random essential bit, checks both
-    adders, then injects at that exact same ``(far, word_index, bit_index)``
-    again to flip the bit back before the next trial starts. Returns how
-    many trials left the adder named by ``watching`` (``"simplex"`` or
-    ``"tmr"``) wrong.
-    """
-    stage(f"{label}: running {REPEATS} single-bit inject/check/revert "
-          f"trials against {pblock_name} ({len(sites)} essential bits), "
-          f"watching the {watching} adder")
-    emit("   #  FAR         WORD  BIT  SIMPLEX  TMR    ELAPSED")
+    return (clean_value != expected, target_value != expected,
+            to_signed(a_bits, A_LEN), to_signed(b_bits, B_LEN),
+            to_signed(expected, RESULT_LEN),
+            to_signed(clean_value, RESULT_LEN),
+            to_signed(target_value, RESULT_LEN))
 
-    wrong_watched = 0
-    for index in range(1, REPEATS + 1):
-        far, word_index, bit_index = random.choice(sites)
 
-        dev.inject_at(far, word_index, bit_index, InjectionArea.ESSENTIAL_CRAM)
-        simplex_failures, tmr_failures = check(dev)
-        dev.inject_at(far, word_index, bit_index, InjectionArea.ESSENTIAL_CRAM)
+# The coordinates a campaign will visit: every site once if exhaustive,
+# otherwise `count` random picks (with replacement) from the site list.
+def trial_coordinates(sites, exhaustive: bool, count: int):
+    if exhaustive:
+        yield from sites
+    else:
+        for _ in range(count):
+            yield random.choice(sites)
+
+
+# Run inject/check[/revert] trials against the target pblock's own site list.
+# Returns (trials that left the target wrong, trials run).
+def campaign(dev, sites: list[tuple[int, int, int]], area: InjectionArea,
+             accumulative: bool, exhaustive: bool, count: int,
+             started: float) -> tuple[int, int]:
+    coordinates = list(trial_coordinates(sites, exhaustive, count))
+    qualifier = "accumulative" if accumulative else "non-accumulative"
+    stage(f"Running {len(coordinates)} injections against "
+          f"{PBLOCK_TARGET} ({len(sites)} candidate bits, {qualifier})")
+    emit("   #  FAR         WORD  BIT  CLEAN  TARGET  ELAPSED")
+
+    wrong_target = 0
+    for index, (far, word_index, bit_index) in enumerate(coordinates, start=1):
+        dev.inject_at(far, word_index, bit_index, area)  # SK-RAFT: toggle this bit
+        (clean_wrong, target_wrong, a, b, expected, clean_value,
+         target_value) = check(dev)
+        if not accumulative:
+            dev.inject_at(far, word_index, bit_index, area)  # toggle back
 
         emit(f"{index:>4}  {far:#010x}  {word_index:>4}  {bit_index:>3}  "
-             f"{simplex_failures}/{NUM_TEST_VECTORS}      "
-             f"{tmr_failures}/{NUM_TEST_VECTORS}  "
+             f"{'wrong' if clean_wrong else 'ok':>5}  "
+             f"{'wrong' if target_wrong else 'ok':>6}  "
              f"{elapsed_since(started):>7}")
+        if clean_wrong or target_wrong:
+            emit(f"      a={a}  b={b}  expected={expected}  clean={clean_value}  "
+                 f"target={target_value}")
 
-        own_failures = simplex_failures if watching == "simplex" else tmr_failures
-        other_failures = tmr_failures if watching == "simplex" else simplex_failures
+        if target_wrong:
+            wrong_target += 1
+        if clean_wrong:
+            warn(f"trial {index} in {PBLOCK_TARGET}: the clean reference "
+                 f"also went wrong; the two instances have independent "
+                 f"operand write channels, so this is routing shared "
+                 f"between the two multipliers' own logic rather than a "
+                 f"shared operand feed (CONTAIN_ROUTING is not set)")
 
-        if own_failures:
-            wrong_watched += 1
-        if other_failures:
-            warn(f"trial {index} in {pblock_name}: the other adder also "
-                 f"went wrong; the two adders have independent operand "
-                 f"write channels, so this is routing shared between the "
-                 f"two adders' own logic rather than a shared operand "
-                 f"feed (CONTAIN_ROUTING is not set)")
-
-    stage(f"{label}: {wrong_watched} of {REPEATS} trial(s) left the "
-          f"{watching} adder wrong in {pblock_name}")
-    return wrong_watched
+    return wrong_target, len(coordinates)
 
 
+# Connect, program the device, then run the campaign against the target pblock.
 def main() -> None:
-    configure(verbose=VERBOSE, warning_noun="anomalies",
+    args = parse_args()
+    essential_only = not args.all
+    area = InjectionArea.ESSENTIAL_CRAM if essential_only else InjectionArea.CRAM
+    accumulative = not args.non_accumulative
+    mode = "exhaustive" if args.exhaustive else f"random ({args.random})"
+    scope = "essential bits of" if essential_only else "the whole footprint of"
+    qualifier = "accumulative" if accumulative else "non-accumulative"
+
+    configure(verbose=VERBOSE, warning_noun="cross-talk hits",
               warning_hint="see the injection log for the detail")
     open_log(LOG_PATH)
-    stage("Example 5: JTAG/BSCAN-driven adder, simplex vs. TMR, single-bit upsets")
+    stage(f"Example 5: program the device, then {mode} injection into "
+          f"{scope} {PBLOCK_TARGET} ({qualifier}).")
+
     started = time.perf_counter()
     try:
-        stage(f"Connecting to the SK-RAFT server at "
-              f"{SK_RAFT_SERVER_IP}:{SK_RAFT_SERVER_PORT}")
+        # SK-RAFT: open the connection, then attach to the target device.
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
-            stage(f"Connected, server version {client.version()}")
-
             with client.attach(DEVICE) as dev:
-                dev.load(DesignFiles(bitstream=BITSTREAM, ebd=EBD, xdc=XDC))
+                # SK-RAFT: stage the bitstream, EBD and XDC, then program.
+                dev.load(DesignFiles(bitstream=ServerPath(args.program),
+                                     ebd=ServerPath(args.ebd),
+                                     xdc=ServerPath(args.xdc)))
                 dev.program()
-                stage(f"Programmed {DEVICE}")
+                stage(f"Programmed {DEVICE} with {args.program}.")
 
-                simplex_failures, tmr_failures = check(dev)
-                if simplex_failures or tmr_failures:
+                find_pblock(dev, PBLOCK_CLEAN)
+                stage(f"{PBLOCK_CLEAN} is never targeted; it is the "
+                      f"untouched hardware reference")
+
+                clean_wrong, target_wrong = check(dev)[:2]
+                if clean_wrong or target_wrong:
                     raise SkraftError(
-                        "one or both adders are wrong right after "
+                        "one or both DSP instances are wrong right after "
                         "programming: check the USER register ids and "
                         "widths")
-                stage("Both adders are correct before any injection")
+                stage("Both DSP instances agree with the true signed "
+                      "product before any injection")
 
-                simplex_sites = target_bits(dev, PBLOCK_SIMPLEX)
-                wrong_simplex = campaign(dev, "Simplex", PBLOCK_SIMPLEX,
-                                         simplex_sites, "simplex", started)
+                sites = target_bits(dev, PBLOCK_TARGET, essential_only)
+                if not sites:
+                    stage("Nothing to inject: check that the XDC and the "
+                          "EBD belong to the programmed bitstream.")
+                    return
 
-                stage(f"Re-programming to clear {PBLOCK_SIMPLEX} before "
-                      f"testing the TMR adder")
-                dev.program()
-
-                tmr_sites = target_bits(dev, PBLOCK_TMR)
-                wrong_tmr = campaign(dev, "TMR", PBLOCK_TMR, tmr_sites,
-                                     "tmr", started)
+                wrong_target, total = campaign(dev, sites, area, accumulative,
+                                               args.exhaustive, args.random,
+                                               started)
 
                 stage(f"Re-programming {DEVICE} as a final safety net")
                 dev.program()
 
-                stage(f"{wrong_simplex} of {REPEATS} trial(s) in "
-                      f"{PBLOCK_SIMPLEX} left the simplex adder wrong")
-                stage(f"{wrong_tmr} of {REPEATS} trial(s) in {PBLOCK_TMR} "
-                      f"left the TMR adder wrong")
+                stage(f"{wrong_target} of {total} trial(s) left the "
+                      f"targeted DSP instance wrong against the true "
+                      f"signed product")
                 stage(f"Done in {elapsed_since(started)}")
     except SkraftError as e:
         stage(f"Failed: {e}")

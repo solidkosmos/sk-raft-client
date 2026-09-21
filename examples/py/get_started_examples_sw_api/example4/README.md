@@ -1,39 +1,22 @@
-# Fault injection confined to a pblock
+# Example 4: JTAG/BSCAN-driven adder, simplex vs. TMR, single-bit upsets
 
-Adds a spatial constraint on top of TEST 3's essential-bit targeting: it reads a pblock's definition from the design's XDC, works out exactly which configuration bits belong to that region, and injects only into those. The example design is a Basys3 board with two heartbeat generators, each in its own pblock (`pblock_fast_heartbeat`, `pblock_slow_heartbeat`) - injecting into the fast one and watching both LEDs shows the fast heartbeat degrade while the slow one keeps going, confinement you can see from across the bench.
+Programs a bitstream, then compares a plain (simplex) adder to a triplicated (TMR) one, each in its own pblock with its own BSCAN operand channel, by running independent inject/check[/revert] trials against each and comparing failure rates.
 
-This is the pattern to reach for when you need to know whether a fault in one region of a design can reach another - partition isolation, one lane of a redundant design, or reproducing a suspected field failure by concentrating injection where you suspect it.
-
-## Requirements
-
-- Python 3.9+, the `skraft` package installed, `reporting.py` alongside `main.py`.
-- A running sk-raft server, target board connected over USB.
-- A bitstream, matching EBD, and the XDC declaring the pblocks, all on the **server**.
-
-The XDC must be the one actually used for implementation:
-
-```tcl
-create_pblock pblock_fast_heartbeat
-add_cells_to_pblock [get_pblocks pblock_fast_heartbeat] [get_cells fast_hb_inst]
-resize_pblock [get_pblocks pblock_fast_heartbeat] -add {SLICE_X54Y91:SLICE_X57Y99}
-```
-
-A pblock constrains placement, not routing by default, so a bit inside the footprint can still belong to routing shared with logic outside it. `set_property CONTAIN_ROUTING true [get_pblocks ...]` closes that gap at the cost of timing/area flexibility.
-
-## Configuration
-
-| Constant | Default | Meaning |
-| --- | --- | --- |
-| `PBLOCK` | `"pblock_fast_heartbeat"` | Pblock to attack, named exactly as in the XDC. |
-| `INJECTIONS` | `300` | Upsets to inject inside it. |
-| `PAUSE_S` | `0.1` | Delay after each upset, so a human can watch. `0` for full speed. |
-| `ESSENTIAL_ONLY` | `True` | Restrict to the pblock's essential bits rather than its whole footprint. |
-| `LOG_PATH` / `VERBOSE` | `"pblock_injection.log"` / `False` | Transcript and per-clause detail. |
-
-## Running it
 
 ```bash
-python main.py
+python main.py --program /path/on/server/tester.bit --ebd /path/on/server/tester.ebd --xdc /path/on/server/tester.xdc [--all | --essential] [--random [N] | --exhaustive] [--accumulative | --non-accumulative]
 ```
 
-Injections are cumulative within the run; the script reprograms at the end to clear them (skipped on Ctrl-C - reprogram manually then). To characterise individual bits rather than watching a region degrade, see the single-bit-upset inject/check/revert style used in example5.
+| Flag | Meaning |
+| --- | --- |
+| `--program PATH` | Required. Server-side `.bit` path. |
+| `--ebd PATH` | Required. Server-side `.ebd` path. |
+| `--xdc PATH` | Required. Server-side `.xdc` path declaring both pblocks. |
+| `--all` / `--essential` | Target the whole footprint of each pblock, or only its essential bits. Default: essential. |
+| `--random [N]` | Run `N` single-bit trials against each pblock (default 50). Default mode. |
+| `--exhaustive` | Sweep every targeted bit of each pblock once; `N` is ignored. |
+| `--accumulative` / `--non-accumulative` | Leave upsets in place across trials, or revert each right after checking. Default: accumulative. |
+
+Both campaigns share these settings but stay confined to their own pblock's bits. Reports how many trials broke each adder. A `!` warning means the *other* adder also broke on that trial - shared routing, not that adder's own fault. Interrupting with Ctrl-C can leave a bit flipped; reprogram before anything else.
+
+Set `SK_RAFT_SERVER_IP` at the top of `main.py` before running.

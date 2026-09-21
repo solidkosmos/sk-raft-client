@@ -1,23 +1,30 @@
-"""Two campaigns, one design: a flip-flop shift register and a LUTRAM.
+"""BRAM injection: write, verify, corrupt, and recover with ECC read.
 
-See README.md for the register map. USER1 only gates the shift register's
-own clock; it has no bearing on the LUTRAM, which USER3/USER4 address
-directly regardless of clock state.
+A single block RAM. Its 24-bit data word is protected at byte level - the
+block's ECC covers each of the three bytes on its own, not the word as one
+24-bit codeword. See README.md for the register map.
 
-Part 1 confines injection, for now, to the bits inside ``pblock_ff_sr_inst``
-as declared in the XDC - flip-flop (.LL) based targeting is coming in a
-later release; see ``ff_target_bits`` below. ``REPEATS`` trials each: run
-the clock for ``RUN_S`` seconds, freeze it, inject one single-bit upset at
-a random site, and run the clock for ``RUN_S`` seconds again. Upsets are
-never reverted, so later trials build on whatever earlier ones left behind.
+Before touching the memory's contents, the script exercises the BRAM
+primitive's own configuration. A block RAM's footprint spans two kinds of
+frame: block type 1 holds the content the design initializes it with,
+which is what the campaign below injects into; block type 0 holds the
+primitive's own configuration (mode, width). ``config_areas()`` gathers the
+latter and ``config_campaign()`` injects into them with
+``InjectionArea.CRAM`` rather than ``BRAM``, since these are not content
+bits, then re-programs immediately so this warm-up phase can't leave
+anything for the rest of the run to trip over.
 
-Part 2 needs no pblock: ``InjectionArea.LUTRAM`` already confines injection
-to the LUTRAM bits the LL file names. A known pattern is written into every
-word, ``LUT_INJECTIONS`` random LUTRAM bits are upset back to back, and
-only then is the whole array read back and compared.
+The run itself: every address is written with a pattern derived from itself
+and read straight back to prove the memory and BSCAN path are sound, then
+``INJECTIONS`` cumulative, uncorrected upsets are drawn from
+``pblock_stock_bram``'s content frames, and the whole memory is read back
+once with USER3 (ECC read) off and once with it on. A word that comes back
+correct with ECC on but not off had exactly one bit wrong; one still wrong
+with ECC on had more than one, or an upset that landed outside the memory's
+data cells.
 
-Neither part corrects what it injects; the device is re-programmed between
-the two parts and again at the end.
+The faults are left in place. Re-program the device before running anything
+else.
 """
 
 from __future__ import annotations
@@ -28,12 +35,10 @@ import time
 from reporting import (
     close_log,
     configure,
-    detail,
     elapsed_since,
     emit,
     open_log,
     stage,
-    warn,
 )
 from skraft import InjectionArea
 from skraft.datatypes import BscanPrimitive, DesignFiles, ServerPath
@@ -49,222 +54,181 @@ BITSTREAM = ServerPath(f"{DESIGN}/tester.bit")
 LL = ServerPath(f"{DESIGN}/tester.ll")
 XDC = ServerPath(f"{DESIGN}/tester.xdc")
 
-# The pblock around the shift register, as named in the XDC. Confines
-# Part 1 only; Part 2 (LUTRAM) needs no pblock.
-PBLOCK = "pblock_ff_sr_inst"
+PBLOCK = "pblock_stock_bram"
 
-# Part 1: flip-flop shift register. REPEATS single-bit-upset trials, each
-# running the clock for RUN_S seconds before and after the injection.
-REPEATS = 5
-RUN_S = 2.0
+USER_ADDRESS = BscanPrimitive(1, 16)
+USER_DATA = BscanPrimitive(2, 24)
+USER_ECC_READ = BscanPrimitive(3, 1)
 
-# Part 2: LUTRAM. LUT_INJECTIONS random LUTRAM bits, injected back to back.
-LUT_INJECTIONS = 20
+ADDRESS_BITS = 10                  # effective bits of the address select
+DEPTH = 1 << ADDRESS_BITS          # 1024 words
 
-LOG_PATH = "ff_lutram_injection.log"  # None disables the transcript
-VERBOSE = False                       # True also prints per-bit/per-word detail
+INJECTIONS = 50                    # bit upsets injected, cumulative, uncorrected
+CONFIG_INJECTIONS = 50             # same, for the config-bit warm-up phase
+
+LOG_PATH = "bram_ecc_injection.log"  # None disables the transcript
+VERBOSE = False
 
 WORD_BITS = 32
-
-# The design's generics, from the specification above.
-SR_LEN = 8
-LUT_ADDR_BITS = 4     # ceil(log2(10)): the address depth is 10, not 16
-LUT_DEPTH = 10
-LUT_DATA_LEN = 32
-
-# The design's BSCAN USER registers.
-USER_CLK_EN = BscanPrimitive(1, 1)
-USER_SR = BscanPrimitive(2, SR_LEN)
-USER_LUT_ADDR = BscanPrimitive(3, LUT_ADDR_BITS)
-USER_LUT_DATA = BscanPrimitive(4, LUT_DATA_LEN)
-
-SR_MASK = (1 << SR_LEN) - 1
-LUT_DATA_MASK = (1 << LUT_DATA_LEN) - 1
-
-
-# --------------------------------------------------------------------------- #
-# Part 1: flip-flop shift register
-# --------------------------------------------------------------------------- #
-def set_clock(dev, enabled: bool) -> None:
-    """Start or stop the shift register's clock through USER1."""
-    dev.write_bscan(USER_CLK_EN, 1 if enabled else 0)
-
-
-def read_sr(dev) -> int:
-    """Read the shift register's bits out of USER2."""
-    return int.from_bytes(dev.read_bscan(USER_SR), "big") & SR_MASK
-
-
-def area_bits(area):
-    """Yield the ``(word_index, bit_index)`` pairs an occupied area covers.
-
-    ``bit_range`` counts bits along the frame from its start, so bits 0 to 31
-    are word 0, bits 32 to 63 are word 1, and so on.
-    """
-    for position in range(area.bit_range.start, area.bit_range.end + 1):
-        yield position // WORD_BITS, position % WORD_BITS
-
-
-def pblock_footprint(dev, name: str) -> set[tuple[int, int, int]]:
-    """Every bit the named pblock of the XDC occupies."""
-    for pblock in dev.pblocks():
-        if pblock.name != name:
-            continue
-        footprint = {
-            (frame.far, word, bit)
-            for clause in pblock.clauses
-            for frame in dev.pblock_by_clause(clause)
-            for area in frame.occupied_area
-            for word, bit in area_bits(area)
-        }
-        stage(f"{name}: {len(footprint)} bits in the footprint")
-        return footprint
-    raise SkraftError(f"{name} is not declared in {XDC}")
-
-
-# Flip Flop (.LL) based targeting coming in a later release: the LL file's
-# flip-flop sweep (dev.inject_exhaustive(InjectionArea.FLIP_FLOP)) would
-# narrow this pblock's footprint down to only its true flip-flop bits, at
-# the cost of upsetting every flip-flop in the design to report them
-# (requiring a re-program before Part 1 could run). Until that lands here,
-# confinement is by pblock alone.
-def ff_target_bits(dev) -> list[tuple[int, int, int]]:
-    """The flip-flop bits that lie inside the shift-register pblock."""
-    sites = sorted(pblock_footprint(dev, PBLOCK))
-    stage(f"{len(sites)} flip-flop bits are inside {PBLOCK}")
-    for site in sites:
-        detail(f"FAR={site[0]:#010x} word {site[1]} bit {site[2]}")
-    return sites
-
-
-def ff_campaign(dev, sites: list[tuple[int, int, int]], started: float
-                ) -> None:
-    """Run, freeze, inject one bit, and run again, ``REPEATS`` times.
-
-    Each trial: let the clock run for ``RUN_S`` seconds, stop it, upset one
-    random site, then let it run for ``RUN_S`` seconds more before the next
-    trial. Upsets are never reverted, so later trials run against whatever
-    earlier ones left in the register.
-    """
-    stage(f"Part 1: {REPEATS} single-bit upsets, {RUN_S}s of clock either "
-          f"side of each freeze")
-    emit("   #  FAR         WORD  BIT  BEFORE  AFTER  CHANGED   ELAPSED")
-
-    set_clock(dev, True)
-    for index in range(1, REPEATS + 1):
-        time.sleep(RUN_S)
-        set_clock(dev, False)
-        before = read_sr(dev)
-
-        far, word_index, bit_index = random.choice(sites)
-        dev.inject_at(far, word_index, bit_index, InjectionArea.FLIP_FLOP)
-
-        after = read_sr(dev)
-        changed = before ^ after
-        if not changed:
-            warn(f"Part 1, injection {index}: FAR={far:#010x} word "
-                 f"{word_index} bit {bit_index} left USER2 at {after:#04x}")
-
-        emit(f"{index:>4}  {far:#010x}  {word_index:>4}  {bit_index:>3}  "
-             f"{before:#04x}    {after:#04x}   {changed:#04x}      "
-             f"{elapsed_since(started):>7}")
-
-        set_clock(dev, True)
-        time.sleep(RUN_S)
-        set_clock(dev, False)
-
-    stage(f"Part 1: done after {REPEATS} trials")
-
-
-# --------------------------------------------------------------------------- #
-# Part 2: LUTRAM
-# --------------------------------------------------------------------------- #
-def select(dev, address: int) -> None:
-    """Select one LUTRAM address through USER3."""
-    dev.write_bscan(USER_LUT_ADDR, address)
-
-
-def write_word(dev, address: int, value: int) -> None:
-    """Select ``address`` and write its value into USER4."""
-    select(dev, address)
-    dev.write_bscan(USER_LUT_DATA, value)
-
-
-def read_word(dev, address: int) -> int:
-    """Select ``address`` and read the word back out of USER4."""
-    select(dev, address)
-    return int.from_bytes(dev.read_bscan(USER_LUT_DATA), "big") & LUT_DATA_MASK
+BRAM_BLOCK_TYPE = 1                # frames holding BRAM contents
+CLB_BLOCK_TYPE = 0                 # frames holding the BRAM's own config
+DATA_MASK = (1 << USER_DATA.size_in_bits) - 1
 
 
 def pattern(address: int) -> int:
-    """The word this run expects to find at ``address``.
+    """The word the memory should hold at ``address``."""
+    return (0xA5A5A5 ^ address) & DATA_MASK
 
-    Alternating bits, so a single upset anywhere in the word shows up, and a
-    different value per address, so a mis-addressed read is visible too.
+
+def set_ecc_read(dev, enabled: bool) -> None:
+    """Turn the ECC read path on or off through USER3."""
+    dev.write_bscan(USER_ECC_READ, 1 if enabled else 0)
+
+
+def select(dev, address: int) -> None:
+    """Select one address through USER1, ahead of a read or a write."""
+    dev.write_bscan(USER_ADDRESS, address)
+
+
+def write_word(dev, address: int) -> None:
+    """Select ``address`` and write its pattern into USER2."""
+    select(dev, address)
+    dev.write_bscan(USER_DATA, pattern(address))
+
+
+def read_word(dev, address: int) -> int:
+    """Select ``address`` and read the word back out of USER2."""
+    select(dev, address)
+    return int.from_bytes(dev.read_bscan(USER_DATA), "big") & DATA_MASK
+
+
+def fill(dev) -> None:
+    """Write the pattern into every word of the memory, address by address."""
+    for address in range(DEPTH):
+        write_word(dev, address)
+
+
+def verify(dev) -> list[tuple[int, int, int]]:
+    """Read every address of the memory and return the words that are wrong.
+
+    Each entry is ``(address, expected, read)``.
     """
-    return (0xA5A5A5A5 ^ address) & LUT_DATA_MASK
+    wrong = []
+    for address in range(DEPTH):
+        value = read_word(dev, address)
+        expected = pattern(address)
+        if value != expected:
+            wrong.append((address, expected, value))
+    return wrong
 
 
-def fill_memory(dev) -> None:
-    """Write the pattern into every LUTRAM word.
+def report(label: str, wrong: list[tuple[int, int, int]]) -> None:
+    """Print every address that came back wrong, and what it holds instead."""
+    stage(f"{label}: {len(wrong)} of {DEPTH} addresses wrong")
+    for address, expected, value in wrong:
+        emit(f"  address {address:>4}  expected {expected:#08x}  "
+             f"read {value:#08x}  "
+             f"{bin(expected ^ value).count('1')} bit(s) flipped")
 
-    Unlike the shift register, the LUTRAM does not depend on any clock, so
-    nothing here touches USER1.
+
+def config_areas(dev) -> list[tuple[int, int, int]]:
+    """The stock BRAM's areas in its own block type 0 frames.
+
+    Block type 1 holds the BRAM's content, which is what
+    :func:`pblock_areas` reads; block type 0 holds the general
+    CLB/IO/CLK configuration of the primitive itself, such as its mode
+    and width. Same pblock, the other block type.
     """
-    for address in range(LUT_DEPTH):
-        write_word(dev, address, pattern(address))
-    detail(f"wrote {LUT_DEPTH} words")
+    pblock = next((p for p in dev.pblocks() if p.name == PBLOCK), None)
+    if pblock is None:
+        raise SkraftError(f"{PBLOCK} is not declared in {XDC}")
+
+    areas = [(frame.far, area.bit_range.start, area.bit_range.end)
+             for clause in pblock.clauses
+             for frame in dev.pblock_by_clause(clause)
+             if dev.decode_far(frame.far).blocktype == CLB_BLOCK_TYPE
+             for area in frame.occupied_area]
+
+    bits = sum(last - first + 1 for _, first, last in areas)
+    frames = len({far for far, _, _ in areas})
+    stage(f"{PBLOCK}: {bits} config bits over {frames} block type "
+          f"{CLB_BLOCK_TYPE} frames")
+    return areas
 
 
-def read_memory(dev) -> list[int]:
-    """Read every LUTRAM word back through USER4."""
-    return [read_word(dev, address) for address in range(LUT_DEPTH)]
+def flip_random_config_bit(dev, areas: list[tuple[int, int, int]]
+                           ) -> tuple[int, int, int]:
+    """Flip one bit picked at random from the stock BRAM's own
+    configuration.
 
-
-def corrupted(state: list[int]) -> list[tuple[int, int, int]]:
-    """The words of ``state`` that differ from the pattern.
-
-    Each entry is ``(address, correct_word, erroneous_word)``.
+    Injected without the BRAM flag — ``InjectionArea.CRAM`` rather
+    than ``InjectionArea.BRAM`` — since these are the primitive's own
+    configuration bits, not its content.
     """
-    return [(address, pattern(address), state[address])
-            for address in range(LUT_DEPTH)
-            if state[address] != pattern(address)]
+    far, first, last = random.choice(areas)
+    word, bit = divmod(random.randint(first, last), WORD_BITS)
+    dev.inject_at(far, word, bit, InjectionArea.CRAM)
+    return far, word, bit
 
 
-def lut_campaign(dev) -> None:
-    """Upset ``LUT_INJECTIONS`` random LUTRAM bits back to back.
+def config_campaign(dev, areas: list[tuple[int, int, int]]) -> None:
+    """Inject ``CONFIG_INJECTIONS`` upsets into the pblock's own
+    configuration, none of them corrected."""
+    stage(f"Injecting {CONFIG_INJECTIONS} bit upsets into {PBLOCK}'s "
+          f"own configuration (block type {CLB_BLOCK_TYPE}), none "
+          f"corrected")
+    emit("   #  FAR         WORD  BIT")
+    for index in range(1, CONFIG_INJECTIONS + 1):
+        far, word, bit = flip_random_config_bit(dev, areas)
+        emit(f"{index:>4}  {far:#010x}  {word:>4}  {bit:>3}")
 
-    No reads happen between injections; the whole array is read back and
-    compared only once every injection has landed.
+
+def pblock_areas(dev) -> list[tuple[int, int, int]]:
+    """The stock BRAM's areas, read from its pblock.
+
+    Each entry is ``(far, first_bit, last_bit)``. ``bit_range`` counts bits
+    along the frame from its start, so a position inside the range divides
+    into a word index and a bit inside that word, which is what
+    ``inject_at`` takes.
     """
-    stage(f"Part 2: {LUT_INJECTIONS} random LUTRAM upsets, not corrected")
-    for index in range(1, LUT_INJECTIONS + 1):
-        upset = dev.inject_random(InjectionArea.LUTRAM)
-        detail(f"injection {index}: FAR={upset.far:#010x} word "
-               f"{upset.word_index} bit {upset.bit_index} "
-               f"{upset.net_name or ''}")
+    pblock = next((p for p in dev.pblocks() if p.name == PBLOCK), None)
+    if pblock is None:
+        raise SkraftError(f"{PBLOCK} is not declared in {XDC}")
 
-    report_lut(read_memory(dev))
+    areas = [(frame.far, area.bit_range.start, area.bit_range.end)
+             for clause in pblock.clauses
+             for frame in dev.pblock_by_clause(clause)
+             if dev.decode_far(frame.far).blocktype == BRAM_BLOCK_TYPE
+             for area in frame.occupied_area]
+
+    bits = sum(last - first + 1 for _, first, last in areas)
+    frames = len({far for far, _, _ in areas})
+    stage(f"{PBLOCK}: {bits} bits over {frames} BRAM frames")
+    return areas
 
 
-def report_lut(state: list[int]) -> None:
-    """List every LUTRAM word that no longer holds the value it was given."""
-    bad = corrupted(state)
-    stage(f"Part 2: {len(bad)}/{LUT_DEPTH} words are corrupted")
-    if not bad:
-        return
+def flip_random_bit(dev, areas: list[tuple[int, int, int]]
+                    ) -> tuple[int, int, int]:
+    """Flip one bit picked at random from inside the stock BRAM's areas."""
+    far, first, last = random.choice(areas)
+    word, bit = divmod(random.randint(first, last), WORD_BITS)
+    dev.inject_at(far, word, bit, InjectionArea.BRAM)
+    return far, word, bit
 
-    emit("  ADDR  CORRECT     ERRONEOUS   DIFFERING BITS")
-    for address, correct, erroneous in bad:
-        emit(f"  {address:>4}  {correct:#010x}  {erroneous:#010x}  "
-             f"{correct ^ erroneous:#010x}")
+
+def campaign(dev, areas: list[tuple[int, int, int]]) -> None:
+    """Inject ``INJECTIONS`` upsets into the pblock, none of them corrected."""
+    stage(f"Injecting {INJECTIONS} bit upsets into {PBLOCK}, none corrected")
+    emit("   #  FAR         WORD  BIT")
+    for index in range(1, INJECTIONS + 1):
+        far, word, bit = flip_random_bit(dev, areas)
+        emit(f"{index:>4}  {far:#010x}  {word:>4}  {bit:>3}")
 
 
 def main() -> None:
-    configure(verbose=VERBOSE, warning_noun="silent upsets",
-              warning_hint="see the injection log for the detail")
+    configure(verbose=VERBOSE)
     open_log(LOG_PATH)
-    stage("Example 7: Flip-flop shift register and LUTRAM injection")
+    stage("Example 7: BRAM injection, config bits, content, and ECC recovery")
     started = time.perf_counter()
     try:
         stage(f"Connecting to the SK-RAFT server at "
@@ -278,34 +242,65 @@ def main() -> None:
                 dev.program()
                 stage(f"Programmed {DEVICE}")
 
-                stage("--- Part 1: flip-flop shift register ---")
-                sites = ff_target_bits(dev)
-                if not sites:
-                    stage("Nothing to inject in Part 1: no flip-flop of the "
-                          "LL file falls inside the pblock. Check that the "
-                          "XDC, the LL and the bitstream belong together.")
-                    return
+                stage("Exercising the stock BRAM's own configuration "
+                      "before touching its contents")
+                config_campaign(dev, config_areas(dev))
 
-                ff_campaign(dev, sites, started)
+                write_word(dev, 0)
+                sanity = read_word(dev, 0)
+                if sanity == pattern(0):
+                    stage(f"Address 0 still round-trips correctly "
+                          f"({sanity:#08x}) after the config upsets")
+                else:
+                    stage(f"Address 0 no longer round-trips after the "
+                          f"config upsets: wrote {pattern(0):#08x}, "
+                          f"read {sanity:#08x}")
 
-                stage("Re-programming before Part 2")
+                stage("Re-programming to clear the config upsets "
+                      "before the content campaign")
                 dev.program()
 
-                stage("--- Part 2: LUTRAM ---")
-                fill_memory(dev)
-                wrong = corrupted(read_memory(dev))
+                set_ecc_read(dev, False)
+                fill(dev)
+                stage(f"Wrote {DEPTH} words into {PBLOCK}")
+
+                wrong = verify(dev)
                 if wrong:
-                    stage("The LUTRAM does not hold what was written; not "
-                          "injecting anything. Check USER3/USER4 register "
-                          "ids and widths.")
+                    report("Before injection", wrong)
+                    stage("The memory does not hold what was written; not "
+                          "injecting anything.")
                     return
-                stage(f"All {LUT_DEPTH} LUTRAM words read back correctly")
+                stage(f"All {DEPTH} addresses read back correctly "
+                      f"({USER_DATA.size_in_bits} bits each)")
 
-                lut_campaign(dev)
+                areas = pblock_areas(dev)
+                campaign(dev, areas)
 
-                stage("Both parts leave the device corrupted; re-programming "
-                      "as a final safety net")
-                dev.program()
+                stage("Reading the whole memory with ECC read off")
+                raw = verify(dev)
+                report("ECC off", raw)
+
+                stage("Driving USER3 high to enable the ECC read path")
+                set_ecc_read(dev, True)
+
+                stage("Reading the whole memory again with ECC read on")
+                corrected = verify(dev)
+                report("ECC on", corrected)
+
+                stage(f"Summary: {len(raw)} of {DEPTH} addresses wrong with "
+                      f"ECC off, {len(corrected)} still wrong with ECC on")
+                if raw and not corrected:
+                    stage("Every corrupted word came back clean: single-bit "
+                          "faults only, and the ECC read path caught all of "
+                          "them.")
+                elif corrected:
+                    stage(f"{len(corrected)} address(es) stayed wrong: more "
+                          f"than one bit flipped in that word.")
+                else:
+                    stage("None of the upsets landed in a stored word.")
+
+                stage("The faults are left in place; re-program the device "
+                      "before running anything else")
                 stage(f"Done in {elapsed_since(started)}")
     except SkraftError as e:
         stage(f"Failed: {e}")

@@ -1,28 +1,25 @@
-# TEST 2: Program the device, then inject cumulative random CRAM upsets
+# Example 2: Targeted injection into essential or CRAM bits
 
-Same injection loop as TEST 1, but the device is programmed with a bitstream first, so every corrupted bit belongs to a known configuration you can reason about. Run TEST 1 first if you haven't, to confirm the injection path works before a design enters the picture.
+Programs a bitstream, then injects upsets into either the design's essential bits (from the EBD) or all of CRAM.
 
-## Requirements
+Vivado only emits the EBD file when this is set before writing the bitstream:
 
-- Python 3.9+, the `skraft` package installed.
-- A running sk-raft server, target board connected over USB.
-- A bitstream built for the target device, on the **server** filesystem.
-
-## Configuration
-
-| Constant | Default | Meaning |
-| --- | --- | --- |
-| `NUMBER_OF_INJECTIONS` | `1000` | Upsets to inject after programming. |
-| `SK_RAFT_SERVER_IP` / `SK_RAFT_SERVER_PORT` | `"<SK_RAFT_SERVER_IP>"` / `50051` | sk-raft server address; set the IP before running. |
-| `DEVICE` | `"xc7a35t"` | Target device identifier. |
-| `BITSTREAM` | example path | `.bit` file location, resolved on the **server**, not the client. Use an absolute path. |
-
-## Running it
-
-```bash
-python main.py
+```tcl
+set_property BITSTREAM.SEU.ESSENTIALBITS YES [current_design]
+write_bitstream -force tester.bit
 ```
 
-Programming happens once at the start (so each run begins from a clean configuration); injections are **cumulative** from there on, never corrected. Watch the design externally and cross-reference the injection number where behaviour changes against the printed FAR/word/bit log. Reprogram before anything that needs a known-good configuration.
+```bash
+python main.py --program /path/on/server/tester.bit --ebd /path/on/server/tester.ebd [--all | --essential] [--random [N] | --exhaustive] [--accumulative | --non-accumulative]
+```
 
-A load failure almost always means `BITSTREAM` doesn't exist at that path *on the server*, or the server can't read it.
+| Flag | Meaning |
+| --- | --- |
+| `--program PATH` | Required. Server-side `.bit` path. |
+| `--ebd PATH` | Server-side `.ebd` path. Required unless `--all` is set. |
+| `--all` / `--essential` | Target all of CRAM, or only essential bits. Default: essential. |
+| `--random [N]` | Inject `N` random bits, one at a time (default 1000). Default mode. |
+| `--exhaustive` | Sweep every targeted bit once; `N` is ignored. Always leaves every bit flipped. |
+| `--accumulative` / `--non-accumulative` | Random mode only: keep upsets in place, or revert them. Default: accumulative. |
+
+Set `SK_RAFT_SERVER_IP` at the top of `main.py` before running.

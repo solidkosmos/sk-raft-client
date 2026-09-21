@@ -1,33 +1,38 @@
-# JTAG/BSCAN-driven signed multiply: clean DSP48 reference vs. fault-injection target
+# JTAG/BSCAN-driven flip-flop shift register and LUTRAM injection
 
-Two identical DSP48 signed-multiplier instances: `pblock_dsp_clean` (never injected into) and `pblock_dsp_target` (the one this script attacks). Each has its own operand-write channel - USER1 for clean, USER2 for target - so an upset can't corrupt both instances' inputs through a shared path, the same lesson example5's adder test found the hard way.
+Two campaigns against one design: a free-running shift register built from flip-flops (Part 1) and a distributed LUTRAM (Part 2), both reachable over BSCAN. USER1 gates the shift register's clock and has no bearing on the LUTRAM - USER3/USER4 address it directly regardless of clock state.
 
-Every check recomputes the true signed product in Python from the operands just written and compares **both** instances against that, rather than against each other - two channels agreeing isn't proof either is right, and the known value sidesteps that entirely.
+Part 1 confines injection to the flip-flop bits inside `pblock_ff_sr_inst`, as declared in the XDC. Flip Flop (.LL) based targeting - narrowing that pblock down to only its true flip-flop bits - is coming in a later release. `REPEATS` trials then each run the clock for `RUN_S` seconds, freeze it, upset one random site inside the pblock, and run the clock for `RUN_S` seconds more; upsets are never reverted, so later trials run against whatever earlier ones left behind.
 
-`REPEATS` single-bit trials run against `pblock_dsp_target`: inject one upset at a random essential bit, write a fresh random operand pair to both channels and check both instances, then inject that same bit again to flip it back before the next trial. Nothing accumulates across trials. A mismatch line (in signed decimal, both operands and all three results) prints whenever either instance disagrees with the true product; a warning means the clean reference also went wrong, which (with separate operand channels) can only mean routing shared between the two multipliers' own logic (`CONTAIN_ROUTING` is not set on either pblock).
+Part 2 needs no pblock: `InjectionArea.LUTRAM` already confines injection to the LUTRAM bits the LL file names. A known pattern (`0xA5A5A5A5 ^ address`) is written into every word, `LUT_INJECTIONS` random LUTRAM bits are upset back to back with no reads in between, and only then is the whole array read back and compared; every corrupted word is reported with the value it should hold beside what it actually holds.
+
+Neither part corrects what it injects, so the device is reprogrammed between the two parts and again at the end.
 
 ## BSCAN register mapping
 
 | Register | Width | Direction | Contents |
 | --- | --- | --- | --- |
-| USER1 | `a_len + b_len` bits | write | Clean instance's operand pair (`B<<a_len \| A`) |
-| USER2 | `a_len + b_len` bits | write | Targeted instance's operand pair, same packing |
-| USER3 | `a_len + b_len` bits | read | Clean instance's product |
-| USER4 | `a_len + b_len` bits | read | Targeted instance's product |
+| USER1 | 1 bit | write | Shift register clock enable |
+| USER2 | `sr_len` bits | read | Shift register readback |
+| USER3 | `lut_addr_bits` bits | write | LUTRAM address select |
+| USER4 | `lut_data_len` bits | read/write | LUTRAM data |
 
 ## Requirements
 
 - Python 3.9+, the `skraft` package installed, `reporting.py` alongside `main.py`.
 - A running sk-raft server, target board connected over USB.
-- A bitstream, EBD, and the XDC declaring both pblocks, all on the **server**.
+- A bitstream, LL, and the XDC declaring `pblock_ff_sr_inst`, all on the **server**.
 
 ## Configuration
 
 | Constant | Default | Meaning |
 | --- | --- | --- |
-| `A_LEN` / `B_LEN` | `16` / `16` | Operand widths; must match the design's generics. |
-| `REPEATS` | `80` | Single-bit trials to run against `PBLOCK_TARGET`. |
-| `PBLOCK_CLEAN` / `PBLOCK_TARGET` | `"pblock_dsp_clean"` / `"pblock_dsp_target"` | Pblock names, as in the XDC. |
+| `SR_LEN` | `8` | Shift register width; must match the design's `sr_len` generic. |
+| `LUT_ADDR_BITS` / `LUT_DEPTH` | `4` / `10` | LUTRAM address width and actual word count (addresses 10-15 are unused). |
+| `LUT_DATA_LEN` | `32` | LUTRAM word width; must match the design's `lut_data_len` generic. |
+| `REPEATS` / `RUN_S` | `5` / `2.0` | Part 1 trials, and seconds the clock runs either side of each freeze. |
+| `LUT_INJECTIONS` | `20` | Part 2 random LUTRAM bits injected back to back before the readback. |
+| `PBLOCK` | `"pblock_ff_sr_inst"` | Pblock name confining Part 1, as in the XDC. |
 
 ## Running it
 
@@ -35,4 +40,4 @@ Every check recomputes the true signed product in Python from the operands just 
 python main.py
 ```
 
-Reports how many of `REPEATS` trials left the target wrong. Interrupting with Ctrl-C mid-trial can leave one bit still flipped; reprogram before anything else.
+Runs Part 1, reprograms, runs Part 2, then reprograms once more as a safety net. Interrupting with Ctrl-C mid-campaign can leave the device corrupted; reprogram before anything else.

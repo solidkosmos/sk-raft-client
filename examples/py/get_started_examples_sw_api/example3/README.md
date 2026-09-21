@@ -1,36 +1,32 @@
-# TEST 3: Targeted injection into essential bits
+# Example 3: Fault injection confined to a pblock
 
-TEST 1 and TEST 2 pick bits from the whole of CRAM, so most upsets land on unused logic and do nothing. This one narrows the target to the design's **essential bits** (from the EBD file) - the bits the design actually uses - so every upset is guaranteed to hit something real. Essential is not the same as critical: only a subset of essential bits actually cause a functional failure, and finding that subset is what the run is for.
+Programs a bitstream, then injects upsets confined to one pblock from the XDC - its whole footprint, or just its essential bits.
 
-Two modes, chosen interactively at start-up: **random** samples `NUMBER_OF_INJECTIONS` essential bits with replacement; **exhaustive** walks every essential bit exactly once (cumulative and uncorrected, so the design will typically stop working well before the sweep finishes).
-
-## Requirements
-
-- Python 3.9+, the `skraft` package installed.
-- A running sk-raft server, target board connected over USB.
-- A bitstream and its matching EBD file, on the **server** filesystem.
-
-Generate the EBD alongside the bitstream:
+The XDC must declare the pblock as used for implementation:
 
 ```tcl
-set_property BITSTREAM.SEU.ESSENTIALBITS YES [current_design]
-write_bitstream -force tester.bit
+create_pblock pblock_fast_heartbeat
+add_cells_to_pblock [get_pblocks pblock_fast_heartbeat] [get_cells fast_hb_inst]
+resize_pblock [get_pblocks pblock_fast_heartbeat] -add {SLICE_X54Y91:SLICE_X57Y99}
 ```
 
-## Configuration
-
-| Constant | Default | Meaning |
-| --- | --- | --- |
-| `NUMBER_OF_INJECTIONS` | `1000` | Upsets in random mode; ignored in exhaustive mode. |
-| `SK_RAFT_SERVER_IP` / `SK_RAFT_SERVER_PORT` | `"<SK_RAFT_SERVER_IP>"` / `50051` | sk-raft server address; set the IP before running. |
-| `DEVICE` | `"xc7a35t"` | Target device identifier. |
-| `BITSTREAM` / `EBD` | example paths | `.bit` / `.ebd` files, resolved on the **server**. Must come from the same implementation run. |
-| `PROGRESS_EVERY` | `100` | How often a progress line is printed. |
-
-## Running it
+A pblock constrains placement, not routing, by default - `set_property CONTAIN_ROUTING true [get_pblocks ...]` closes that gap.
 
 ```bash
-python main.py
+python main.py --program /path/on/server/tester.bit --ebd /path/on/server/tester.ebd --xdc /path/on/server/tester.xdc --target pblock_fast_heartbeat [--all | --essential] [--random [N] | --exhaustive] [--accumulative | --non-accumulative]
 ```
 
-Prompts for the mode before connecting to anything; for an unattended run pipe the answer in (`echo r | python main.py`). Reprogram the device afterwards - both modes leave the design corrupted.
+| Flag | Meaning |
+| --- | --- |
+| `--program PATH` | Required. Server-side `.bit` path. |
+| `--ebd PATH` | Required. Server-side `.ebd` path. |
+| `--xdc PATH` | Required. Server-side `.xdc` path declaring `--target`. |
+| `--target NAME` | Required. Pblock to attack, named exactly as in the XDC. |
+| `--all` / `--essential` | Target the whole footprint of `--target`, or only its essential bits. Default: essential. |
+| `--random [N]` | Inject `N` random bits inside `--target` (default 300). Default mode. |
+| `--exhaustive` | Sweep every targeted bit of `--target` once; `N` is ignored. |
+| `--accumulative` / `--non-accumulative` | Keep upsets in place, or revert each as it goes - applies to both modes here. Default: accumulative. |
+
+If left accumulative, the device is re-programmed at the end to clear the upsets (skipped on Ctrl-C - reprogram manually then).
+
+Set `SK_RAFT_SERVER_IP` at the top of `main.py` before running.

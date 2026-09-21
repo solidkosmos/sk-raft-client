@@ -1,29 +1,23 @@
-"""JTAG/BSCAN-driven signed multiply: a clean DSP48 reference versus a
-fault-injection target.
+"""Two campaigns, one design: a flip-flop shift register and a LUTRAM.
 
-Two identical DSP48 instances, each with its own BSCAN operand-write
-channel (USER1/USER2), so an upset can't corrupt both instances' inputs
-through a shared path - the same lesson the TMR adder example elsewhere in
-this suite found the hard way. See README.md for the register map and
-operand packing. ``pblock_dsp_clean`` is never injected into; it exists
-purely as an untouched hardware twin.
+See README.md for the register map. USER1 only gates the shift register's
+own clock; it has no bearing on the LUTRAM, which USER3/USER4 address
+directly regardless of clock state.
 
-``pblock_dsp_target`` is resolved to essential bits the same way the rest of
-this suite confines a pblock. Separate operand channels close the input
-side of any cross-talk, but not the output side: with ``CONTAIN_ROUTING``
-unset on both pblocks, the two multipliers' own logic and result routing
-can still overlap. Rather than trust the clean instance as ground truth for
-that reason, every check recomputes the true signed product from the
-operands actually written and compares both instances against that.
+Part 1 confines injection, for now, to the bits inside ``pblock_ff_sr_inst``
+as declared in the XDC - flip-flop (.LL) based targeting is coming in a
+later release; see ``ff_target_bits`` below. ``REPEATS`` trials each: run
+the clock for ``RUN_S`` seconds, freeze it, inject one single-bit upset at
+a random site, and run the clock for ``RUN_S`` seconds again. Upsets are
+never reverted, so later trials build on whatever earlier ones left behind.
 
-Each of the ``REPEATS`` trials is self-contained: one upset at a random
-essential bit, one check of both instances against the true product, then
-``inject_at`` fires again at the same coordinates to revert it
-(``FpgaBitFlip`` toggles, so hitting the same spot twice is a plain revert)
-before the next trial starts. Nothing accumulates across trials.
+Part 2 needs no pblock: ``InjectionArea.LUTRAM`` already confines injection
+to the LUTRAM bits the LL file names. A known pattern is written into every
+word, ``LUT_INJECTIONS`` random LUTRAM bits are upset back to back, and
+only then is the whole array read back and compared.
 
-The device is re-programmed once at the end, as a safety net rather than a
-necessity.
+Neither part corrects what it injects; the device is re-programmed between
+the two parts and again at the end.
 """
 
 from __future__ import annotations
@@ -34,6 +28,7 @@ import time
 from reporting import (
     close_log,
     configure,
+    detail,
     elapsed_since,
     emit,
     open_log,
@@ -51,207 +46,225 @@ DEVICE = "xc7a35t"
 
 DESIGN = "<DESIGN_PATH_ON_SERVER>"  # server-side folder holding this design's tester.* files
 BITSTREAM = ServerPath(f"{DESIGN}/tester.bit")
-EBD = ServerPath(f"{DESIGN}/tester.ebd")
+LL = ServerPath(f"{DESIGN}/tester.ll")
 XDC = ServerPath(f"{DESIGN}/tester.xdc")
 
-# The two pblocks under test, as named in the XDC. Only the target is ever
-# injected into; the clean one is the untouched hardware reference.
-PBLOCK_CLEAN = "pblock_dsp_clean"
-PBLOCK_TARGET = "pblock_dsp_target"
+# The pblock around the shift register, as named in the XDC. Confines
+# Part 1 only; Part 2 (LUTRAM) needs no pblock.
+PBLOCK = "pblock_ff_sr_inst"
 
-# The design's a_len/b_len generics. Widen USER1-4 if the design is rebuilt
-# with different values.
-A_LEN = 16
-B_LEN = 16
+# Part 1: flip-flop shift register. REPEATS single-bit-upset trials, each
+# running the clock for RUN_S seconds before and after the injection.
+REPEATS = 5
+RUN_S = 2.0
 
-# How many single-bit inject/check/revert trials to run against
-# pblock_dsp_target.
-REPEATS = 200
+# Part 2: LUTRAM. LUT_INJECTIONS random LUTRAM bits, injected back to back.
+LUT_INJECTIONS = 20
 
-LOG_PATH = "dsp_target_injection.log"  # None disables the transcript
-VERBOSE = False
+LOG_PATH = "ff_lutram_injection.log"  # None disables the transcript
+VERBOSE = False                       # True also prints per-bit/per-word detail
 
 WORD_BITS = 32
 
-# The design's BSCAN USER registers, from the specification above. USER1 and
-# USER2 each carry one instance's whole operand pair, packed as
-# (operand B << A_LEN) | operand A.
-PAIR_LEN = A_LEN + B_LEN
-USER_CLEAN_OPERANDS = BscanPrimitive(1, PAIR_LEN)
-USER_TARGET_OPERANDS = BscanPrimitive(2, PAIR_LEN)
-RESULT_LEN = A_LEN + B_LEN
-USER_CLEAN_RESULT = BscanPrimitive(3, RESULT_LEN)
-USER_TARGET_RESULT = BscanPrimitive(4, RESULT_LEN)
+# The design's generics, from the specification above.
+SR_LEN = 8
+LUT_ADDR_BITS = 4     # ceil(log2(10)): the address depth is 10, not 16
+LUT_DEPTH = 10
+LUT_DATA_LEN = 32
 
-RESULT_MASK = (1 << RESULT_LEN) - 1
+# The design's BSCAN USER registers.
+USER_CLK_EN = BscanPrimitive(1, 1)
+USER_SR = BscanPrimitive(2, SR_LEN)
+USER_LUT_ADDR = BscanPrimitive(3, LUT_ADDR_BITS)
+USER_LUT_DATA = BscanPrimitive(4, LUT_DATA_LEN)
+
+SR_MASK = (1 << SR_LEN) - 1
+LUT_DATA_MASK = (1 << LUT_DATA_LEN) - 1
 
 
-def find_pblock(dev, name: str):
-    """Return the named pblock of the loaded XDC."""
-    for pblock in dev.pblocks():
-        if pblock.name == name:
-            return pblock
-    raise SkraftError(f"{name} is not declared in {XDC}")
+# --------------------------------------------------------------------------- #
+# Part 1: flip-flop shift register
+# --------------------------------------------------------------------------- #
+def set_clock(dev, enabled: bool) -> None:
+    """Start or stop the shift register's clock through USER1."""
+    dev.write_bscan(USER_CLK_EN, 1 if enabled else 0)
+
+
+def read_sr(dev) -> int:
+    """Read the shift register's bits out of USER2."""
+    return int.from_bytes(dev.read_bscan(USER_SR), "big") & SR_MASK
 
 
 def area_bits(area):
     """Yield the ``(word_index, bit_index)`` pairs an occupied area covers.
 
-    ``bit_range`` counts bits along the frame from its start, so bits 0 to
-    31 are word 0, bits 32 to 63 are word 1, and so on.
+    ``bit_range`` counts bits along the frame from its start, so bits 0 to 31
+    are word 0, bits 32 to 63 are word 1, and so on.
     """
     for position in range(area.bit_range.start, area.bit_range.end + 1):
         yield position // WORD_BITS, position % WORD_BITS
 
 
-def pblock_bits(dev, pblock):
-    """Yield ``(far, word_index, bit_index)`` for every CRAM bit of a pblock."""
-    for clause in pblock.clauses:
-        for frame in dev.pblock_by_clause(clause):
-            for area in frame.occupied_area:
-                for word, bit in area_bits(area):
-                    yield frame.far, word, bit
-
-
-def essential_bits_in(dev, fars: set[int]) -> set[tuple[int, int, int]]:
-    """The essential bits of the given frames, from the EBD file."""
-    bits = set()
-    for frame in dev.essential_frames():
-        if frame.far not in fars:
+def pblock_footprint(dev, name: str) -> set[tuple[int, int, int]]:
+    """Every bit the named pblock of the XDC occupies."""
+    for pblock in dev.pblocks():
+        if pblock.name != name:
             continue
-        for word_index, word in enumerate(frame.words):
-            for bit in range(WORD_BITS):
-                if (word.value >> bit) & 1:
-                    bits.add((frame.far, word_index, bit))
-    return bits
+        footprint = {
+            (frame.far, word, bit)
+            for clause in pblock.clauses
+            for frame in dev.pblock_by_clause(clause)
+            for area in frame.occupied_area
+            for word, bit in area_bits(area)
+        }
+        stage(f"{name}: {len(footprint)} bits in the footprint")
+        return footprint
+    raise SkraftError(f"{name} is not declared in {XDC}")
 
 
-def target_bits(dev, pblock_name: str) -> list[tuple[int, int, int]]:
-    """The essential bits of the target pblock: footprint intersected with
-    the design's essential bits, so every upset lands on a bit the targeted
-    instance actually depends on."""
-    pblock = find_pblock(dev, pblock_name)
-    sites = sorted(set(pblock_bits(dev, pblock)))
-    stage(f"{pblock_name}: {len(sites)} CRAM bits in the footprint")
-
-    essential = essential_bits_in(dev, {far for far, _, _ in sites})
-    sites = [site for site in sites if site in essential]
-    stage(f"{pblock_name}: {len(sites)} of them are essential")
+# Flip Flop (.LL) based targeting coming in a later release: the LL file's
+# flip-flop sweep (dev.inject_exhaustive(InjectionArea.FLIP_FLOP)) would
+# narrow this pblock's footprint down to only its true flip-flop bits, at
+# the cost of upsetting every flip-flop in the design to report them
+# (requiring a re-program before Part 1 could run). Until that lands here,
+# confinement is by pblock alone.
+def ff_target_bits(dev) -> list[tuple[int, int, int]]:
+    """The flip-flop bits that lie inside the shift-register pblock."""
+    sites = sorted(pblock_footprint(dev, PBLOCK))
+    stage(f"{len(sites)} flip-flop bits are inside {PBLOCK}")
+    for site in sites:
+        detail(f"FAR={site[0]:#010x} word {site[1]} bit {site[2]}")
     return sites
 
 
-def to_signed(value: int, bits: int) -> int:
-    """Interpret a raw ``bits``-wide bit pattern as two's-complement signed."""
-    if value & (1 << (bits - 1)):
-        value -= 1 << bits
-    return value
+def ff_campaign(dev, sites: list[tuple[int, int, int]], started: float
+                ) -> None:
+    """Run, freeze, inject one bit, and run again, ``REPEATS`` times.
 
-
-def to_unsigned(value: int, bits: int) -> int:
-    """Encode a signed value as its ``bits``-wide two's-complement pattern."""
-    return value & ((1 << bits) - 1)
-
-
-def random_operand(bits: int) -> int:
-    """A random ``bits``-wide two's-complement bit pattern."""
-    return random.randint(0, (1 << bits) - 1)
-
-
-def pack_operands(a_bits: int, b_bits: int) -> int:
-    """Pack two raw operand patterns into one USER1/USER2-wide word: bits
-    ``A_LEN - 1`` down to ``0`` are operand A, bits ``PAIR_LEN - 1`` down to
-    ``A_LEN`` are operand B."""
-    return (b_bits << A_LEN) | a_bits
-
-
-def apply_operands(dev, a_bits: int, b_bits: int) -> None:
-    """Write the same operand pair, packed into one word each, into both
-    instances' own operand registers."""
-    packed = pack_operands(a_bits, b_bits)
-    dev.write_bscan(USER_CLEAN_OPERANDS, packed)
-    dev.write_bscan(USER_TARGET_OPERANDS, packed)
-
-
-def read_result(dev, register: BscanPrimitive) -> int:
-    """Read a product out of USER3 or USER4."""
-    return int.from_bytes(dev.read_bscan(register), "big") & RESULT_MASK
-
-
-def expected_product(a_bits: int, b_bits: int) -> int:
-    """The true signed product of two raw operand patterns, encoded the same
-    way the DSP's result registers are."""
-    product = to_signed(a_bits, A_LEN) * to_signed(b_bits, B_LEN)
-    return to_unsigned(product, RESULT_LEN)
-
-
-def check(dev) -> tuple[bool, bool, int, int, int, int, int]:
-    """Apply one fresh random operand pair and compare both DSP instances
-    against the true signed product.
-
-    Returns ``(clean_wrong, target_wrong, a, b, expected, clean_value,
-    target_value)``, with the last five all in signed decimal.
+    Each trial: let the clock run for ``RUN_S`` seconds, stop it, upset one
+    random site, then let it run for ``RUN_S`` seconds more before the next
+    trial. Upsets are never reverted, so later trials run against whatever
+    earlier ones left in the register.
     """
-    a_bits = random_operand(A_LEN)
-    b_bits = random_operand(B_LEN)
-    expected = expected_product(a_bits, b_bits)
-    apply_operands(dev, a_bits, b_bits)
-    clean_value = read_result(dev, USER_CLEAN_RESULT)
-    target_value = read_result(dev, USER_TARGET_RESULT)
+    stage(f"Part 1: {REPEATS} single-bit upsets, {RUN_S}s of clock either "
+          f"side of each freeze")
+    emit("   #  FAR         WORD  BIT  BEFORE  AFTER  CHANGED   ELAPSED")
 
-    return (clean_value != expected, target_value != expected,
-            to_signed(a_bits, A_LEN), to_signed(b_bits, B_LEN),
-            to_signed(expected, RESULT_LEN),
-            to_signed(clean_value, RESULT_LEN),
-            to_signed(target_value, RESULT_LEN))
-
-
-def campaign(dev, sites: list[tuple[int, int, int]], started: float) -> int:
-    """Run ``REPEATS`` independent single-bit trials against
-    ``pblock_dsp_target``.
-
-    Each trial injects one upset, checks both instances against the true
-    signed product, then injects at the same ``(far, word_index, bit_index)``
-    again to flip the bit back before the next trial starts. Returns how
-    many trials left the targeted instance wrong.
-    """
-    stage(f"Running {REPEATS} single-bit inject/check/revert trials "
-          f"against {PBLOCK_TARGET} ({len(sites)} essential bits)")
-    emit("   #  FAR         WORD  BIT  CLEAN  TARGET  ELAPSED")
-
-    wrong_target = 0
+    set_clock(dev, True)
     for index in range(1, REPEATS + 1):
-        far, word_index, bit_index = random.choice(sites)
+        time.sleep(RUN_S)
+        set_clock(dev, False)
+        before = read_sr(dev)
 
-        dev.inject_at(far, word_index, bit_index, InjectionArea.ESSENTIAL_CRAM)
-        (clean_wrong, target_wrong, a, b, expected, clean_value,
-         target_value) = check(dev)
-        dev.inject_at(far, word_index, bit_index, InjectionArea.ESSENTIAL_CRAM)
+        far, word_index, bit_index = random.choice(sites)
+        dev.inject_at(far, word_index, bit_index, InjectionArea.FLIP_FLOP)
+
+        after = read_sr(dev)
+        changed = before ^ after
+        if not changed:
+            warn(f"Part 1, injection {index}: FAR={far:#010x} word "
+                 f"{word_index} bit {bit_index} left USER2 at {after:#04x}")
 
         emit(f"{index:>4}  {far:#010x}  {word_index:>4}  {bit_index:>3}  "
-             f"{'wrong' if clean_wrong else 'ok':>5}  "
-             f"{'wrong' if target_wrong else 'ok':>6}  "
+             f"{before:#04x}    {after:#04x}   {changed:#04x}      "
              f"{elapsed_since(started):>7}")
-        if clean_wrong or target_wrong:
-            emit(f"      a={a}  b={b}  expected={expected}  clean={clean_value}  "
-                 f"target={target_value}")
 
-        if target_wrong:
-            wrong_target += 1
-        if clean_wrong:
-            warn(f"trial {index} in {PBLOCK_TARGET}: the clean reference "
-                 f"also went wrong; the two instances have independent "
-                 f"operand write channels, so this is routing shared "
-                 f"between the two multipliers' own logic rather than a "
-                 f"shared operand feed (CONTAIN_ROUTING is not set)")
+        set_clock(dev, True)
+        time.sleep(RUN_S)
+        set_clock(dev, False)
 
-    return wrong_target
+    stage(f"Part 1: done after {REPEATS} trials")
+
+
+# --------------------------------------------------------------------------- #
+# Part 2: LUTRAM
+# --------------------------------------------------------------------------- #
+def select(dev, address: int) -> None:
+    """Select one LUTRAM address through USER3."""
+    dev.write_bscan(USER_LUT_ADDR, address)
+
+
+def write_word(dev, address: int, value: int) -> None:
+    """Select ``address`` and write its value into USER4."""
+    select(dev, address)
+    dev.write_bscan(USER_LUT_DATA, value)
+
+
+def read_word(dev, address: int) -> int:
+    """Select ``address`` and read the word back out of USER4."""
+    select(dev, address)
+    return int.from_bytes(dev.read_bscan(USER_LUT_DATA), "big") & LUT_DATA_MASK
+
+
+def pattern(address: int) -> int:
+    """The word this run expects to find at ``address``.
+
+    Alternating bits, so a single upset anywhere in the word shows up, and a
+    different value per address, so a mis-addressed read is visible too.
+    """
+    return (0xA5A5A5A5 ^ address) & LUT_DATA_MASK
+
+
+def fill_memory(dev) -> None:
+    """Write the pattern into every LUTRAM word.
+
+    Unlike the shift register, the LUTRAM does not depend on any clock, so
+    nothing here touches USER1.
+    """
+    for address in range(LUT_DEPTH):
+        write_word(dev, address, pattern(address))
+    detail(f"wrote {LUT_DEPTH} words")
+
+
+def read_memory(dev) -> list[int]:
+    """Read every LUTRAM word back through USER4."""
+    return [read_word(dev, address) for address in range(LUT_DEPTH)]
+
+
+def corrupted(state: list[int]) -> list[tuple[int, int, int]]:
+    """The words of ``state`` that differ from the pattern.
+
+    Each entry is ``(address, correct_word, erroneous_word)``.
+    """
+    return [(address, pattern(address), state[address])
+            for address in range(LUT_DEPTH)
+            if state[address] != pattern(address)]
+
+
+def lut_campaign(dev) -> None:
+    """Upset ``LUT_INJECTIONS`` random LUTRAM bits back to back.
+
+    No reads happen between injections; the whole array is read back and
+    compared only once every injection has landed.
+    """
+    stage(f"Part 2: {LUT_INJECTIONS} random LUTRAM upsets, not corrected")
+    for index in range(1, LUT_INJECTIONS + 1):
+        upset = dev.inject_random(InjectionArea.LUTRAM)
+        detail(f"injection {index}: FAR={upset.far:#010x} word "
+               f"{upset.word_index} bit {upset.bit_index} "
+               f"{upset.net_name or ''}")
+
+    report_lut(read_memory(dev))
+
+
+def report_lut(state: list[int]) -> None:
+    """List every LUTRAM word that no longer holds the value it was given."""
+    bad = corrupted(state)
+    stage(f"Part 2: {len(bad)}/{LUT_DEPTH} words are corrupted")
+    if not bad:
+        return
+
+    emit("  ADDR  CORRECT     ERRONEOUS   DIFFERING BITS")
+    for address, correct, erroneous in bad:
+        emit(f"  {address:>4}  {correct:#010x}  {erroneous:#010x}  "
+             f"{correct ^ erroneous:#010x}")
 
 
 def main() -> None:
-    configure(verbose=VERBOSE, warning_noun="cross-talk hits",
+    configure(verbose=VERBOSE, warning_noun="silent upsets",
               warning_hint="see the injection log for the detail")
     open_log(LOG_PATH)
-    stage("Example 6: JTAG/BSCAN-driven signed multiply, clean DSP48 reference vs. fault-injection target")
+    stage("Example 6: Flip-flop shift register and LUTRAM injection")
     started = time.perf_counter()
     try:
         stage(f"Connecting to the SK-RAFT server at "
@@ -261,37 +274,38 @@ def main() -> None:
             stage(f"Connected, server version {client.version()}")
 
             with client.attach(DEVICE) as dev:
-                dev.load(DesignFiles(bitstream=BITSTREAM, ebd=EBD, xdc=XDC))
+                dev.load(DesignFiles(bitstream=BITSTREAM, ll=LL, xdc=XDC))
                 dev.program()
                 stage(f"Programmed {DEVICE}")
 
-                find_pblock(dev, PBLOCK_CLEAN)
-                stage(f"{PBLOCK_CLEAN} is never targeted; it is the "
-                      f"untouched hardware reference")
-
-                clean_wrong, target_wrong = check(dev)[:2]
-                if clean_wrong or target_wrong:
-                    raise SkraftError(
-                        "one or both DSP instances are wrong right after "
-                        "programming: check the USER register ids and "
-                        "widths")
-                stage("Both DSP instances agree with the true signed "
-                      "product before any injection")
-
-                sites = target_bits(dev, PBLOCK_TARGET)
+                stage("--- Part 1: flip-flop shift register ---")
+                sites = ff_target_bits(dev)
                 if not sites:
-                    stage("Nothing to inject: check that the XDC and the "
-                          "EBD belong to the programmed bitstream.")
+                    stage("Nothing to inject in Part 1: no flip-flop of the "
+                          "LL file falls inside the pblock. Check that the "
+                          "XDC, the LL and the bitstream belong together.")
                     return
 
-                wrong_target = campaign(dev, sites, started)
+                ff_campaign(dev, sites, started)
 
-                stage(f"Re-programming {DEVICE} as a final safety net")
+                stage("Re-programming before Part 2")
                 dev.program()
 
-                stage(f"{wrong_target} of {REPEATS} trial(s) left the "
-                      f"targeted DSP instance wrong against the true "
-                      f"signed product")
+                stage("--- Part 2: LUTRAM ---")
+                fill_memory(dev)
+                wrong = corrupted(read_memory(dev))
+                if wrong:
+                    stage("The LUTRAM does not hold what was written; not "
+                          "injecting anything. Check USER3/USER4 register "
+                          "ids and widths.")
+                    return
+                stage(f"All {LUT_DEPTH} LUTRAM words read back correctly")
+
+                lut_campaign(dev)
+
+                stage("Both parts leave the device corrupted; re-programming "
+                      "as a final safety net")
+                dev.program()
                 stage(f"Done in {elapsed_since(started)}")
     except SkraftError as e:
         stage(f"Failed: {e}")
