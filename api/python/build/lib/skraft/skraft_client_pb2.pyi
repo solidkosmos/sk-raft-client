@@ -26,6 +26,8 @@ class FpgaBitCategory(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     FPGA_BIT_CATEGORY_BRAM: _ClassVar[FpgaBitCategory]
     FPGA_BIT_CATEGORY_FLIP_FLOP: _ClassVar[FpgaBitCategory]
     FPGA_BIT_CATEGORY_LUTRAM: _ClassVar[FpgaBitCategory]
+    FPGA_BIT_CATEGORY_PBLOCK: _ClassVar[FpgaBitCategory]
+    FPGA_BIT_CATEGORY_ESSENTIAL_PBLOCK: _ClassVar[FpgaBitCategory]
 
 class FpgaTargetKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -52,6 +54,8 @@ FPGA_BIT_CATEGORY_ESSENTIAL_CRAM: FpgaBitCategory
 FPGA_BIT_CATEGORY_BRAM: FpgaBitCategory
 FPGA_BIT_CATEGORY_FLIP_FLOP: FpgaBitCategory
 FPGA_BIT_CATEGORY_LUTRAM: FpgaBitCategory
+FPGA_BIT_CATEGORY_PBLOCK: FpgaBitCategory
+FPGA_BIT_CATEGORY_ESSENTIAL_PBLOCK: FpgaBitCategory
 FPGA_TARGET_KIND_UNSPECIFIED: FpgaTargetKind
 FPGA_TARGET_KIND_CRAM: FpgaTargetKind
 FPGA_TARGET_KIND_FLIP_FLOP: FpgaTargetKind
@@ -59,6 +63,20 @@ FPGA_TARGET_KIND_LUTRAM: FpgaTargetKind
 FPGA_TARGET_KIND_BRAM: FpgaTargetKind
 FPGA_FAULT_TYPE_RANDOM: FpgaFaultType
 FPGA_FAULT_TYPE_EXHAUSTIVE: FpgaFaultType
+
+class FpgaDevice(_message.Message):
+    __slots__ = ("part_number", "serial_number")
+    PART_NUMBER_FIELD_NUMBER: _ClassVar[int]
+    SERIAL_NUMBER_FIELD_NUMBER: _ClassVar[int]
+    part_number: str
+    serial_number: str
+    def __init__(self, part_number: _Optional[str] = ..., serial_number: _Optional[str] = ...) -> None: ...
+
+class FpgaDevicesResponse(_message.Message):
+    __slots__ = ("devices",)
+    DEVICES_FIELD_NUMBER: _ClassVar[int]
+    devices: _containers.RepeatedCompositeFieldContainer[FpgaDevice]
+    def __init__(self, devices: _Optional[_Iterable[_Union[FpgaDevice, _Mapping]]] = ...) -> None: ...
 
 class FpgaPblock(_message.Message):
     __slots__ = ("name", "clauses")
@@ -156,26 +174,50 @@ class VersionDetails(_message.Message):
     def __init__(self, version: _Optional[str] = ...) -> None: ...
 
 class FpgaDeviceDetails(_message.Message):
-    __slots__ = ("device_part_number", "programmer_part_number")
-    DEVICE_PART_NUMBER_FIELD_NUMBER: _ClassVar[int]
-    PROGRAMMER_PART_NUMBER_FIELD_NUMBER: _ClassVar[int]
-    device_part_number: str
-    programmer_part_number: str
-    def __init__(self, device_part_number: _Optional[str] = ..., programmer_part_number: _Optional[str] = ...) -> None: ...
+    __slots__ = ("device_serial_number",)
+    DEVICE_SERIAL_NUMBER_FIELD_NUMBER: _ClassVar[int]
+    device_serial_number: str
+    def __init__(self, device_serial_number: _Optional[str] = ...) -> None: ...
 
-class FpgaDesignFilePathRequest(_message.Message):
-    __slots__ = ("type", "path")
+class FpgaDesignFileInfo(_message.Message):
+    __slots__ = ("type", "relative_path", "compression", "size", "sha256")
     TYPE_FIELD_NUMBER: _ClassVar[int]
-    PATH_FIELD_NUMBER: _ClassVar[int]
+    RELATIVE_PATH_FIELD_NUMBER: _ClassVar[int]
+    COMPRESSION_FIELD_NUMBER: _ClassVar[int]
+    SIZE_FIELD_NUMBER: _ClassVar[int]
+    SHA256_FIELD_NUMBER: _ClassVar[int]
     type: FpgaFileType
-    path: str
-    def __init__(self, type: _Optional[_Union[FpgaFileType, str]] = ..., path: _Optional[str] = ...) -> None: ...
+    relative_path: str
+    compression: str
+    size: int
+    sha256: str
+    def __init__(self, type: _Optional[_Union[FpgaFileType, str]] = ..., relative_path: _Optional[str] = ..., compression: _Optional[str] = ..., size: _Optional[int] = ..., sha256: _Optional[str] = ...) -> None: ...
+
+class UploadDesignFileRequest(_message.Message):
+    __slots__ = ("info", "chunk")
+    INFO_FIELD_NUMBER: _ClassVar[int]
+    CHUNK_FIELD_NUMBER: _ClassVar[int]
+    info: FpgaDesignFileInfo
+    chunk: bytes
+    def __init__(self, info: _Optional[_Union[FpgaDesignFileInfo, _Mapping]] = ..., chunk: _Optional[bytes] = ...) -> None: ...
+
+class FpgaDesignFileResponse(_message.Message):
+    __slots__ = ("stored_path", "bytes_written", "sha256")
+    STORED_PATH_FIELD_NUMBER: _ClassVar[int]
+    BYTES_WRITTEN_FIELD_NUMBER: _ClassVar[int]
+    SHA256_FIELD_NUMBER: _ClassVar[int]
+    stored_path: str
+    bytes_written: int
+    sha256: str
+    def __init__(self, stored_path: _Optional[str] = ..., bytes_written: _Optional[int] = ..., sha256: _Optional[str] = ...) -> None: ...
 
 class FpgaBitCountRequest(_message.Message):
-    __slots__ = ("category",)
+    __slots__ = ("category", "pblock_name")
     CATEGORY_FIELD_NUMBER: _ClassVar[int]
+    PBLOCK_NAME_FIELD_NUMBER: _ClassVar[int]
     category: FpgaBitCategory
-    def __init__(self, category: _Optional[_Union[FpgaBitCategory, str]] = ...) -> None: ...
+    pblock_name: str
+    def __init__(self, category: _Optional[_Union[FpgaBitCategory, str]] = ..., pblock_name: _Optional[str] = ...) -> None: ...
 
 class FpgaBitCount(_message.Message):
     __slots__ = ("value",)
@@ -184,18 +226,22 @@ class FpgaBitCount(_message.Message):
     def __init__(self, value: _Optional[int] = ...) -> None: ...
 
 class FpgaBitCounts(_message.Message):
-    __slots__ = ("cram_bits", "essential_cram_bits", "bram_bits", "flip_flop_bits", "lutram_bits")
+    __slots__ = ("cram_bits", "essential_cram_bits", "bram_bits", "flip_flop_bits", "lutram_bits", "pblock_bits", "pblock_essential_bits")
     CRAM_BITS_FIELD_NUMBER: _ClassVar[int]
     ESSENTIAL_CRAM_BITS_FIELD_NUMBER: _ClassVar[int]
     BRAM_BITS_FIELD_NUMBER: _ClassVar[int]
     FLIP_FLOP_BITS_FIELD_NUMBER: _ClassVar[int]
     LUTRAM_BITS_FIELD_NUMBER: _ClassVar[int]
+    PBLOCK_BITS_FIELD_NUMBER: _ClassVar[int]
+    PBLOCK_ESSENTIAL_BITS_FIELD_NUMBER: _ClassVar[int]
     cram_bits: int
     essential_cram_bits: int
     bram_bits: int
     flip_flop_bits: int
     lutram_bits: int
-    def __init__(self, cram_bits: _Optional[int] = ..., essential_cram_bits: _Optional[int] = ..., bram_bits: _Optional[int] = ..., flip_flop_bits: _Optional[int] = ..., lutram_bits: _Optional[int] = ...) -> None: ...
+    pblock_bits: int
+    pblock_essential_bits: int
+    def __init__(self, cram_bits: _Optional[int] = ..., essential_cram_bits: _Optional[int] = ..., bram_bits: _Optional[int] = ..., flip_flop_bits: _Optional[int] = ..., lutram_bits: _Optional[int] = ..., pblock_bits: _Optional[int] = ..., pblock_essential_bits: _Optional[int] = ...) -> None: ...
 
 class FpgaScrubSession(_message.Message):
     __slots__ = ("scrub_cycle", "duration_ms", "essential", "id")
@@ -267,6 +313,12 @@ class FpgaFarListExcludeRequest(_message.Message):
     fars: _containers.RepeatedScalarFieldContainer[int]
     def __init__(self, fars: _Optional[_Iterable[int]] = ...) -> None: ...
 
+class FpgaFarListResponse(_message.Message):
+    __slots__ = ("fars",)
+    FARS_FIELD_NUMBER: _ClassVar[int]
+    fars: _containers.RepeatedScalarFieldContainer[int]
+    def __init__(self, fars: _Optional[_Iterable[int]] = ...) -> None: ...
+
 class FpgaReadbackTarget(_message.Message):
     __slots__ = ("start_frame_address", "end_frame_address", "capture")
     START_FRAME_ADDRESS_FIELD_NUMBER: _ClassVar[int]
@@ -328,16 +380,20 @@ class FpgaInjectionTarget(_message.Message):
     def __init__(self, frame_address: _Optional[int] = ..., word_index: _Optional[int] = ..., bit_index: _Optional[int] = ..., kind: _Optional[_Union[FpgaTargetKind, str]] = ..., net_name: _Optional[str] = ...) -> None: ...
 
 class FpgaInjectionOptions(_message.Message):
-    __slots__ = ("include_essential", "include_flip_flops", "include_lutrams", "include_brams")
-    INCLUDE_ESSENTIAL_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("essentials", "include_flip_flops", "include_lutrams", "include_brams", "include_pblock", "pblock_name")
+    ESSENTIALS_FIELD_NUMBER: _ClassVar[int]
     INCLUDE_FLIP_FLOPS_FIELD_NUMBER: _ClassVar[int]
     INCLUDE_LUTRAMS_FIELD_NUMBER: _ClassVar[int]
     INCLUDE_BRAMS_FIELD_NUMBER: _ClassVar[int]
-    include_essential: bool
+    INCLUDE_PBLOCK_FIELD_NUMBER: _ClassVar[int]
+    PBLOCK_NAME_FIELD_NUMBER: _ClassVar[int]
+    essentials: bool
     include_flip_flops: bool
     include_lutrams: bool
     include_brams: bool
-    def __init__(self, include_essential: bool = ..., include_flip_flops: bool = ..., include_lutrams: bool = ..., include_brams: bool = ...) -> None: ...
+    include_pblock: bool
+    pblock_name: str
+    def __init__(self, essentials: bool = ..., include_flip_flops: bool = ..., include_lutrams: bool = ..., include_brams: bool = ..., include_pblock: bool = ..., pblock_name: _Optional[str] = ...) -> None: ...
 
 class FpgaSingleInjectionReport(_message.Message):
     __slots__ = ("target",)

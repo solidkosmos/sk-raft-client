@@ -34,17 +34,17 @@ from .exceptions import DesignFileError
 # --------------------------------------------------------------------------- #
 # Injection selection
 # --------------------------------------------------------------------------- #
-class InjectionArea(IntFlag):
-    """Areas that can be selected for fault injection.
+class TargetMemory(IntFlag):
+    """Memories that can be selected for fault injection.
 
-    Modelled as an ``IntFlag`` so areas can be combined, e.g.::
+    Modelled as an ``IntFlag`` so memories can be combined, e.g.::
 
-        target = InjectionArea.FLIP_FLOP | InjectionArea.BRAM
+        target = TargetMemory.FF | TargetMemory.BRAM
 
-    The wire protocol supports this for *random* injection:
-    ``FpgaRandomInjectionOptions`` carries independent ``include_flip_flops``
-    / ``include_lutrams`` / ``include_brams`` booleans. ``CRAM`` is the
-    absence of any narrowing flag (whole CRAM).
+    The wire protocol supports this for *random* and *exhaustive* injection:
+    ``FpgaInjectionOptions`` carries independent ``essentials`` /
+    ``include_flip_flops`` / ``include_lutrams`` / ``include_brams``
+    booleans. ``CRAM`` is the absence of any narrowing flag (whole CRAM).
 
     A *specific* injection (``FpgaInjectionTarget``) carries a single
     ``FpgaTargetKind`` enum, so only one storage-element flag may be set
@@ -53,19 +53,17 @@ class InjectionArea(IntFlag):
 
     CRAM = 1 << 0
     ESSENTIAL_CRAM = 1 << 1
-    FLIP_FLOP = 1 << 2
+    FF = 1 << 2
     LUTRAM = 1 << 3
     BRAM = 1 << 4
 
     @property
     def required_design_files(self) -> tuple[str, ...]:
-        """The :class:`DesignFiles` fields this target depends on."""
+        """The :class:`Design` fields this target depends on."""
         files: list[str] = []
-        if self & InjectionArea.ESSENTIAL_CRAM:
+        if self & TargetMemory.ESSENTIAL_CRAM:
             files.append("ebd")
-        if self & (InjectionArea.FLIP_FLOP
-                   | InjectionArea.LUTRAM
-                   | InjectionArea.BRAM):
+        if self & (TargetMemory.FF | TargetMemory.LUTRAM | TargetMemory.BRAM):
             files.append("ll")
         return tuple(files)
 
@@ -108,20 +106,20 @@ class ServerPath(str):
 
 
 @dataclass(frozen=True)
-class DesignFiles:
-    """The set of design files associated with a programmed design.
+class Design:
+    """The files of a design, as paths on the *client* machine.
 
-    All paths are relative to the SK-RAFT server's filesystem. Every field is
-    optional; an operation that needs a missing file raises
+    :meth:`FpgaDevice.uploadDesignToServer` uploads every file given. Every
+    field is optional; an operation that needs a missing file raises
     :class:`DesignFileError` naming the field.
     """
 
-    bitstream: Optional[ServerPath] = None   # programming
-    ebd: Optional[ServerPath] = None         # essential bits
-    ll: Optional[ServerPath] = None          # logic location
-    rbd: Optional[ServerPath] = None         # readback data (self-test)
-    msd: Optional[ServerPath] = None         # mask (self-test)
-    xdc: Optional[ServerPath] = None         # constraints (pblock clauses)
+    bit: Optional[str] = None   # bitstream, for programming
+    ebd: Optional[str] = None   # essential bits
+    ll: Optional[str] = None    # logic location (flip-flop, LUTRAM, BRAM bits)
+    xdc: Optional[str] = None   # constraints (pblocks)
+    rbd: Optional[str] = None   # readback data (self-test)
+    msd: Optional[str] = None   # readback mask (self-test)
 
     def require(self, *fields: str) -> None:
         """Raise :class:`DesignFileError` if any named field is unset."""
@@ -293,13 +291,13 @@ class FpgaFrame:
 # Boundary scan
 # --------------------------------------------------------------------------- #
 class BscanPrimitive:
-    """A BSCAN USER register (``USER N``, with ``0 <= N <= 4``).
+    """A BSCAN USER register (``USER N``, with ``1 <= N <= 4``).
 
     The range is validated in the constructor; an out-of-range id raises
     ``ValueError`` rather than failing deep inside a write.
     """
 
-    MIN_REGISTER = 0
+    MIN_REGISTER = 1
     MAX_REGISTER = 4
 
     def __init__(self, user_register_id: int, size_in_bits: int):
@@ -339,6 +337,35 @@ class BscanPrimitive:
         return bytes(reply.value)
 
 
+class Bscan:
+    """A BSCAN USER register of an attached device, read and written as an
+    integer::
+
+        data = Bscan(dev, 4, 32)   # USER4, 32 bits wide
+        data.write(0xA5A5A5A5)
+        value = data.read()
+    """
+
+    def __init__(self, dev, user_register_id: int, size_in_bits: int):
+        self.__dev = dev
+        self.__primitive = BscanPrimitive(user_register_id, size_in_bits)
+
+    @property
+    def primitive(self) -> BscanPrimitive:
+        """The underlying USER register."""
+        return self.__primitive
+
+    def write(self, value: int) -> None:
+        """Shift ``value`` into the register."""
+        self.__dev.write_bscan(self.__primitive, value)
+
+    def read(self) -> int:
+        """Read the register value, masked to the register size."""
+        data = self.__dev.read_bscan(self.__primitive)
+        mask = (1 << self.__primitive.size_in_bits) - 1
+        return int.from_bytes(data, "big") & mask
+
+
 # --------------------------------------------------------------------------- #
 # Injection reports
 # --------------------------------------------------------------------------- #
@@ -350,7 +377,7 @@ class FpgaInjectionReport:
     """
 
     def __init__(self, far: int, word_index: int, bit_index: int,
-                 target: InjectionArea, net_name: Optional[str] = None):
+                 target: TargetMemory, net_name: Optional[str] = None):
         self.__far = far
         self.__word_index = word_index
         self.__bit_index = bit_index
@@ -370,7 +397,7 @@ class FpgaInjectionReport:
         return self.__bit_index
 
     @property
-    def target(self) -> InjectionArea:
+    def target(self) -> TargetMemory:
         return self.__target
 
     @property
@@ -383,7 +410,7 @@ class FpgaRandomInjectionReport:
     (:meth:`FpgaDevice.inject_random`)."""
 
     def __init__(self, far: int, word_index: int, bit_index: int,
-                 target: InjectionArea, net_name: Optional[str] = None):
+                 target: TargetMemory, net_name: Optional[str] = None):
         self.__far = far
         self.__word_index = word_index
         self.__bit_index = bit_index
@@ -406,7 +433,7 @@ class FpgaRandomInjectionReport:
         return self.__bit_index
 
     @property
-    def target(self) -> InjectionArea:
+    def target(self) -> TargetMemory:
         """The area that was injected."""
         return self.__target
 
@@ -542,7 +569,7 @@ class FpgaFiSession:
 
     ``target`` selects the area. The campaign wire message only distinguishes
     *whole CRAM* from *essential CRAM*, so ``target`` must be either
-    ``InjectionArea.CRAM`` or ``InjectionArea.ESSENTIAL_CRAM``; storage-element
+    ``TargetMemory.CRAM`` or ``TargetMemory.ESSENTIAL_CRAM``; storage-element
     targets are rejected.
     """
 
@@ -553,7 +580,7 @@ class FpgaFiSession:
     sbu_percent: float
     mbu_percent: float
     mcu_percent: float
-    target: InjectionArea = InjectionArea.CRAM
+    target: TargetMemory = TargetMemory.CRAM
     correct: bool = False
 
     def __post_init__(self) -> None:
@@ -562,11 +589,11 @@ class FpgaFiSession:
             raise ValueError(
                 f"sbu/mbu/mcu percentages must sum to 100, got {total}"
             )
-        if self.target not in (InjectionArea.CRAM,
-                               InjectionArea.ESSENTIAL_CRAM):
+        if self.target not in (TargetMemory.CRAM,
+                               TargetMemory.ESSENTIAL_CRAM):
             raise ValueError(
-                "campaign target must be InjectionArea.CRAM or "
-                "InjectionArea.ESSENTIAL_CRAM (storage-element targeting is "
+                "campaign target must be TargetMemory.CRAM or "
+                "TargetMemory.ESSENTIAL_CRAM (storage-element targeting is "
                 "not supported for campaigns)"
             )
 
@@ -574,7 +601,7 @@ class FpgaFiSession:
     def essential(self) -> bool:
         """Whether the campaign targets only essential bits (derived from
         ``target``)."""
-        return bool(self.target & InjectionArea.ESSENTIAL_CRAM)
+        return bool(self.target & TargetMemory.ESSENTIAL_CRAM)
 
 
 class FpgaFiWordSummary:

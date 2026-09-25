@@ -5,8 +5,9 @@
 
 from .skraft_fpga import FpgaDevice, SkraftFpga
 from .datatypes import (
+    Bscan,
     BscanPrimitive,
-    DesignFiles,
+    Design,
     FaultType,
     FpgaFiSession,
     FpgaFiSummary,
@@ -18,9 +19,10 @@ from .datatypes import (
     FpgaScrubWordSummary,
     FpgaWord,
     FpgaFiWordSummary,
-    InjectionArea,
+    ReadbackOption,
     ScrubbingType,
     ServerPath,
+    TargetMemory,
 )
 from .exceptions import (
     BscanError,
@@ -34,8 +36,9 @@ from .exceptions import (
 __all__ = [
     "SkraftFpga",
     "FpgaDevice",
+    "Bscan",
     "BscanPrimitive",
-    "DesignFiles",
+    "Design",
     "FaultType",
     "FpgaFiSession",
     "FpgaFiSummary",
@@ -47,9 +50,10 @@ __all__ = [
     "FpgaScrubWordSummary",
     "FpgaWord",
     "FpgaFiWordSummary",
-    "InjectionArea",
+    "ReadbackOption",
     "ScrubbingType",
     "ServerPath",
+    "TargetMemory",
     "BscanError",
     "ConnectionFailedError",
     "DesignFileError",
@@ -57,3 +61,4 @@ __all__ = [
     "FrameAddressError",
     "SkraftError",
 ]
+

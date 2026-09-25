@@ -10,13 +10,15 @@ option go_package = "bitbucket.org/sk_dev_team/sk-raft-software/cmd/sk_raft/prot
 // configuration, scrubbing, fault injection, BSCAN access and readback.
 service SKRaftFpga {
     // Connection lifecycle
-    rpc FpgaConnect(FpgaDeviceDetails) returns (google.protobuf.Empty) {}
+    rpc FpgaConnect(google.protobuf.Empty) returns (google.protobuf.Empty) {}
     rpc FpgaClose(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 
-    // Auxiliary / bitstream file configuration.
-    // A single RPC with an explicit file-type enum replaces the five
-    // near-identical fpgaSetXxxFilePath RPCs.
-    rpc FpgaSetDesignFilePath(FpgaDesignFilePathRequest) returns (google.protobuf.Empty) {}
+    rpc FpgaSelectDevice(FpgaDeviceDetails) returns (google.protobuf.Empty) {}
+
+    rpc FpgaGetDevices(google.protobuf.Empty) returns (FpgaDevicesResponse) {}
+
+    // Upload design files in the server file system.
+    rpc FpgaUploadDesignFile(stream UploadDesignFileRequest) returns (FpgaDesignFileResponse) {}
 
     // Bit statistics. One RPC with a category selector replaces the five
     // fpgaXxxBits RPCs; FpgaGetAllBitCounts returns everything in one call.
@@ -42,6 +44,7 @@ service SKRaftFpga {
     // Frame address (FAR) list management
     rpc FpgaExtractFarsFromBitstream(FpgaFarListExtractRequest) returns (FpgaFarListExtractResponse) {}
     rpc FpgaExcludeFars(FpgaFarListExcludeRequest) returns (google.protobuf.Empty) {}
+    rpc FpgaFarList(google.protobuf.Empty) returns (FpgaFarListResponse) {}
 
     rpc FpgaEssentialFrames(google.protobuf.Empty) returns (FpgaFrames) {}
     rpc FpgaMaskFrames(google.protobuf.Empty) returns (FpgaFrames) {}
@@ -63,6 +66,15 @@ service SKRaftFpga {
     rpc FpgaGetPblockFarsByClause(FpgaPblockClause) returns (FpgaPblockFars) {}
 
     rpc Version(google.protobuf.Empty) returns (VersionDetails) {}
+}
+
+message FpgaDevice {
+    string part_number   = 1;
+    string serial_number = 2;
+}
+
+message FpgaDevicesResponse {
+    repeated FpgaDevice devices = 1;
 }
 
 message FpgaPblock {
@@ -131,14 +143,12 @@ message VersionDetails {
 // ---------------------------------------------------------------------------
 
 message FpgaDeviceDetails {
-    string device_part_number     = 1;
-    string programmer_part_number = 2;
+    string device_serial_number     = 1;
 }
 
 // ---------------------------------------------------------------------------
 // File configuration
 // ---------------------------------------------------------------------------
-
 enum FpgaFileType {
     FPGA_FILE_TYPE_UNSPECIFIED = 0;
     FPGA_FILE_TYPE_RBD         = 1; // Readback data file
@@ -149,22 +159,41 @@ enum FpgaFileType {
     FPGA_FILE_TYPE_XDC         = 6; // Constrain file (XDC).
 }
 
-message FpgaDesignFilePathRequest {
-    FpgaFileType type = 1;
-    string path       = 2;
+message FpgaDesignFileInfo {
+    FpgaFileType type          = 1;  // straight from your original
+    string       relative_path = 3;  // e.g. "src/top.v", never absolute
+    string       compression   = 4;  // "gzip", "zstd", or "" for raw
+    uint64       size          = 5;  // compressed size if known, 0 otherwise
+    string       sha256        = 6;  // optional, lets the server verify
+}
+
+message UploadDesignFileRequest {
+    oneof payload {
+        FpgaDesignFileInfo info  = 1;
+        bytes              chunk = 2;
+    }
+}
+
+message FpgaDesignFileResponse {
+    string stored_path   = 1;
+    uint64 bytes_written = 2;
+    string sha256        = 3;
 }
 
 enum FpgaBitCategory {
-    FPGA_BIT_CATEGORY_UNSPECIFIED    = 0;
-    FPGA_BIT_CATEGORY_CRAM           = 1;
-    FPGA_BIT_CATEGORY_ESSENTIAL_CRAM = 2;
-    FPGA_BIT_CATEGORY_BRAM           = 3;
-    FPGA_BIT_CATEGORY_FLIP_FLOP      = 4;
-    FPGA_BIT_CATEGORY_LUTRAM         = 5;
+    FPGA_BIT_CATEGORY_UNSPECIFIED      = 0;
+    FPGA_BIT_CATEGORY_CRAM             = 1;
+    FPGA_BIT_CATEGORY_ESSENTIAL_CRAM   = 2;
+    FPGA_BIT_CATEGORY_BRAM             = 3;
+    FPGA_BIT_CATEGORY_FLIP_FLOP        = 4;
+    FPGA_BIT_CATEGORY_LUTRAM           = 5;
+    FPGA_BIT_CATEGORY_PBLOCK           = 6;
+    FPGA_BIT_CATEGORY_ESSENTIAL_PBLOCK = 7;
 }
 
 message FpgaBitCountRequest {
     FpgaBitCategory category = 1;
+    string pblock_name       = 2; // count only inside this XDC pblock, if set
 }
 
 message FpgaBitCount {
@@ -172,11 +201,13 @@ message FpgaBitCount {
 }
 
 message FpgaBitCounts {
-    uint32 cram_bits           = 1;
-    uint32 essential_cram_bits = 2;
-    uint32 bram_bits           = 3;
-    uint32 flip_flop_bits      = 4;
-    uint32 lutram_bits         = 5;
+    uint32 cram_bits             = 1;
+    uint32 essential_cram_bits   = 2;
+    uint32 bram_bits             = 3;
+    uint32 flip_flop_bits        = 4;
+    uint32 lutram_bits           = 5;
+    uint32 pblock_bits           = 6;
+    uint32 pblock_essential_bits = 7;
 }
 
 // ---------------------------------------------------------------------------
@@ -227,6 +258,10 @@ message FpgaFarListExtractResponse {
 }
 
 message FpgaFarListExcludeRequest {
+    repeated uint32 fars = 1;
+}
+
+message FpgaFarListResponse {
     repeated uint32 fars = 1;
 }
 
@@ -296,10 +331,12 @@ message FpgaInjectionTarget {
 }
 
 message FpgaInjectionOptions {
-    bool include_essential  = 1;
+    bool essentials  = 1;
     bool include_flip_flops = 2;
     bool include_lutrams    = 3;
     bool include_brams      = 4;
+    bool include_pblock     = 5;
+    string pblock_name      = 6; // inject only inside this XDC pblock, if set
 }
 
 message FpgaSingleInjectionReport {

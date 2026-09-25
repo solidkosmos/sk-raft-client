@@ -39,7 +39,7 @@ class SKRaftFpgaStub(object):
         """
         self.FpgaConnect = channel.unary_unary(
                 '/proto.SKRaftFpga/FpgaConnect',
-                request_serializer=skraft__client__pb2.FpgaDeviceDetails.SerializeToString,
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 _registered_method=True)
         self.FpgaClose = channel.unary_unary(
@@ -47,10 +47,20 @@ class SKRaftFpgaStub(object):
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 _registered_method=True)
-        self.FpgaSetDesignFilePath = channel.unary_unary(
-                '/proto.SKRaftFpga/FpgaSetDesignFilePath',
-                request_serializer=skraft__client__pb2.FpgaDesignFilePathRequest.SerializeToString,
+        self.FpgaSelectDevice = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaSelectDevice',
+                request_serializer=skraft__client__pb2.FpgaDeviceDetails.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
+        self.FpgaGetDevices = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaGetDevices',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaDevicesResponse.FromString,
+                _registered_method=True)
+        self.FpgaUploadDesignFile = channel.stream_unary(
+                '/proto.SKRaftFpga/FpgaUploadDesignFile',
+                request_serializer=skraft__client__pb2.UploadDesignFileRequest.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaDesignFileResponse.FromString,
                 _registered_method=True)
         self.FpgaGetBitCount = channel.unary_unary(
                 '/proto.SKRaftFpga/FpgaGetBitCount',
@@ -111,6 +121,11 @@ class SKRaftFpgaStub(object):
                 '/proto.SKRaftFpga/FpgaExcludeFars',
                 request_serializer=skraft__client__pb2.FpgaFarListExcludeRequest.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
+        self.FpgaFarList = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaFarList',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaFarListResponse.FromString,
                 _registered_method=True)
         self.FpgaEssentialFrames = channel.unary_unary(
                 '/proto.SKRaftFpga/FpgaEssentialFrames',
@@ -197,10 +212,20 @@ class SKRaftFpgaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def FpgaSetDesignFilePath(self, request, context):
-        """Auxiliary / bitstream file configuration.
-        A single RPC with an explicit file-type enum replaces the five
-        near-identical fpgaSetXxxFilePath RPCs.
+    def FpgaSelectDevice(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaGetDevices(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaUploadDesignFile(self, request_iterator, context):
+        """Upload design files in the server file system.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -280,6 +305,12 @@ class SKRaftFpgaServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def FpgaExcludeFars(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaFarList(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -369,7 +400,7 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'FpgaConnect': grpc.unary_unary_rpc_method_handler(
                     servicer.FpgaConnect,
-                    request_deserializer=skraft__client__pb2.FpgaDeviceDetails.FromString,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
             'FpgaClose': grpc.unary_unary_rpc_method_handler(
@@ -377,10 +408,20 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
                     request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
-            'FpgaSetDesignFilePath': grpc.unary_unary_rpc_method_handler(
-                    servicer.FpgaSetDesignFilePath,
-                    request_deserializer=skraft__client__pb2.FpgaDesignFilePathRequest.FromString,
+            'FpgaSelectDevice': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaSelectDevice,
+                    request_deserializer=skraft__client__pb2.FpgaDeviceDetails.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'FpgaGetDevices': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaGetDevices,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=skraft__client__pb2.FpgaDevicesResponse.SerializeToString,
+            ),
+            'FpgaUploadDesignFile': grpc.stream_unary_rpc_method_handler(
+                    servicer.FpgaUploadDesignFile,
+                    request_deserializer=skraft__client__pb2.UploadDesignFileRequest.FromString,
+                    response_serializer=skraft__client__pb2.FpgaDesignFileResponse.SerializeToString,
             ),
             'FpgaGetBitCount': grpc.unary_unary_rpc_method_handler(
                     servicer.FpgaGetBitCount,
@@ -441,6 +482,11 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
                     servicer.FpgaExcludeFars,
                     request_deserializer=skraft__client__pb2.FpgaFarListExcludeRequest.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'FpgaFarList': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaFarList,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=skraft__client__pb2.FpgaFarListResponse.SerializeToString,
             ),
             'FpgaEssentialFrames': grpc.unary_unary_rpc_method_handler(
                     servicer.FpgaEssentialFrames,
@@ -535,7 +581,7 @@ class SKRaftFpga(object):
             request,
             target,
             '/proto.SKRaftFpga/FpgaConnect',
-            skraft__client__pb2.FpgaDeviceDetails.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,
             channel_credentials,
@@ -575,7 +621,7 @@ class SKRaftFpga(object):
             _registered_method=True)
 
     @staticmethod
-    def FpgaSetDesignFilePath(request,
+    def FpgaSelectDevice(request,
             target,
             options=(),
             channel_credentials=None,
@@ -588,9 +634,63 @@ class SKRaftFpga(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/proto.SKRaftFpga/FpgaSetDesignFilePath',
-            skraft__client__pb2.FpgaDesignFilePathRequest.SerializeToString,
+            '/proto.SKRaftFpga/FpgaSelectDevice',
+            skraft__client__pb2.FpgaDeviceDetails.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaGetDevices(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaGetDevices',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            skraft__client__pb2.FpgaDevicesResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaUploadDesignFile(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_unary(
+            request_iterator,
+            target,
+            '/proto.SKRaftFpga/FpgaUploadDesignFile',
+            skraft__client__pb2.UploadDesignFileRequest.SerializeToString,
+            skraft__client__pb2.FpgaDesignFileResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -915,6 +1015,33 @@ class SKRaftFpga(object):
             '/proto.SKRaftFpga/FpgaExcludeFars',
             skraft__client__pb2.FpgaFarListExcludeRequest.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaFarList(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaFarList',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            skraft__client__pb2.FpgaFarListResponse.FromString,
             options,
             channel_credentials,
             insecure,
