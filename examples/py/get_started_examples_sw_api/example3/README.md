@@ -1,32 +1,22 @@
-# Example 3: Fault injection confined to a pblock
+# Example 3: Flip-flop shift register and LUTRAM injection
 
-Programs a bitstream, then injects upsets confined to one pblock from the XDC - its whole footprint, or just its essential bits.
+Two campaigns against one design over BSCAN: a feedback loop shift register built from flip-flops, (Part 1) and a distributed LUTRAM (Part 2). USER1 gates the clock of both the shift register and the LUTRAM (USER3/USER4).
 
-The XDC must declare the pblock as used for implementation:
+Part 1 injects into the flip-flops inside `pblock_ff_sr_inst` (`TargetMemory.FF`, located from the LL file). If the pblock holds no flip-flops, the script stops. Each trial runs the clock for 2 s, freezes it, reads the shift register, upsets one flip-flop, reads it again and prints both, then resumes the clock. Upsets are never reverted. Runs until you press Enter.
 
-```tcl
-create_pblock pblock_fast_heartbeat
-add_cells_to_pblock [get_pblocks pblock_fast_heartbeat] [get_cells fast_hb_inst]
-resize_pblock [get_pblocks pblock_fast_heartbeat] -add {SLICE_X54Y91:SLICE_X57Y99}
-```
-
-A pblock constrains placement, not routing, by default - `set_property CONTAIN_ROUTING true [get_pblocks ...]` closes that gap.
+Part 2 injects into the LUTRAM inside `pblock_LUTRAM` (`TargetMemory.LUTRAM`). With the clock enabled, a known pattern is written into every word and read back to confirm it round-tripped. The clock is then frozen and upsets are injected one every 0.5 s until you press Enter, then the clock is enabled again, the whole array is read back, and every word is printed with its corrupted bit positions.
 
 ```bash
-python main.py --program /path/on/server/tester.bit --ebd /path/on/server/tester.ebd --xdc /path/on/server/tester.xdc --target pblock_fast_heartbeat [--all | --essential] [--random [N] | --exhaustive] [--accumulative | --non-accumulative]
+python main.py
 ```
 
-| Flag | Meaning |
-| --- | --- |
-| `--program PATH` | Required. Server-side `.bit` path. |
-| `--ebd PATH` | Required. Server-side `.ebd` path. |
-| `--xdc PATH` | Required. Server-side `.xdc` path declaring `--target`. |
-| `--target NAME` | Required. Pblock to attack, named exactly as in the XDC. |
-| `--all` / `--essential` | Target the whole footprint of `--target`, or only its essential bits. Default: essential. |
-| `--random [N]` | Inject `N` random bits inside `--target` (default 300). Default mode. |
-| `--exhaustive` | Sweep every targeted bit of `--target` once; `N` is ignored. |
-| `--accumulative` / `--non-accumulative` | Keep upsets in place, or revert each as it goes - applies to both modes here. Default: accumulative. |
+| Constant | Default | Meaning |
+| --- | --- | --- |
+| `SR_LEN` | `8` | Shift register width; must match the design's `sr_len` generic. |
+| `LUT_ADDR_BITS` / `LUT_DEPTH` | `6` / `64` | LUTRAM address width and word count. |
+| `LUT_DATA_LEN` | `32` | LUTRAM word width; must match the design's `lut_data_len` generic. |
+| `PBLOCK_SR` / `PBLOCK_LUTRAM` | `"pblock_ff_sr_inst"` / `"pblock_LUTRAM"` | Pblocks confining Parts 1 and 2, as named in the XDC. |
 
-If left accumulative, the device is re-programmed at the end to clear the upsets (skipped on Ctrl-C - reprogram manually then).
+Runs Part 1, reprograms, runs Part 2, then reprograms once more as a safety net. Interrupting with Ctrl-C mid-campaign can leave the device corrupted; reprogram before anything else.
 
-Set `SK_RAFT_SERVER_IP` at the top of `main.py` before running.
+Set `SK_RAFT_SERVER_IP`, `DEVICE` and `design` (`tester.bit`/`tester.ll` + XDC, uploaded to the server by the script) at the top of `main.py`.

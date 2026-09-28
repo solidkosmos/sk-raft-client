@@ -1,113 +1,176 @@
-"""Example 1 - program the device, then inject CRAM upsets."""
+"""Example 1: fault injection, three ways.
 
-import argparse
+We flip bits in the FPGA's configuration memory (CRAM) and see what breaks - but
+we narrow down where we flip in three steps, each more targeted than the last:
 
-from skraft import InjectionArea
-from skraft.datatypes import DesignFiles, ServerPath
-from skraft.exceptions import SkraftError
-from skraft.skraft_fpga import SkraftFpga
+  1. Random bits, anywhere.       Mostly hits nothing. Shows why aiming to
+                                   essential bits only matters.
+  2. Essential bits only.         Every flip lands on a bit the design
+                                   depends on.
+  3. One pblock at a time.        Narrows further to a single part of the
+                                   design, so you can test it on its own.
 
-DEFAULT_RANDOM_INJECTIONS = 1000
-SK_RAFT_SERVER_IP = "<SK_RAFT_SERVER_IP>"  # e.g. "192.168.1.50"
+Each step holds an upset for 100ms, then corrects it, and can be stopped
+early by pressing Enter. Watch LD0/LD1 on the board: the heartbeats show
+what each upset does.
+"""
+
+import random
+import threading
+import time
+
+from skraft import Design, TargetMemory, ReadbackOption, SkraftError, SkraftFpga
+
+# --------------------------------------------------------------------------- #
+# Configuration. Edit these to match your setup.
+# --------------------------------------------------------------------------- #
+SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-DEVICE = "xc7a35t"
+# If you are unsure of your target device's serial number
+# you can check via the device_list() call 
+DEVICE = "210183BFD452A"
+
+# The design used throughout: two heartbeat counters (LD0, LD1) on a
+# Basys-3. We give all three files up front - .bit to program the device,
+# .ebd to know which bits are essential, .xdc to know the pblocks.
+# uploadDesignToServer() sends the files, 
+# and the server stores them under the same relative path.
+design = Design(
+    bit="design_files/targeted_top.bit",
+    ebd="design_files/targeted_top.ebd",
+    xdc="design_files/board.xdc",
+)
+
+# Same seed, same sequence of step 1 injections every run (steps 2 and 3
+# let the server pick the bits).
+rng = random.Random(42)
+
+# Watches for the Enter key in the background, so it doesn't block the
+# injection loop below. Press Enter any time to end the current step early
+stop = threading.Event()
 
 
-# CLI flags: bitstream path, random[N]/exhaustive mode, accumulative/non-accumulative revert.
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Program the device, then inject CRAM upsets.")
-    parser.add_argument(
-        "--program", metavar="BITSTREAM_PATH", required=True,
-        help="Server-side path to the .bit file to program before "
-             "injecting.")
+def watch_for_enter() -> None:
+    stop.clear()
+    threading.Thread(target=lambda: (input(), stop.set()), daemon=True).start()
 
-    mode = parser.add_mutually_exclusive_group()
-    mode.add_argument(
-        "--random", nargs="?", type=int, const=DEFAULT_RANDOM_INJECTIONS,
-        default=DEFAULT_RANDOM_INJECTIONS, metavar="N",
-        help=f"Inject N random CRAM bits, one at a time (default: "
-             f"{DEFAULT_RANDOM_INJECTIONS}; this is also the default mode).")
-    mode.add_argument(
-        "--exhaustive", action="store_true",
-        help="Sweep every CRAM bit of the design once; N from --random "
-             "has no effect.")
-
-    accumulation = parser.add_mutually_exclusive_group()
-    accumulation.add_argument(
-        "--accumulative", action="store_true",
-        help="Leave every upset in place; faults accumulate over the run "
-             "(default). Random mode only.")
-    accumulation.add_argument(
-        "--non-accumulative", action="store_true",
-        help="Undo each upset before continuing, so nothing accumulates. "
-             "Random mode only - exhaustive always leaves every bit "
-             "flipped.")
-
-    return parser.parse_args()
-
-
-# Flip `injections` random CRAM bits one at a time, reverting each if not accumulative.
-def inject_random_cram(dev, injections: int, accumulative: bool) -> None:
-    for i in range(1, injections + 1):
-        report = dev.inject_random(InjectionArea.CRAM)  # SK-RAFT: flip one random CRAM bit
-
-        print(f"----- INJECTION {i}/{injections} -----")
-        print(f"FAR:        {report.far:#010x}")
-        print(f"WORD_INDEX: {report.word_index}")
-        print(f"BIT_INDEX:  {report.bit_index}")
-
-        if not accumulative:
-            # SK-RAFT: FpgaBitFlip toggles, so hitting the same bit again reverts it.
-            dev.inject_at(report.far, report.word_index, report.bit_index,
-                          InjectionArea.CRAM)
-
-
-# Sweep every CRAM bit of the design once; N from --random plays no part here.
-# One bulk call, not a loop of independent picks, so it always leaves every
-# bit flipped - accumulative/non-accumulative doesn't apply here.
-def inject_exhaustive_cram(dev) -> int:
-    print("Sweeping every CRAM bit of the design once - this can take a "
-          "while.")
-    # SK-RAFT: flips every CRAM bit in one call, returns each location hit.
-    reports, injected = dev.inject_exhaustive(InjectionArea.CRAM)
-    print(f"{injected} bits injected at {len(reports)} locations.")
-    return injected
-
-
-# Connect, program the device, then dispatch to the chosen injection mode.
 def main() -> None:
-    args = parse_args()
-    accumulative = not args.non_accumulative
-    mode = "exhaustive" if args.exhaustive else f"random ({args.random})"
-    qualifier = "always leaves upsets in place" if args.exhaustive \
-        else ("accumulative" if accumulative else "non-accumulative")
-
-    print(f"Example 1: program the device, then {mode} CRAM injection "
-          f"({qualifier}).")
-    if args.exhaustive and args.non_accumulative:
-        print("Note: --non-accumulative has no effect with --exhaustive.")
-
     try:
-        # SK-RAFT: open the connection, then attach to the target device.
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
             with client.attach(DEVICE) as dev:
-                # SK-RAFT: stage the bitstream, then program the device with it.
-                dev.load(DesignFiles(bitstream=ServerPath(args.program)))
-                dev.program()
-                print(f"Programmed {DEVICE} with {args.program}.")
 
-                if args.exhaustive:
-                    injected = inject_exhaustive_cram(dev)
-                else:
-                    injected = args.random
-                    inject_random_cram(dev, args.random, accumulative)
+                dev.uploadDesignToServer(design)
+                dev.programFPGA()
+                print(f"programmed {DEVICE} with {design.bit}")
+
+                # ----------------------------------------------------------- #
+                # Step 1: random bits, anywhere in the configuration memory.
+                # ----------------------------------------------------------- #
+                print("\nStep 1: random bits, anywhere. "
+                      "Press Enter to move on.")
+
+                # A complete random CRAM injection routine, done in the
+                # open: read back every frame of the connected device, then
+                # choose the frame, word and bit to flip here in the script.
+                frames = dev.readback(ReadbackOption.READBACK)
+                print(f"frames read back: {len(frames)}")
+
+                watch_for_enter()
+                n = 0  # count the number of injections so far
+                while True:
+                    if stop.is_set():
+                        break
+
+                    # Inject a random CRAM upset.
+                    frame = frames[rng.randint(0, len(frames) - 1)]
+                    # Word count depends on the architecture
+                    word_index = rng.randint(0, len(frame.words) - 1)
+                    bit_index = rng.randint(0, 31)  # a config word is 32 bits 
+                    report = dev.inject_at(frame.far, word_index, bit_index,
+                                        TargetMemory.CRAM)
+                    print(f"{n + 1:3d}: far {report.far:#010x} "
+                        f"word {report.word_index:3d} "
+                        f"bit {report.bit_index:2d}")
+                    n += 1
+
+                    time.sleep(0.1)  # hold the upset in place for 100ms
+
+                    # Flipping the same bit again corrects the upset.
+                    dev.inject_at(frame.far, word_index, bit_index,
+                                TargetMemory.CRAM)
+
+                # ----------------------------------------------------------- #
+                # Step 2: essential bits only.
+                #
+                # The .ebd file lists which bits the design depends on.
+                # Restrict injection to those, and every flip lands on one.
+                # ----------------------------------------------------------- #
+                print("\nStep 2: essential bits only. Press Enter to move on.")
+                dev.programFPGA()  # start clean again
+
+                watch_for_enter()
+                n = 0
+                while True:
+                    if stop.is_set():
+                        break
+
+                    # The server picks the location this time, from the
+                    # essential bits it knows about via the .ebd file.
+                    report = dev.inject_random(TargetMemory.ESSENTIAL_CRAM)
+                    print(f"{n + 1:3d}: far {report.far:#010x} "
+                        f"word {report.word_index:3d} "
+                        f"bit {report.bit_index:2d}")
+                    n += 1
+
+                    time.sleep(0.1)  # hold the upset in place for 100ms
+                    dev.inject_at(report.far, report.word_index,
+                                  report.bit_index, TargetMemory.CRAM)
+
+                # ----------------------------------------------------------- #
+                # Step 3: one pblock at a time.
+                #
+                # A pblock is a region of the chip reserved for one part of
+                # the design - here, one of the two heartbeat counters. By
+                # confining injection to a pblock, you can test one piece of
+                # the design in isolation.
+                # ----------------------------------------------------------- #
+                print("\nStep 3: one pblock at a time.")
+                dev.programFPGA()  # start clean again
+
+                # Names of the two pblocks, as declared in the .xdc file.
+                pblocks = ["pblock_slow_heartbeat", "pblock_fast_heartbeat"]
+
+                for pblock in pblocks:
+                    print(f"\n{pblock}: essential bits. "
+                        f"Press Enter to move on.")
+                    watch_for_enter()
+                    n = 0
+                    while True:
+                        if stop.is_set():
+                            break
+
+                        # The server picks the location this time, from the
+                        # essential bits it knows about via the .ebd file
+                        # and the pblock range via the XDC.
+                        report = dev.inject_random(
+                            TargetMemory.ESSENTIAL_CRAM,
+                            pblock=pblock)
+                        print(f"{n + 1:3d}: far {report.far:#010x} "
+                            f"word {report.word_index:3d} "
+                            f"bit {report.bit_index:2d}")
+                        n += 1
+
+                        time.sleep(0.1)  # hold the upset in place for 100ms
+                        dev.inject_at(report.far, report.word_index,
+                                    report.bit_index, 
+                                    TargetMemory.CRAM)
     except SkraftError as e:
-        print(f"Example 1 failed: {e}")
+            print(f"Example 1 failed: {e}")
+    except KeyboardInterrupt:
+        print(f"Interrupted")
         return
-
-    print(f"Example 1 done: {injected} upsets injected ({qualifier}).")
+    print("\nExample 1 done.")
 
 
 if __name__ == "__main__":
