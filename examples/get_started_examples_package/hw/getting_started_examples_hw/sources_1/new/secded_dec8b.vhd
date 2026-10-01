@@ -3,9 +3,8 @@
 --
 -- Module Name: secded_dec8b
 -- Description: 8-bit Hamming SEC decoder -- recomputes the syndrome from
---              the 8 data bits and 4 Hamming parity bits and corrects any
---              single-bit error, detecting double-bit errors and gating the
--- 				output to pass valid data downstream only on no bit or SBUs. 
+--              the 8 data bits and 4 Hamming parity bits, detecting and correcting 
+-- 				any single-bit error.
 --------------------------------------------------------------------------------
 
 
@@ -33,7 +32,7 @@ architecture Behavioral of secded_dec8b is
     signal syndrome : std_ulogic_vector(parities_len - 1 downto 0);
     signal wd_i, corr_data :
         std_ulogic_vector((data_len + parities_len - 1) downto 0);
-	signal par_check : std_ulogic;
+    signal par_check : std_ulogic;
 
 begin
 
@@ -75,26 +74,29 @@ begin
         wd_i XOR "100000000000" when (syndrome = "1100") else -- flip wd_i(11)
         wd_i;
 
-	par_check_proc:process(wd_i, par_i)
+    par_check_proc:process(wd_i, par_i)
         variable vpar : std_ulogic;
         begin
             vpar := '0';
             for i in 0 to (data_len + parities_len - 1) loop
-                --parity generation for double error detection
+                -- parity generation for double error detection
                 vpar := vpar XOR wd_i(i);
             end loop;
-			
+
             par_check <= vpar XOR par_i;
     end process par_check_proc;
 
-	corr_bit_o <= '1' when (syndrome /= "0000") and (par_check = '1') else '0';
-	uncorr_o   <= '1' when (syndrome /= "0000") and (par_check = '0') else '0';
+    corr_bit_o <= '1' when (syndrome /= "0000"); --and (par_check = '1') else '0';
+    -- uncorr_o   <= '1' when (syndrome /= "0000") and (par_check = '0') else '0';
 
-	dec_o <= (others => '0')  -- gate trash data from getting passed downstream
-             when (syndrome /= "0000" and par_check = '0') else
+	uncorr_o <= '0' -- DBUs not exercised in this example
+	
 			 -- Corrected word
-			 corr_data(11) & corr_data(10) & corr_data(9) & corr_data(8) &
-			 corr_data(6) & corr_data(5) & corr_data(4) & corr_data(2);
+    dec_o <= corr_data(11) & corr_data(10) & corr_data(9) & corr_data(8) &
+             corr_data(6) & corr_data(5) & corr_data(4) & corr_data(2);
+			--(others => '0')  -- gate trash data from getting passed downstream
+             --when (syndrome /= "0000" and par_check = '0') else
+             -- Corrected word
 
 
 end Behavioral;
