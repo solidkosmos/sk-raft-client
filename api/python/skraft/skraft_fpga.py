@@ -150,9 +150,10 @@ class FpgaDevice:
         TargetMemory.LUTRAM: skraft_client_pb2.FPGA_BIT_CATEGORY_LUTRAM,
     }
 
-    def __init__(self, stub, serial_number: str):
+    def __init__(self, stub, serial_number: str, part_number: str = ""):
         self._stub = stub
         self.serial_number = serial_number
+        self.part_number = part_number
         self._design = Design()
 
     # -- lifecycle --------------------------------------------------------- #
@@ -847,6 +848,21 @@ class SkraftFpga:
             self._channel.close()
             self._channel = None
             self._stub = None
+
+    def get_devices(self) -> list[FpgaDevice]:
+        try:
+            reply = self._stub.FpgaGetDevices(empty_pb2.Empty())
+
+            return [
+                FpgaDevice(self._stub, entry.serial_number, entry.part_number)
+                for entry in reply.devices
+            ]
+        except grpc.RpcError as e:
+            self._release_programmers()
+            raise DeviceReservationError(
+                    f"failed to get devices: "
+                    f"{_rpc_detail(e)}"
+            ) from e
 
     # -- device acquisition ------------------------------------------------ #
     def attach(self, serial_number: str) -> FpgaDevice:
