@@ -1,18 +1,18 @@
 # SK-RAFT Concepts
 
-How SK-RAFT locates and describes a fault, independent of any one example. The get-started examples (`examples/get_started_examples_package/`) are the hands-on counterpart to this document.
+How SK-RAFT locates and describes a fault, independent of any one example. The get-started examples (`examples/`) are the hands-on counterpart to this document.
 
 ## The two planes
 
 Every fault SK-RAFT injects lands in one of two places.
 
-The **configuration plane** is the bitstream itself — the configuration memory (CRAM) that defines what the fabric *is*: each LUT's truth table, the routing between them, and a BRAM's mode and width. A fault here changes the circuit's structure.
+The **configuration plane** is the bitstream itself — the configuration memory (CRAM) that defines what the fabrics behaviour: each LUT's truth table, the routing between them, the BRAM's mode and width and every primitive's configuration. A fault here changes the circuit's structure.
 
-The **application plane** is the live, dynamic state the configured circuit is working with as it runs — a flip-flop's current value, a BRAM's stored data. A fault here changes a value, not the circuit itself.
+The **application plane** is the live, dynamic state the configured circuit is working with as it runs — a flip-flop's current value, a BRAM's or LUTRAM's stored data. A fault here changes a value, not the circuit itself.
 
-SK-RAFT can manipulate both planes directly. `TargetMemory.FF` and `TargetMemory.BRAM` inject into the application plane itself — flipping a register's current value or a stored data word — exactly as `TargetMemory.CRAM`/`ESSENTIAL_CRAM` inject into the configuration plane. Neither plane is just observed; both are addressable injection targets.
+SK-RAFT can manipulate both planes directly. `TargetMemory.FF`, `TargetMemory.LUTRAM` and `TargetMemory.BRAM` inject into the application plane itself — flipping a register's current value or a stored data word — exactly as `TargetMemory.CRAM`/`ESSENTIAL_CRAM` inject into the configuration plane. Both planes are addressable injection targets.
 
-![Where a fault lands: the application plane and configuration plane are two physically stacked layers; a fault can strike through both at the same point, and configuration drives application state](images/plane-diagram.svg)
+![Where a fault lands: the application plane and configuration plane are two physically stacked layers](images/plane-diagram.svg)
 
 *The application plane (live flip-flop and BRAM state) sits above the configuration plane (CRAM) that defines the circuit. A fault can land in either layer at the same physical location. The next two sections cover the two cases that complicate this picture: essential bits within the configuration plane, and LUTRAM, which sits in both.*
 
@@ -26,7 +26,7 @@ Most of a device's configuration memory is unused by any one design — unused r
 
 LUTRAM is the one case that blurs the two planes. A LUT configured as distributed RAM stores its contents in its own configuration bits (its INIT field) — so a LUTRAM word is, physically, a set of essential configuration bits, but the circuit uses it as application-plane data. `TargetMemory.LUTRAM` targets exactly those bits.
 
-BRAM keeps the two cleanly separate instead: its configuration (mode, width) and its content live in different frame types entirely (block type 0 vs. block type 1 — see `examples/get_started_examples_package/example4`), so `TargetMemory.ESSENTIAL_CRAM` and `TargetMemory.BRAM` never overlap the way CRAM and LUTRAM do.
+BRAM keeps the two cleanly separate instead: its configuration (mode, width) and its content live in different frame types entirely (block type 0 vs. block type 1 — see `examples/example4`), so `TargetMemory.ESSENTIAL_CRAM` and `TargetMemory.BRAM` never overlap.
 
 ## Pblocks: confining the search
 

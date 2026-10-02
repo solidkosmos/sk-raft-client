@@ -6,7 +6,7 @@ SK-RAFT is SolidKosmos's fault-injection platform for emulating and analysing si
 
 This repository contains the SK-RAFT client API and example designs/scripts. It does not include the SK-RAFT server.
 
-Two sets of examples are included. Four get-started examples (`examples/get_started_examples_package/`) demonstrate SK-RAFT's core capabilities, each against a small purpose-built design: whole-device, essential-bit, and pblock-confined CRAM targeting; BSCAN-driven register access; flip-flop and LUTRAM injection; and BRAM content injection with ECC recovery. One application example (`examples/test_neo_hardened/`) applies SK-RAFT to a real RISC-V core, the NEORV32 processor, hardened with SECDED/parity/ECC, demonstrating fault injection against an application rather than a synthetic target.
+The get-started examples (`examples/`) demonstrate SK-RAFT's core capabilities, each against a small purpose-built design: whole-device, essential-bit, and pblock-confined CRAM targeting; BSCAN-driven register access; flip-flop and LUTRAM injection; and BRAM content injection with ECC recovery.
 
 ## How SK-RAFT models a device
 
@@ -23,15 +23,10 @@ sk-raft-deliverables/
 ├── api/python/                           Python client (skraft package)
 ├── docs/                                 Concepts and reference docs
 └── examples/                             Example designs and scripts (see examples/README.md)
-    ├── get_started_examples_package/      Vivado + Python getting-started suite
-    │   ├── example1/ .. example4/          Python API walkthroughs (src/main.py)
-    │   └── hw/getting_started_examples_hw/ Vivado project (create_project.tcl)
-    │       ├── sources_1/new/               VHDL sources
-    │       └── xdc/                         basys3/, zedboard/, custom_template/
-    └── test_neo_hardened/                 NEORV32 SoC hardening + JTAG fault-injection harness
-        ├── neorv_fi_example/                Python fault-injection campaign
-        ├── sw/hardening_coremark/           Firmware setup
-        └── test_neo.srcs/                   Tracked HDL sources/constraints
+    ├── example1/ .. example4/              Python API walkthroughs (src/main.py)
+    └── hw/                                 Vivado project (create_project.tcl)
+        ├── sources_1/new/                   VHDL sources
+        └── xdc/                             basys3/, zedboard/, custom_template/
 ```
 
 ## Installation
