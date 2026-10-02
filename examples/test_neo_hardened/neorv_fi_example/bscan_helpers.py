@@ -1,20 +1,20 @@
 import time
 import serial
 
-from skraft import FpgaDevice, BscanPrimitive, InjectionArea
+from skraft import FpgaDevice, BscanPrimitive, TargetMemory
 
 # BSCAN user register map:
 # U1 : reset control (write) / CRC output (read)
 # U2 : step count input (write) / step counter (read)
 
 
-def _build_area(cram: bool, bram: bool, ff: bool, lut: bool) -> InjectionArea:
-    """Map the four target flags to a combined InjectionArea."""
-    area = InjectionArea.CRAM
-    if cram: area |= InjectionArea.ESSENTIAL_CRAM
-    if bram: area |= InjectionArea.BRAM
-    if ff:   area |= InjectionArea.FLIP_FLOP
-    if lut:  area |= InjectionArea.LUTRAM
+def _build_area(cram: bool, bram: bool, ff: bool, lut: bool) -> TargetMemory:
+    """Map the four target flags to a combined TargetMemory."""
+    area = TargetMemory.CRAM
+    if cram: area |= TargetMemory.ESSENTIAL_CRAM
+    if bram: area |= TargetMemory.BRAM
+    if ff:   area |= TargetMemory.FF
+    if lut:  area |= TargetMemory.LUTRAM
     return area
 
 

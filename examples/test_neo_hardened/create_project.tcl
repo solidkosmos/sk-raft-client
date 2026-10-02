@@ -985,4 +985,69 @@ set_property -name "options.warn_on_violation" -value "1" -objects $obj
 set obj [get_runs impl_1]
 set_property -name "strategy" -value "Vivado Implementation Defaults" -objects $obj
 set_property -name "steps.write_bitstream.args.readback_file" -value "0" -objects $obj
-set_property -name "steps.write_bits                           
+
+# --------------------------------------------------------------------------- #
+# MAINTAINER ADDITION: build through to a bitstream and drop it where
+# neorv_fi_example/run_injection.py now expects it. Everything above this
+# point is Vivado's own project-recreation export and is left untouched;
+# the file used to end right after this point, padded with trailing null
+# bytes instead of a real statement -- that was dropped, not moved, since
+# the property before it already has a sane default.
+#
+# Usage (from this directory):
+#     vivado -mode batch -source create_project.tcl
+# --------------------------------------------------------------------------- #
+set top_name "neorv32_test_setup_bootloader"
+
+# .ll (logic location file) is opt-in; .ebd (essential bits) is written
+# automatically for a 7-series part, same as the other get-started examples.
+set_property STEPS.WRITE_BITSTREAM.ARGS.LOGIC_LOCATION_FILE true [get_runs impl_1]
+
+launch_runs synth_1 -jobs 4
+wait_on_run synth_1
+if { [get_property PROGRESS [get_runs synth_1]] != "100%" } {
+    puts "ERROR: synth_1 did not complete -- see ${_xil_proj_name_}/${_xil_proj_name_}.runs/synth_1/runme.log"
+    exit 1
+}
+
+launch_runs impl_1 -to_step write_bitstream -jobs 4
+wait_on_run impl_1
+if { [get_property PROGRESS [get_runs impl_1]] != "100%" } {
+    puts "ERROR: impl_1 did not complete -- see ${_xil_proj_name_}/${_xil_proj_name_}.runs/impl_1/runme.log"
+    exit 1
+}
+
+set impl_dir "${_xil_proj_name_}/${_xil_proj_name_}.runs/impl_1"
+set bit_path "$impl_dir/${top_name}.bit"
+set ebd_path "$impl_dir/${top_name}.ebd"
+set ll_path  "$impl_dir/${top_name}.ll"
+
+if { ![file exists $bit_path] } {
+    puts "ERROR: expected bitstream not found at $bit_path"
+    exit 1
+}
+
+# run_injection.py uploads these from a local design_files/ folder
+# (Design(bit=, ebd=, ll=)) instead of referencing a server-side path,
+# so drop the freshly built files there directly -- nothing to copy by
+# hand before the next run.
+set dest_dir "neorv_fi_example/design_files"
+file mkdir $dest_dir
+
+file copy -force $bit_path "$dest_dir/${top_name}.bit"
+set copied_files [list "${top_name}.bit"]
+
+if { [file exists $ebd_path] } {
+    file copy -force $ebd_path "$dest_dir/${top_name}.ebd"
+    lappend copied_files "${top_name}.ebd"
+}
+if { [file exists $ll_path] } {
+    file copy -force $ll_path "$dest_dir/${top_name}.ll"
+    lappend copied_files "${top_name}.ll"
+}
+
+puts "----------------------------------------------------------------------"
+puts "Bitstream written: $bit_path"
+puts "neorv_fi_example ready to run -- copied to $dest_dir:"
+foreach f $copied_files { puts "  - $f" }
+puts "----------------------------------------------------------------------"

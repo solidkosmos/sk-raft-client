@@ -5,10 +5,14 @@ import csv
 import random
 
 import bscan_helpers as bscan
-from skraft import SkraftFpga, DesignFiles, ServerPath
+from skraft import SkraftFpga, Design, ServerPath
 
 # --- User-specific settings: update these for your setup ---
-DESIGN_DIR  = "/path/to/designs/neorv"               # directory on the SK-RAFT server holding the bit/ebd/ll files
+DEVICE      = "210183BFD452A"                        # target board's serial number
+DESIGN_DIR  = "design_files"                         # local directory holding the bit/ebd/ll files, uploaded to the server by the script
+# Resolved on the SK-RAFT server, not uploaded: extract_fars_from_bitstream()
+# reads a bitstream the server can already see, it does not take a local file.
+PARTIAL_BITSTREAM_SERVER_PATH = "/path/to/designs/neorv/neorv32_test_setup_bootloader_pblock_clk_cyc_ctrlr_partial.bit"
 RESULTS_DIR = "/path/to/injection_results"           # directory on this machine to write campaign results to
 UART_PORT   = "/dev/ttyUSBx"                         # serial port of the DUT's UART
 # -------------------------------------------------------------
@@ -52,24 +56,25 @@ if __name__ == "__main__":
 
     # Connect to the SK-RAFT server and reserve the target device
     client = SkraftFpga.connect("127.0.0.1", 50052)
-    dev    = client.attach("XC7A35T-1CPG236C", "FT2232H")
+    dev    = client.attach(DEVICE)
 
-    # Load design files (paths are resolved on the SK-RAFT server)
-    dev.load(DesignFiles(
-        bitstream=ServerPath(f"{DESIGN_DIR}/neorv32_test_setup_bootloader.bit"),
-        ebd=ServerPath(f"{DESIGN_DIR}/neorv32_test_setup_bootloader.ebd"),
-        ll=ServerPath(f"{DESIGN_DIR}/neorv32_test_setup_bootloader.ll"),
-    ))
+    # Load design files (uploaded from this machine to the server)
+    design = Design(
+        bit=f"{DESIGN_DIR}/neorv32_test_setup_bootloader.bit",
+        ebd=f"{DESIGN_DIR}/neorv32_test_setup_bootloader.ebd",
+        ll=f"{DESIGN_DIR}/neorv32_test_setup_bootloader.ll",
+    )
+    dev.uploadDesignToServer(design)
 
     # Exclude frames belonging to the clock-cycle controller partial reconfiguration block
     # so that faults injected there do not disturb the timing infrastructure
     farExcluded = client.extract_fars_from_bitstream(
-        ServerPath(f"{DESIGN_DIR}/neorv32_test_setup_bootloader_pblock_clk_cyc_ctrlr_partial.bit")
+        ServerPath(PARTIAL_BITSTREAM_SERVER_PATH)
     )
     dev.exclude_frames(farExcluded)
     dev.exclude_frames([0x00400a9f, 0x00400a1f])
 
-    dev.program()
+    dev.programFPGA()
 
     # Open UART connection to the DUT
     ser = serial.Serial(port=UART_PORT, baudrate=500000, bytesize=8, timeout=0.1)
@@ -156,7 +161,7 @@ if __name__ == "__main__":
 
                 if flag != 0:
                     print(f"[ERROR] r-{run+1}: injection failed, reprogramming.")
-                    dev.program()
+                    dev.programFPGA()
                     restarts += 1
                     continue
 
@@ -166,7 +171,7 @@ if __name__ == "__main__":
                         retry = False
                     else:
                         print(f"[ERROR] r-{run+1}: step send failed, reprogramming.")
-                        dev.program()
+                        dev.programFPGA()
                         retry = True
                         break
 
@@ -174,7 +179,7 @@ if __name__ == "__main__":
                 if bscan_counter not in (bytes([0x00, 0x00, 0xbe, 0xef]),
                                          bytes([0x00, 0x00, 0x00, 0x00])):
                     print(f"[ERROR] r-{run+1}: unexpected counter {bscan_counter}, reprogramming.")
-                    dev.program()
+                    dev.programFPGA()
                     retry = True
                     restarts += 1
 
@@ -232,10 +237,10 @@ if __name__ == "__main__":
                         raw_data_file.write(data)
                         raw_data_file.write(f"\nHW CRC: {hw_crc}  INJECTION CYCLE: {steps[0]}\n".encode())
                     if not finished:
-                        dev.program()
+                        dev.programFPGA()
                         not_done += 1
                     else:
-                        dev.program()
+                        dev.programFPGA()
                         done += 1
                 else:
                     # Clean run: track any minor comms discrepancies separately
