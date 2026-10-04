@@ -1,10 +1,13 @@
 --------------------------------------------------------------------------------
 -- Company: SolidKosmos S.A.
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
 -- Module Name: tmr_adder
--- Description: Triple-instantiated adder (3x adder, dont_touch/keep_hierarchy
---              protected) feeding a vec_tmr_voter majority vote -- TMR-hardened
---              counterpart to single_adder for A/B fault-injection comparison.
+-- Description: Three adder instances (protected with dont_touch and
+--              keep_hierarchy) that feed a vec_tmr_voter majority voter. This
+--              TMR adder is the TMR-hardened counterpart of single_adder for
+--              A/B fault-injection comparison.
 --------------------------------------------------------------------------------
 
 
@@ -54,9 +57,9 @@ architecture Structure of tmr_adder is
              din_1_i : in std_ulogic_vector(data_len-1 downto 0);
              din_2_i : in std_ulogic_vector(data_len-1 downto 0);
              dout_o  : out std_ulogic_vector(data_len-1 downto 0);
-             --control signals for recovery or total failure
+             -- Control signals for recovery or total failure
              min_vote_o : out std_ulogic_vector(2 downto 0);
-             total_fail_o : out std_ulogic --only available on vectored voting 
+             total_fail_o : out std_ulogic -- Only available in the vector voter
       );
     end component;
     
@@ -86,7 +89,7 @@ begin
         din_1_i => res_sig(1),  
         din_2_i => res_sig(2),  
         dout_o  => res_o     ,
-        --control signals for recovery or total failure
+        -- Control signals for recovery or total failure
         min_vote_o   => min_vote_o,
         total_fail_o => total_fail_o
       );

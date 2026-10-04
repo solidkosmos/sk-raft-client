@@ -1,22 +1,55 @@
 # Example 3: Flip-flop shift register and LUTRAM injection
 
-Two campaigns against one design over BSCAN: a feedback loop shift register built from flip-flops, (Part 1) and a distributed LUTRAM (Part 2). USER1 gates the clock of both the shift register and the LUTRAM (USER3/USER4).
+This example does two campaigns on one design through BSCAN:
 
-Part 1 injects into the flip-flops inside `pblock_ff_sr_inst` (`TargetMemory.FF`, located from the LL file). If the pblock holds no flip-flops, the script stops. Each trial runs the clock for 2 s, freezes it, reads the shift register, upsets one flip-flop, reads it again and prints both, then resumes the clock. Upsets are never reverted. Runs until you press Enter.
+- Part 1: a shift register with a feedback loop, made of flip-flops.
+- Part 2: a distributed RAM (LUTRAM).
 
-Part 2 injects into the LUTRAM inside `pblock_LUTRAM` (`TargetMemory.LUTRAM`). With the clock enabled, a known pattern is written into every word and read back to confirm it round-tripped. The clock is then frozen and upsets are injected one every 0.5 s until you press Enter, then the clock is enabled again, the whole array is read back, and every word is printed with its corrupted bit positions.
+USER1 starts and stops the clock of the shift register and of the LUTRAM. The script reads the shift register through USER2. USER3 and USER4 give access to the LUTRAM (address and data).
+
+## Part 1: flip-flops
+
+Part 1 injects faults into the flip-flops in `pblock_ff_sr_inst` (`TargetMemory.FF`). The server finds the flip-flops from the LL file. If the pblock contains no flip-flops, the script stops.
+
+Each trial does these steps:
+
+1. It lets the clock operate for 2 s, and then it stops the clock.
+2. It reads the shift register.
+3. It upsets one flip-flop.
+4. It reads the shift register again and prints the two values.
+5. It starts the clock again.
+
+The script does not correct the upsets. Part 1 continues until you press Enter.
+
+## Part 2: LUTRAM
+
+Part 2 injects faults into the LUTRAM in `pblock_LUTRAM` (`TargetMemory.LUTRAM`). The script does these steps:
+
+1. With the clock on, it writes a known pattern into each word. Then it reads back each word to make sure that the pattern is correct.
+2. It stops the clock and injects one upset each 0.5 s, until you press Enter.
+3. It starts the clock again and reads back the full array.
+4. It prints each word with the positions of its incorrect bits.
+
+## Run the example
+
+1. Make sure that the design files are in `src/design_files/`. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files-basys-3).
+2. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP`, `DEVICE` and `design`. The design files are `ff_lut_top.bit`, `ff_lut_top.ll` and the XDC file. The script uploads them to the server.
+3. Run the script:
 
 ```bash
+cd src
 python main.py
 ```
 
-| Constant | Default | Meaning |
+| Constant | Default | Description |
 | --- | --- | --- |
-| `SR_LEN` | `8` | Shift register width; must match the design's `sr_len` generic. |
-| `LUT_ADDR_BITS` / `LUT_DEPTH` | `6` / `64` | LUTRAM address width and word count. |
-| `LUT_DATA_LEN` | `32` | LUTRAM word width; must match the design's `lut_data_len` generic. |
-| `PBLOCK_SR` / `PBLOCK_LUTRAM` | `"pblock_ff_sr_inst"` / `"pblock_LUTRAM"` | Pblocks confining Parts 1 and 2, as named in the XDC. |
+| `SR_LEN` | `8` | The width of the shift register. It must be equal to the `sr_len` generic of the design. |
+| `LUT_ADDR_BITS` / `LUT_DEPTH` | `6` / `64` | The address width and the number of words of the LUTRAM. |
+| `LUT_DATA_LEN` | `32` | The word width of the LUTRAM. It must be equal to the `lut_data_len` generic of the design. |
+| `PBLOCK_SR` / `PBLOCK_LUTRAM` | `"pblock_ff_sr_inst"` / `"pblock_LUTRAM"` | The pblocks for parts 1 and 2, as the XDC file names them. |
 
-Runs Part 1, reprograms, runs Part 2, then reprograms once more as a safety net. Interrupting with Ctrl-C mid-campaign can leave the device corrupted; reprogram before anything else.
+## Result
 
-Set `SK_RAFT_SERVER_IP`, `DEVICE` and `design` (`tester.bit`/`tester.ll` + XDC, uploaded to the server by the script) at the top of `main.py`.
+The script runs part 1, programs the FPGA again, and runs part 2. Then it programs the FPGA one more time, to make sure that the configuration is clean.
+
+If you stop the script with Ctrl+C during a campaign, the configuration of the device can stay incorrect. In that case, program the FPGA again before you do other work.

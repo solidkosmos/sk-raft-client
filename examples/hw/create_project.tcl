@@ -1,30 +1,34 @@
 ####################################################################################
 # Company: SolidKosmos S.A.
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2026 SOLIDKOSMOS S.A.
 # Script Name: create_project.tcl
 #
 # Usage: vivado -mode batch -source create_project.tcl -tclargs <device> <top> [project_name] [project_dir] [-gui]
 # Example: vivado -mode batch -source create_project.tcl -tclargs basys3 brams_top
-# Add -gui (anywhere in the args) to open the built project in the Vivado GUI
-# afterwards instead of exiting, so it can be inspected/manipulated further.
+# Add -gui (at any position in the arguments) to open the built project in
+# the Vivado GUI at the end. The script then does not exit, and you can
+# examine or change the project.
 #
-# Looks up <device>'s part/clk_freq and its xdc/<device>/<top>.xdc, creates
-# the project, sets <top> as synthesis top, derives g_family straight from
-# the part's Vivado ARCHITECTURE property (you only supply part + clk_freq),
-# and builds through to a bitstream.
+# The script finds the part and clk_freq of <device> and the file
+# xdc/<device>/<top>.xdc. It creates the project and sets <top> as the
+# synthesis top. It gets g_family directly from the ARCHITECTURE property of
+# the part in Vivado (you supply only the part and clk_freq). Then it builds
+# the project to a bitstream.
 ####################################################################################
 
-# device -> {part, clk_freq (MHz)} -- family is derived from the part below,
-# not stored here.
+# device -> {part, clk_freq (MHz)}. The script gets the family from the part
+# (see below). The family is not stored here.
 array set device_info {
     basys3   {part xc7a35tcpg236-1 clk_freq 100}
     zedboard {part xc7z020clg484-1 clk_freq 100}
 }
-# Only basys3 and zedboard are tested/shipped with this suite. To add your
-# own board:
+# Only basys3 (Basys 3) and zedboard (ZedBoard) are tested and supplied with
+# this suite. To add your own board:
 #   1. cp -r xdc/custom_template xdc/<your_board_name>
-#   2. Fill in the PACKAGE_PIN/IOSTANDARD placeholders in each .xdc file
-#      there (and the pblock SLICE/RAMB ranges, if you use them)
-#   3. Add an entry here, e.g.:
+#   2. Fill the PACKAGE_PIN/IOSTANDARD placeholders in each .xdc file in
+#      that folder (and the pblock SLICE/RAMB ranges, if you use pblocks).
+#   3. Add an entry here, for example:
 #        my_board {part xc7a100tcsg324-1 clk_freq 100}
 
 set known_tops {
@@ -34,16 +38,16 @@ set known_tops {
     brams_top
 }
 
-# tops with g_family/clk_freq generics (bscan_adder_top has neither, just op_len)
+# Tops with g_family/clk_freq generics (bscan_adder_top has neither, only op_len)
 set tops_with_device_generics {
     targeted_top
     ff_lut_top
     brams_top
 }
 
-# Optional -gui flag (anywhere in tclargs): open the project in the Vivado
-# GUI afterwards instead of exiting, so it can be inspected/manipulated
-# further. Strip it out before positional arg parsing below.
+# Optional -gui flag (at any position in tclargs): open the project in the
+# Vivado GUI at the end, and do not exit. You can then examine or change the
+# project. Remove the flag before the script parses the positional arguments.
 set gui_requested 0
 set filtered_argv {}
 foreach a $argv {
@@ -77,9 +81,9 @@ if { [llength $argv] < 2 } {
 
 set device    [lindex $argv 0]
 set top       [lindex $argv 1]
-# Default proj_name/proj_dir are keyed by device+top so two different
-# builds never share (and silently reuse/corrupt) the same project
-# directory -- pass explicit args 3/4 to override.
+# The default proj_name/proj_dir use device and top as keys. Thus two
+# different builds never share the same project directory (and never reuse
+# or corrupt it without a message). Give arguments 3 and 4 to override them.
 set proj_name "get_started_examples_${device}_${top}"
 set proj_dir  "./$proj_name"
 
@@ -94,9 +98,9 @@ if { ![info exists device_info($device)] } {
 set part_name        [dict get $device_info($device) part]
 set device_clk_freq  [dict get $device_info($device) clk_freq]
 
-# Derive g_family straight from Vivado's part database instead of asking the
-# user to supply it -- get_parts/get_property work standalone, no project
-# needed yet.
+# Get g_family directly from the part database of Vivado. The user does not
+# supply it. get_parts/get_property operate without a project, so a project
+# is not necessary yet.
 set part_obj [get_parts -quiet $part_name]
 if { $part_obj eq "" } {
     puts "ERROR: unknown/invalid part '$part_name' for device '$device' --"
@@ -197,8 +201,8 @@ set_property target_constrs_file \
 set_property top $top [get_filesets sources_1]
 update_compile_order -fileset sources_1
 
-# g_family is a VHDL string generic -- needs the literal quotes embedded
-# (g_family=\"7SERIES\"), not just the bare text. clk_freq is an integer, no quoting.
+# g_family is a VHDL string generic. The value must include the literal quotes
+# (g_family=\"7SERIES\"), not only the bare text. clk_freq is an integer without quotes.
 set generics_set 0
 if { [lsearch -exact $tops_with_device_generics $top] >= 0 } {
     set_property generic "g_family=\"$device_family\" clk_freq=$device_clk_freq" [get_filesets sources_1]
@@ -225,9 +229,9 @@ if { [get_property PROGRESS [get_runs synth_1]] != "100%" } {
     return
 }
 
-# Always ask for the logic location file alongside the .bit -- harmless for
-# tops that don't need it (targeted_top, bscan_adder_top), required for the
-# ones that do (ff_lut_top, brams_top).
+# Always request the logic location file together with the .bit file. The
+# file is harmless for the tops that do not use it (targeted_top,
+# bscan_adder_top). The other tops must have it (ff_lut_top, brams_top).
 set_property STEPS.WRITE_BITSTREAM.ARGS.LOGIC_LOCATION_FILE true [get_runs impl_1]
 
 launch_runs impl_1 -to_step write_bitstream -jobs 4
@@ -249,10 +253,10 @@ if { ![file exists $bit_path] } {
     return
 }
 
-# top -> which example (examples_package/example<N>/src/) this design feeds.
-# design_files/ is where each example's main.py already looks for its
-# design (bit/ebd/ll + board.xdc), so drop the freshly built files there and
-# the example is immediately runnable -- no manual copying.
+# top -> the example (examples/example<N>/src/) that uses this design.
+# The main.py of each example looks for its design files (bit/ebd/ll and
+# board.xdc) in design_files/. The script copies the new files there, so you
+# can run the example immediately. A manual copy is not necessary.
 array set top_to_example {
     targeted_top    1
     bscan_adder_top 2

@@ -1,10 +1,12 @@
 --------------------------------------------------------------------------------
 -- Company: SolidKosmos S.A.
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
 -- Module Name: single_adder
--- Description: Thin single-instance wrapper around the adder component (no
---              redundancy) -- baseline counterpart to tmr_adder for A/B
---              fault-injection comparison.
+-- Description: Thin wrapper with a single instance of the adder component
+--              (no redundancy). This simplex adder is the baseline
+--              counterpart of tmr_adder for A/B fault-injection comparison.
 --------------------------------------------------------------------------------
 
 

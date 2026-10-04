@@ -1,23 +1,25 @@
 --------------------------------------------------------------------------------
 -- Company: SolidKosmos S.A.
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
 -- Module Name: bram_sdp_native_wrapper
--- Description: Simple Dual-Port Block RAM wrapper built from a direct
---              RAMB36E1/E2 primitive instantiation. 36-bit-wide, 1024-deep
---              -- sized for 3 bytes each with 4-bit byte-wise Hamming SEC
---              ECC (8+4 per byte = 12 bits x 3 = 36). The wrapper itself
---              has no ECC logic of its own; it just exposes the full
---              36-bit physical storage (main + parity pins together) as
---              one flat bus. Packing/unpacking and correcting the
---              byte-wise ECC is done by the caller.
+-- Description: Simple Dual-Port Block RAM wrapper, built from a direct
+--              instantiation of the RAMB36E1/E2 primitive. The RAM is 36
+--              bits wide and 1024 words deep. This size holds 3 bytes, each
+--              with a 4-bit byte-wise Hamming SEC ECC (8 + 4 bits for each
+--              byte, 12 bits x 3 = 36 bits). The wrapper has no ECC logic.
+--              It gives the full 36-bit physical storage (main and parity
+--              pins together) as one flat bus. The caller packs, unpacks
+--              and corrects the byte-wise ECC.
 --------------------------------------------------------------------------------
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
--- Built from a DIRECT primitive instantiation
--- (RAMB36E1 on 7-series, RAMB36E2 on UltraScale/UltraScale+) instead of
--- inferred VHDL 
+-- This wrapper uses a DIRECT primitive instantiation
+-- (RAMB36E1 on 7-series, RAMB36E2 on UltraScale/UltraScale+) and not
+-- inferred VHDL.
 
 entity bram_sdp_native_wrapper is
   Generic (
@@ -28,12 +30,12 @@ entity bram_sdp_native_wrapper is
     clk_i     : in  std_ulogic;
     en_i      : in  std_ulogic;                     -- read-port enable
     we_i      : in  std_ulogic;                     -- write-port enable
-    -- 1024-deep at this primitive's 36-bit-wide configuration
+    -- 1024 words deep in the 36-bit wide configuration of this primitive
     wr_addr_i : in  std_ulogic_vector(9 downto 0);
     rd_addr_i : in  std_ulogic_vector(9 downto 0);
-    -- all 36 physical bits exposed: (35 downto 0) = 3 bytes x (8 data + 4
-    -- Hamming SEC ECC bits) -- byte-wise ECC is packed/unpacked by the
-    -- caller, not this wrapper
+    -- All 36 physical bits are available: (35 downto 0) = 3 bytes x (8 data
+    -- bits + 4 Hamming SEC ECC bits). The caller packs and unpacks the
+    -- byte-wise ECC, not this wrapper.
     din_i     : in  std_ulogic_vector(35 downto 0);
     dout_o    : out std_ulogic_vector(35 downto 0)
   );
@@ -127,26 +129,27 @@ architecture Structure of bram_sdp_native_wrapper is
       );
     end component;
 
-    -- SDP mode at width <= 36 uses ONLY ONE data pin set per direction, and
-    -- it is NOT simply "the A side": reads stay paired with the A-side
-    -- address/output pins (DOADO/DOPADOP, since ADDRARDADDR is the read
-    -- address), but writes are paired with the B-side input pins (DIBDI/
-    -- DIPBDIP, since ADDRBWRADDR is the write address) -- confirmed against
+    -- SDP mode at a width of 36 bits or less uses ONLY ONE data pin set for
+    -- each direction. This pin set is NOT only "the A side". Reads use the
+    -- A-side address and output pins (DOADO/DOPADOP, because ADDRARDADDR is
+    -- the read address). Writes use the B-side input pins (DIBDI/DIPBDIP,
+    -- because ADDRBWRADDR is the write address). This mapping agrees with
     -- AMD/Xilinx UG473 Table 1-13 (SDP Mode Port Name Mapping, "Width <= 36"
-    -- row). DIADI/DOBDO (and their parity companions) are unused at this
-    -- width and are tied off / left open below.
+    -- row). DIADI/DOBDO (and the related parity pins) are not used at this
+    -- width. The code below ties them off or leaves them open.
     --
-    -- The full 36-bit width is exposed as ONE flat data bus: (31 downto 0)
-    -- on the "main" data pins (DIBDI/DOADO), (35 downto 32) on the "parity"
-    -- pins (DIPBDIP/DOPADOP, only 2 bits wide -- see UG473 Table 1-13's
-    -- x36 row: DIP[3:2] = DIPBDIP[1:0] on write, DOP[3:2] = DOPADOP[1:0] on
-    -- read). This wrapper does no ECC of its own -- din_i/dout_o(35 downto
-    -- 0) is just raw storage; packing 3 bytes as 3 x (8 data + 4 Hamming
-    -- SEC ECC bits) into that 36-bit field is the caller's job.
+    -- The full 36-bit width is ONE flat data bus: (31 downto 0) on the
+    -- "main" data pins (DIBDI/DOADO) and (35 downto 32) on the "parity" pins
+    -- (DIPBDIP/DOPADOP, only 2 bits wide, see the x36 row of UG473 Table
+    -- 1-13: DIP[3:2] = DIPBDIP[1:0] on write, DOP[3:2] = DOPADOP[1:0] on
+    -- read). This wrapper has no ECC logic. din_i/dout_o(35 downto 0) is
+    -- only raw storage. The caller packs 3 bytes as 3 x (8 data + 4 Hamming
+    -- SEC ECC bits) into this 36-bit field.
     --
-    -- Address mapping: confirmed against UG473 Table 1-12 (Port Aspect
-    -- Ratio for RAMB36E1 in SDP Mode) -- the x36 row gives depth 1,024 with
-    -- 10 significant address bits at ADDR[14:5], ADDR[4:0] unused/tied low.
+    -- Address mapping: this mapping agrees with UG473 Table 1-12 (Port
+    -- Aspect Ratio for RAMB36E1 in SDP Mode). The x36 row gives a depth of
+    -- 1,024 with 10 significant address bits at ADDR[14:5]. ADDR[4:0] are
+    -- not used and are tied low.
 
 
     signal addr_a_full, addr_b_full : std_ulogic_vector(15 downto 0);

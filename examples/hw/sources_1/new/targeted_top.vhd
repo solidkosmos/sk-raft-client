@@ -1,5 +1,7 @@
 --------------------------------------------------------------------------------
 -- Company: SolidKosmos S.A.
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
 -- Module Name: targeted_top
 -- Description: Two independent heartbeat counters (slow, fast) for
@@ -12,19 +14,19 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 use work.examples_utilities_pkg.all;
 
--- Two heartbeat (slow, fast) module for targeted fault injection example
+-- Two heartbeat modules (slow and fast) for the targeted fault-injection example
 
 entity targeted_top is
   Generic (
-    -- "7SERIES", "ULTRASCALE", or "ULTRASCALEPLUS" -- passed straight to
-    -- clk_gen_wrapper
+    -- "7SERIES", "ULTRASCALE", or "ULTRASCALEPLUS". The value goes directly
+    -- to clk_gen_wrapper.
     g_family       : string  := "7SERIES";
-    -- Set the clock frequency to make the intervals time accurate
-    -- (default 100MHz)
+    -- The input clock frequency in MHz (100 MHz by default). The PLL wrapper
+    -- uses it. The heartbeat intervals are in clock cycles and do not use it.
     clk_freq       : integer range 1 to 400 := 100;
-    -- Max 5s (500,000,000 cycles) for 100MHz
+    -- Maximum 5 s (500,000,000 cycles) at 100 MHz
     slow_heartbeat_interval : integer range 1 to 5*(10**8) := 1*(10**8);
-    -- Set at default a quarter of a second
+    -- The default is 0.25 s at 100 MHz
     fast_heartbeat_interval : integer range 1 to 5*(10**8) := (1*(10**8))/4
   );
   Port ( 
@@ -52,9 +54,9 @@ architecture Structure of targeted_top is
     
 begin
     
-    -- Condition the incoming clock through the portable PLL wrapper. Period
-    -- (ns) is derived straight from clk_freq (MHz) so there's only one
-    -- source of truth for the design's operating frequency.
+    -- Send the input clock through the portable PLL wrapper. The period (ns)
+    -- comes directly from clk_freq (MHz). Thus clk_freq is the only source
+    -- for the clock frequency of the design.
     clk_gen_inst : clk_gen_wrapper
       Generic map (
         g_family          => g_family,

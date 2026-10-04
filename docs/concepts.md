@@ -1,47 +1,63 @@
-# SK-RAFT Concepts
+# SK-RAFT concepts
 
-How SK-RAFT locates and describes a fault, independent of any one example. The get-started examples (`examples/`) are the hands-on counterpart to this document.
+This document explains how SK-RAFT finds and describes a fault. The information applies to all examples. The getting-started examples (`examples/`) show the same concepts on hardware.
 
 ## The two planes
 
-Every fault SK-RAFT injects lands in one of two places.
+Each fault that SK-RAFT injects goes into one of two planes.
 
-The **configuration plane** is the bitstream itself — the configuration memory (CRAM) that defines what the fabrics behaviour: each LUT's truth table, the routing between them, the BRAM's mode and width and every primitive's configuration. A fault here changes the circuit's structure.
+The **configuration plane** is the bitstream. It is the configuration RAM (CRAM) that sets the function of the FPGA fabric:
 
-The **application plane** is the live, dynamic state the configured circuit is working with as it runs — a flip-flop's current value, a BRAM's or LUTRAM's stored data. A fault here changes a value, not the circuit itself.
+- The truth table of each LUT.
+- The routing between the LUTs.
+- The mode and width of each BRAM.
+- The configuration of each primitive.
 
-SK-RAFT can manipulate both planes directly. `TargetMemory.FF`, `TargetMemory.LUTRAM` and `TargetMemory.BRAM` inject into the application plane itself — flipping a register's current value or a stored data word — exactly as `TargetMemory.CRAM`/`ESSENTIAL_CRAM` inject into the configuration plane. Both planes are addressable injection targets.
+A fault in this plane changes the structure of the circuit.
 
-![Where a fault lands: the application plane and configuration plane are two physically stacked layers](images/plane-diagram.svg)
+The **application plane** is the application RAM (ARAM): the dynamic state of the configured circuit during operation. Examples are the current value of a flip-flop and the data in a BRAM or a LUTRAM. A fault in this plane changes a value. It does not change the circuit.
 
-*The application plane (live flip-flop and BRAM state) sits above the configuration plane (CRAM) that defines the circuit. A fault can land in either layer at the same physical location. The next two sections cover the two cases that complicate this picture: essential bits within the configuration plane, and LUTRAM, which sits in both.*
+SK-RAFT can change the two planes directly:
+
+- `TargetMemory.FF`, `TargetMemory.LUTRAM` and `TargetMemory.BRAM` inject into the application plane. They flip the current value of a register or a bit of a stored data word.
+- `TargetMemory.CRAM` and `TargetMemory.ESSENTIAL_CRAM` inject into the configuration plane.
+
+![The application plane is on top of the configuration plane.](images/plane-diagram.svg)
+
+*The application plane (flip-flop and BRAM state) is on top of the configuration plane (CRAM), which sets the circuit. A fault can occur in each plane at the same physical location. The next two sections explain two special cases: essential bits in the configuration plane, and LUTRAM, which is in the two planes.*
 
 ## Essential bits
 
-Most of a device's configuration memory is unused by any one design — unused routing slack, logic for features the design doesn't instantiate. A random bit flip anywhere in CRAM (`TargetMemory.CRAM`) usually lands there and has no observable effect.
+A design uses only a small part of the CRAM of a device. The other bits control routing or functions that the design does not use. A random bit flip in CRAM (`TargetMemory.CRAM`) usually goes into one of these unused bits. Then the flip has no effect that you can see.
 
-**Essential bits** are the subset of CRAM this specific design actually depends on, read from its `.ebd` file. Targeting `TargetMemory.ESSENTIAL_CRAM` guarantees every injected bit is one the design relies on, so every flip has a real chance of producing an observable effect. This is the difference the first get-started example walks through directly.
+**Essential bits** are the CRAM bits that one design uses. SK-RAFT reads them from the `.ebd` file of the design. With `TargetMemory.ESSENTIAL_CRAM`, each injected bit is a bit that the design uses. Thus each flip can cause an effect that you can see. Example 1 shows this difference step by step.
 
-## Where LUTRAM sits
+## LUTRAM
 
-LUTRAM is the one case that blurs the two planes. A LUT configured as distributed RAM stores its contents in its own configuration bits (its INIT field) — so a LUTRAM word is, physically, a set of essential configuration bits, but the circuit uses it as application-plane data. `TargetMemory.LUTRAM` targets exactly those bits.
+LUTRAM is the one case that is in the two planes. A LUT that operates as distributed RAM keeps its data in its own configuration bits (the INIT field). Thus a LUTRAM word is physically a set of essential configuration bits, but the circuit uses the word as application data. `TargetMemory.LUTRAM` selects these bits.
 
-BRAM keeps the two cleanly separate instead: its configuration (mode, width) and its content live in different frame types entirely (block type 0 vs. block type 1 — see `examples/example4`), so `TargetMemory.ESSENTIAL_CRAM` and `TargetMemory.BRAM` never overlap.
+BRAM keeps the two planes separate. The configuration of a BRAM (mode and width) and its content are in different frame types. The configuration is in block type 0 frames and the content is in block type 1 frames (refer to `examples/example4`). Thus `TargetMemory.ESSENTIAL_CRAM` and `TargetMemory.BRAM` never select the same bits.
 
-## Pblocks: confining the search
+## Pblocks: limit the injection area
 
-Any of the targets above can be confined to a named pblock from the design's XDC (`pblock=` on `bit_count`, `inject_random`, and `inject_exhaustive`). This narrows injection to one region of the design — one heartbeat generator, one adder, one BRAM — without changing which plane or which essential-bit population is being drawn from.
+You can limit each of the targets above to one pblock of the XDC file of the design. Use the `pblock=` argument of `bit_count`, `inject_random` and `inject_exhaustive`. SK-RAFT then injects only into that area of the design, for example into one heartbeat counter, one adder or one BRAM. The plane and the set of essential bits do not change.
 
-## Locating a bit: FAR, word, and bit index
+## Location of a bit: FAR, word index and bit index
 
-However a target is selected, SK-RAFT reports and accepts the same three coordinates: a Frame Address (FAR), a word index within that frame, and a bit index within that word. `dev.decode_far()` turns a FAR into its block type, top/bottom half, row, column, and minor frame number — useful for telling a configuration hit (block type 0) from a content hit (block type 1), as in `example4`.
+SK-RAFT always uses three coordinates for the location of a bit, in reports and in arguments:
 
-## `TargetMemory` at a glance
+1. The frame address (FAR).
+2. The word index in the frame.
+3. The bit index in the word.
 
-| `TargetMemory` | Plane | Selects | Used in |
+`dev.decode_far()` decodes a FAR into its block type, top or bottom half, row, column and minor frame number. Use this method to find if a fault is in the configuration (block type 0) or in the content (block type 1). `example4` shows this.
+
+## `TargetMemory` summary
+
+| `TargetMemory` | Plane | Selects | Example |
 | --- | --- | --- | --- |
-| `CRAM` | Configuration | Every configuration bit, essential or not | example1 (step 1) |
-| `ESSENTIAL_CRAM` | Configuration | Only the bits this design's `.ebd` marks essential | example1 (steps 2-3), example2, example4 (Part 1) |
-| `FF` | Application | A flip-flop's current register value | example3 (Part 1) |
-| `LUTRAM` | Configuration, acting as application data | A distributed-RAM word's essential config bits | example3 (Part 2) |
-| `BRAM` | Application | A block RAM word (content frames, block type 1) | example4 (Part 2) |
+| `CRAM` | Configuration | All configuration bits, essential or not | example1 (step 1) |
+| `ESSENTIAL_CRAM` | Configuration | Only the bits that the `.ebd` file of the design marks as essential | example1 (steps 2 and 3), example2, example4 (part 1) |
+| `FF` | Application | The current value of a flip-flop | example3 (part 1) |
+| `LUTRAM` | Configuration, used as application data | The essential configuration bits of a distributed-RAM word | example3 (part 2) |
+| `BRAM` | Application | A word in block RAM (content frames, block type 1) | example4 (part 2) |

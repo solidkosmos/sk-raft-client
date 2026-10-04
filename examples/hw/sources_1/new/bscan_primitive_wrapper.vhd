@@ -1,8 +1,10 @@
 --------------------------------------------------------------------------------
 -- Company: SolidKosmos S.A.
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
 -- Module Name: bscan_primitive_wrapper
--- Description: Thin wrapper exposing BSCANE2 as a single packageable
+-- Description: Thin wrapper that makes BSCANE2 available as one packageable
 --              component.
 --------------------------------------------------------------------------------
 

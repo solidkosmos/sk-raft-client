@@ -1,18 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2026 SOLIDKOSMOS S.A.
+
 """Example 1: fault injection, three ways.
 
-We flip bits in the FPGA's configuration memory (CRAM) and see what breaks - but
-we narrow down where we flip in three steps, each more targeted than the last:
+This example flips bits in the configuration RAM (CRAM) of the FPGA and
+shows the effect of each upset. The target area becomes smaller in three
+steps. Each step is more targeted than the step before it:
 
-  1. Random bits, anywhere.       Mostly hits nothing. Shows why aiming to
-                                   essential bits only matters.
-  2. Essential bits only.         Every flip lands on a bit the design
+  1. Random bits, anywhere.       Most flips have no effect. This step
+                                   shows why it is important to aim at
+                                   essential bits only.
+  2. Essential bits only.         Each flip hits a bit that the design
                                    depends on.
-  3. One pblock at a time.        Narrows further to a single part of the
-                                   design, so you can test it on its own.
+  3. One pblock at a time.        The target is one part of the design
+                                   only, so you can test that part alone.
 
-Each step holds an upset for 100ms, then corrects it, and can be stopped
-early by pressing Enter. Watch LD0/LD1 on the board: the heartbeats show
-what each upset does.
+Each step holds an upset for 100 ms and then corrects the upset. Press
+Enter to stop a step early. Look at LD0/LD1 on the board: the heartbeat
+counters show the effect of each upset.
 """
 
 import random
@@ -22,31 +27,34 @@ import time
 from skraft import Design, TargetMemory, ReadbackOption, SkraftError, SkraftFpga
 
 # --------------------------------------------------------------------------- #
-# Configuration. Edit these to match your setup.
+# Configuration. Set these values for your setup.
 # --------------------------------------------------------------------------- #
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-# If you are unsure of your target device's serial number
-# you can check via the get_devices call 
+# If you do not know the serial number of your target device,
+# use the get_devices() call to find it.
 DEVICE = "210183BFD452A"
 
-# The design used throughout: two heartbeat counters (LD0, LD1).
-# We give all three files up front - .bit to program the device,
-# .ebd to know which bits are essential, .xdc to know the pblocks.
-# uploadDesignToServer() sends the files, 
-# and the server stores them under the same relative path.
+# The design for all steps: two heartbeat counters (LD0, LD1).
+# The script gives all three files at the start:
+#   The bitstream (.bit): to program the device.
+#   The EBD file (.ebd): to find which bits are essential.
+#   The XDC file (.xdc): to find the pblocks.
+# uploadDesignToServer() sends the files to the server. The client sends
+# only the file name of each path, not the directory.
 design = Design(
     bit="design_files/targeted_top.bit",
     ebd="design_files/targeted_top.ebd",
     xdc="design_files/board.xdc",
 )
 
-# Same seed, same sequence of step 1 injections every run (steps 2 and 3
-# let the server pick the bits).
+# A fixed seed gives the same sequence of step 1 injections in each run.
+# In steps 2 and 3, the server selects the bits.
 rng = random.Random(42)
 
-# Watches for the Enter key in the background, so it doesn't block the
-# injection loop below. Press Enter any time to end the current step early
+# A background thread monitors the Enter key. Thus, the injection loop
+# below does not wait for input. Press Enter at any time to stop the
+# current step early.
 stop = threading.Event()
 
 
@@ -65,28 +73,30 @@ def main() -> None:
                 print(f"programmed {DEVICE} with {design.bit}")
 
                 # ----------------------------------------------------------- #
-                # Step 1: random bits, anywhere in the configuration memory.
+                # Step 1: random bits, anywhere in the configuration RAM.
                 # ----------------------------------------------------------- #
                 print("\nStep 1: random bits, anywhere. "
                       "Press Enter to move on.")
 
-                # A complete random CRAM injection routine, done in the
-                # open: read back every frame of the connected device, then
-                # choose the frame, word and bit to flip here in the script.
+                # This is a full random CRAM injection routine, with all
+                # steps visible in this script. The script reads back all
+                # frames of the connected device. Then the script selects
+                # the frame, word and bit to flip.
                 frames = dev.readback(ReadbackOption.READBACK)
                 print(f"frames read back: {len(frames)}")
                 time.sleep(1)
                 watch_for_enter()
-                n = 0  # count the number of injections so far
+                n = 0  # the number of injections in this step
                 while True:
                     if stop.is_set():
                         break
 
                     # Inject a random CRAM upset.
                     frame = frames[rng.randint(0, len(frames) - 1)]
-                    # Word count depends on the architecture
+                    # The number of words in a frame depends on the
+                    # architecture.
                     word_index = rng.randint(0, len(frame.words) - 1)
-                    bit_index = rng.randint(0, 31)  # a config word is 32 bits 
+                    bit_index = rng.randint(0, 31)  # each word has 32 bits
                     report = dev.inject_at(frame.far, word_index, bit_index,
                                         TargetMemory.CRAM)
                     print(f"{n + 1:3d}: far {report.far:#010x} "
@@ -94,22 +104,23 @@ def main() -> None:
                         f"bit {report.bit_index:2d}")
                     n += 1
 
-                    time.sleep(0.1)  # hold the upset in place for 100ms
+                    time.sleep(0.1)  # keep the upset for 100 ms
 
-                    # Flipping the same bit again corrects the upset.
+                    # Flip the same bit again to correct the upset.
                     dev.inject_at(frame.far, word_index, bit_index,
                                 TargetMemory.CRAM)
 
                 # ----------------------------------------------------------- #
                 # Step 2: essential bits only.
                 #
-                # The .ebd file lists which bits the design depends on.
-                # Restrict injection to those, and every flip lands on one.
+                # The EBD file lists the bits that the design depends on.
+                # Limit the injection to these bits. Then each flip hits
+                # one of these bits.
                 # ----------------------------------------------------------- #
                 print(f"\nStep 2: essential bits only",
                       f"({dev.bit_count(TargetMemory.ESSENTIAL_CRAM)})",
                       f". Press Enter to move on.")
-                dev.programFPGA()  # start clean again
+                dev.programFPGA()  # program again for a clean start
 
                 watch_for_enter()
                 n = 0
@@ -117,30 +128,31 @@ def main() -> None:
                     if stop.is_set():
                         break
 
-                    # The server picks the location this time, from the
-                    # essential bits it knows about via the .ebd file.
+                    # This time, the server selects the location from the
+                    # essential bits in the EBD file.
                     report = dev.inject_random(TargetMemory.ESSENTIAL_CRAM)
                     print(f"{n + 1:3d}: far {report.far:#010x} "
                         f"word {report.word_index:3d} "
                         f"bit {report.bit_index:2d}")
                     n += 1
 
-                    time.sleep(0.1)  # hold the upset in place for 100ms
+                    time.sleep(0.1)  # keep the upset for 100 ms
                     dev.inject_at(report.far, report.word_index,
                                   report.bit_index, TargetMemory.CRAM)
 
                 # ----------------------------------------------------------- #
                 # Step 3: one pblock at a time.
                 #
-                # A pblock is a region of the chip reserved for one part of
-                # the design - here, one of the two heartbeat counters. By
-                # confining injection to a pblock, you can test one piece of
-                # the design in isolation.
+                # A pblock is a region of the chip that is reserved for one
+                # part of the design. In this design, each pblock contains
+                # one of the two heartbeat counters. When you limit the
+                # injection to a pblock, you can test one part of the design
+                # alone.
                 # ----------------------------------------------------------- #
                 print("\nStep 3: one pblock at a time.")
-                dev.programFPGA()  # start clean again
+                dev.programFPGA()  # program again for a clean start
 
-                # Names of the two pblocks, as declared in the .xdc file.
+                # The names of the two pblocks, as declared in the XDC file.
                 pblocks = ["pblock_slow_heartbeat", "pblock_fast_heartbeat"]
 
                 for pblock in pblocks:
@@ -155,9 +167,9 @@ def main() -> None:
                         if stop.is_set():
                             break
 
-                        # The server picks the location this time, from the
-                        # essential bits it knows about via the .ebd file
-                        # and the pblock range via the XDC.
+                        # This time, the server selects the location from
+                        # the essential bits in the EBD file and from the
+                        # pblock range in the XDC file.
                         report = dev.inject_random(
                             TargetMemory.ESSENTIAL_CRAM,
                             pblock=pblock)
@@ -166,7 +178,7 @@ def main() -> None:
                             f"bit {report.bit_index:2d}")
                         n += 1
 
-                        time.sleep(0.1)  # hold the upset in place for 100ms
+                        time.sleep(0.1)  # keep the upset for 100 ms
                         dev.inject_at(report.far, report.word_index,
                                     report.bit_index, 
                                     TargetMemory.CRAM)

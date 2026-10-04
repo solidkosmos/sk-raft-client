@@ -1,9 +1,11 @@
 --------------------------------------------------------------------------------
 -- Company: SolidKosmos S.A.
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
 -- Module Name: adder
--- Description: Combinational adder -- adds two op_len-bit operands,
---              producing an (op_len+1)-bit sum.
+-- Description: Combinational adder. It adds two operands of op_len bits
+--              and gives a sum of op_len+1 bits.
 --------------------------------------------------------------------------------
 
 
@@ -27,8 +29,8 @@ architecture Behavioral of adder is
 
 begin
 
-    -- Add the two numbers, we have to extend them in order for them to be
-    -- added and assigned to the result
+    -- Add the two numbers. Extend each operand by 1 bit, so that the sum
+    -- has the same width as the result.
     res_o <= std_ulogic_vector(unsigned('0' & op_a_i) +
                                unsigned('0' & op_b_i));
 

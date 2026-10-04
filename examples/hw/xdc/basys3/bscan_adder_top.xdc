@@ -1,5 +1,8 @@
-## Basys-3 constraints for bscan_adder_top -- simplex vs. TMR adder, driven over BSCAN
-## (no clk_i on this top -- everything runs off the JTAG/BSCAN clock domain).
+## SPDX-License-Identifier: Apache-2.0
+## Copyright (C) 2026 SOLIDKOSMOS S.A.
+
+## Basys 3 constraints for bscan_adder_top: simplex adder and TMR adder, driven over
+## BSCAN. This top has no clk_i. All clocked logic uses the JTAG/BSCAN clock domain.
 
 ## Status LEDs: total_fail_o (data_o[3]), min_vote_o (data_o[2:0])
 set_property -dict {PACKAGE_PIN U16 IOSTANDARD LVCMOS33} [get_ports {data_o[0]}]
@@ -7,9 +10,9 @@ set_property -dict {PACKAGE_PIN E19 IOSTANDARD LVCMOS33} [get_ports {data_o[1]}]
 set_property -dict {PACKAGE_PIN U19 IOSTANDARD LVCMOS33} [get_ports {data_o[2]}]
 set_property -dict {PACKAGE_PIN V19 IOSTANDARD LVCMOS33} [get_ports {data_o[3]}]
 
-## TCK, buffered through BUFG, treated as its own clock domain (~15 MHz JTAG rate)
-## (no clk_i/PLL in this design to group against -- these 3 are the only
-## clocks that exist here)
+## TCK goes through a BUFG and is a separate clock domain (JTAG rate of about 15 MHz)
+## (This design has no clk_i or PLL clock for a clock group. These 3 clocks
+## are the only clocks in the design.)
 create_clock -add -name bscan_clk_u1 -period 66.667 -waveform {0 33.333} \
   [get_pins -of_objects [get_cells bscan_u1*/tck_BUFG_inst] -filter {REF_PIN_NAME==O}]
 create_clock -add -name bscan_clk_u2 -period 66.667 -waveform {0 33.333} \
@@ -25,7 +28,7 @@ set_property BITSTREAM.CONFIG.CONFIGRATE 33 [current_design]
 set_property CONFIG_MODE SPIx4 [current_design]
 set_property BITSTREAM.READBACK.SECURITY NONE [current_design]
 
-## Expose essential bits (needed for sk-raft's essential-bit-targeted examples)
+## Write the EBD file (the SK-RAFT examples that target essential bits use it)
 set_property BITSTREAM.SEU.ESSENTIALBITS YES [current_design]
 set_property BITSTREAM.GENERAL.PERFRAMECRC YES [current_design]
 

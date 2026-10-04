@@ -1,6 +1,6 @@
-#   Copyright(C) 2024 SOLIDKOSMOS S.A.
-#   All rights reserved. Confidential Information.
-#   (retain the full SolidKosmos notice here, as the other modules do)
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2024-2026 SOLIDKOSMOS S.A.
+
 """SK-RAFT FPGA control client."""
 
 from .skraft_fpga import FpgaDevice, SkraftFpga

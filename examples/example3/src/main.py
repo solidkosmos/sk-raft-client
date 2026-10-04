@@ -1,23 +1,30 @@
-"""Example 3 - two campaigns, one design: a flip-flop shift register and
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2026 SOLIDKOSMOS S.A.
+
+"""Example 3: two campaigns on one design, a flip-flop shift register and
 a LUTRAM.
 
-See README.md for the register map. USER1 gates the clock of both the
-shift register and the LUTRAM; USER3/USER4 address the LUTRAM.
+Refer to README.md for the register map. USER1 starts and stops the clock
+of the shift register and of the LUTRAM. USER3 and USER4 give access to
+the LUTRAM (address and data).
 
-Part 1 injects into the flip-flops inside ``pblock_ff_sr_inst``, through
-``dev.inject_random(TargetMemory.FF, pblock=PBLOCK_SR)``; ``bit_count``
-first confirms the pblock holds any.
-Each trial: run the clock for 2 seconds, freeze it, read the shift
-register before and after the upset, then resume the clock. Upsets are
-never reverted, so later trials build on whatever earlier ones left
-behind. Runs until Enter is pressed.
+Part 1 injects faults into the flip-flops in ``pblock_ff_sr_inst``, with
+``dev.inject_random(TargetMemory.FF, pblock=PBLOCK_SR)``. Before this,
+``bit_count`` makes sure that the pblock contains flip-flops.
 
-Part 2 confines injection the same way, through
-``dev.inject_random(TargetMemory.LUTRAM, pblock=PBLOCK_LUTRAM)``. A known
-pattern is written into every word and read back to confirm it
-round-tripped, then LUTRAM upsets are injected one at a time, 0.5s apart,
-until Enter is pressed, and only then is the whole array read back and
-compared.
+Each trial runs the clock for 2 s and then stops the clock. The script
+reads the shift register before and after the upset. Then the script
+starts the clock again. The script does not correct the upsets, so each
+trial starts from the state that the earlier trials left. Part 1
+continues until you press Enter.
+
+Part 2 limits the injection to a pblock in the same way, with
+``dev.inject_random(TargetMemory.LUTRAM, pblock=PBLOCK_LUTRAM)``. The
+script writes a known pattern into each word. Then the script reads back
+each word to make sure that the pattern is correct. Then the script
+injects LUTRAM upsets one at a time, with 0.5 s between them, until you
+press Enter. Only then does the script read back the full array and
+compare it with the pattern.
 """
 
 from __future__ import annotations
@@ -30,28 +37,30 @@ from skraft import BscanPrimitive, Design, SkraftError, SkraftFpga, TargetMemory
 
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-# If you are unsure of your target device's serial number
-# you can check via the device_list() call 
+# If you do not know the serial number of your target device,
+# use the get_devices() call to find it.
 DEVICE = "210248781184"
 
-# The design used throughout: a flip-flop shift register and a LUTRAM.
-# We give all three files up front - .bit to program the device,
-# .xdc to know the pblocks and the .ll to find used BRAM/FF/LUTRAM bits
-# uploadDesignToServer() sends the files, 
-# and the server stores them under the same relative path.
+# The design for both parts: a flip-flop shift register and a LUTRAM.
+# The script gives all three files at the start:
+#   The bitstream (.bit): to program the device.
+#   The XDC file (.xdc): to find the pblocks.
+#   The LL file (.ll): to find the BRAM/FF/LUTRAM bits that the design uses.
+# uploadDesignToServer() sends the files to the server. The client sends
+# only the file name of each path, not the directory.
 design = Design(
     bit="design_files/ff_lut_top.bit",
     ll ="design_files/ff_lut_top.ll",
     xdc="design_files/board.xdc",
 )
 
-# The two pblocks under test, as named in the XDC
+# The two pblocks to test, with the names from the XDC file.
 PBLOCK_SR = "pblock_ff_sr_inst"
 PBLOCK_LUTRAM = "pblock_LUTRAM"
 
-# The design's generics.
+# The generics of the design.
 SR_LEN = 8
-# 6 address bits -> 64 LUTRAM words
+# 6 address bits give 64 LUTRAM words.
 LUT_ADDR_BITS = 6
 LUT_DEPTH = 64
 LUT_DATA_LEN = 32
@@ -62,13 +71,13 @@ USER_SR = BscanPrimitive(2, SR_LEN)
 USER_LUT_ADDRESS = BscanPrimitive(3, LUT_ADDR_BITS)
 USER_LUT_DATA = BscanPrimitive(4, LUT_DATA_LEN)
 
-# Mask for BSCAN feeding/reading 
+# Masks for the values that the script writes to and reads from BSCAN.
 SR_MASK = (1 << SR_LEN) - 1
 LUT_DATA_MASK = (1 << LUT_DATA_LEN) - 1
 
-# Watches for the Enter key in the background, so it doesn't block the
-# injection loop below. Press Enter any time to end the current part
-# early.
+# A background thread monitors the Enter key. Thus, the injection loop
+# below does not wait for input. Press Enter at any time to stop the
+# current part early.
 stop = threading.Event()
 
 
@@ -77,34 +86,34 @@ def watch_for_enter() -> None:
     threading.Thread(target=lambda: (input(), stop.set()), daemon=True).start()
 
 
-# Start or stop the shift register's and the LUTRAM's clock through USER1
+# Start or stop the clock of the shift register and the LUTRAM through USER1.
 def enable_clock(dev, enabled: bool) -> None:
-    # SK-RAFT: gate the clock enable
+    # SK-RAFT: set the clock enable bit.
     dev.write_bscan(USER_CLK_EN, 1 if enabled else 0)
 
 
-# Read the shift register's bits out of USER2
+# Read the bits of the shift register from USER2.
 def read_sr(dev) -> int:
-    # SK-RAFT: read and unpack the shift register
+    # SK-RAFT: read the shift register. Then unpack the bits.
     data = dev.read_bscan(USER_SR)
     return int.from_bytes(data, "big") & SR_MASK
 
 
-# Select one LUTRAM address through USER3
+# Select one LUTRAM address through USER3.
 def select(dev, address: int) -> None:
-    # SK-RAFT: write the address
+    # SK-RAFT: write the address.
     dev.write_bscan(USER_LUT_ADDRESS, address)
 
 
-# Write the word value into USER4
+# Write the word value into USER4.
 def write_word(dev, value: int) -> None:
-    # SK-RAFT: write the data word
+    # SK-RAFT: write the data word.
     dev.write_bscan(USER_LUT_DATA, value)
 
 
-# Read the word back out of USER4
+# Read back the word from USER4.
 def read_word(dev) -> int:
-    # SK-RAFT: read the data word
+    # SK-RAFT: read the data word.
     data = dev.read_bscan(USER_LUT_DATA)
     return int.from_bytes(data, "big") & LUT_DATA_MASK
 
@@ -119,8 +128,8 @@ def main() -> None:
                 dev.programFPGA()
                 print(f"Programmed {DEVICE}.")
 
-                # Part 1: flip-flop shift register
-                # Check if any FFs exist inside the set Pblock
+                # Part 1: flip-flop shift register.
+                # Make sure that the selected pblock contains flip-flops.
                 bits = dev.bit_count(TargetMemory.FF, pblock=PBLOCK_SR)
                 print(f"Part 1: {bits} flip-flop bits inside "
                       f"{PBLOCK_SR}.")
@@ -143,25 +152,28 @@ def main() -> None:
 
                     time.sleep(2)
                     # Injection guideline (application memory): each upset
-                    # is a readback-modify-writeback of whole frames shared
-                    # with neighbouring logic, and the server doesn't guard
-                    # against user activity. Freeze the clock and keep the
-                    # target idle while injecting, then resume.
+                    # is a readback-modify-writeback of full frames. These
+                    # frames also hold adjacent logic. The server does
+                    # not protect against user activity. Thus, stop the
+                    # clock and keep the target idle during the injection.
+                    # Then start the clock again.
                     enable_clock(dev, False)
                     before = read_sr(dev)
 
-                    # SK-RAFT: flip one flip-flop bit
-                    report = dev.inject_random(TargetMemory.FF, 
+                    # SK-RAFT: flip one flip-flop bit.
+                    report = dev.inject_random(TargetMemory.FF,
                                                pblock=PBLOCK_SR)
 
                     after = read_sr(dev)
-                    # FAR/word/bit is the flip-flop's location in the LL
-                    # file: the net it drives, i.e. the value it holds. How
-                    # the server flips it is not shown here.
+                    # FAR/word/bit is the location of the flip-flop in the
+                    # LL file. This location is the net that the flip-flop
+                    # drives, that is, the value that the flip-flop holds.
+                    # This script does not show how the server flips the bit.
                     # BEFORE/AFTER show which of the 8 flip-flops changed.
-                    # The flipped value is held, and once the clock resumes
-                    # it travels down the feedback loop, visible on the
-                    # LEDs and over BSCAN.
+                    # The flip-flop holds the flipped value. When the clock
+                    # starts again, the value moves along the feedback
+                    # loop. You can see the value on the LEDs and through
+                    # BSCAN.
                     print(f"{n + 1:>6}  {report.far:08x}  "
                           f"{report.word_index:>4}  {report.bit_index:>3}  "
                           f"{before:08b}  {after:08b}")
@@ -175,17 +187,19 @@ def main() -> None:
                 print("Re-programming before Part 2.")
                 dev.programFPGA()
 
-                # Part 2: LUTRAM
-                # Reprogramming resets USER1, and the LUTRAM's writes
-                # need the gated clock, so enable it before the fill.
+                # Part 2: LUTRAM.
+                # When the FPGA is programmed again, USER1 resets. The
+                # LUTRAM writes must have the gated clock. Thus, start the
+                # clock before the fill.
                 enable_clock(dev, True)
-                # Fill the memory array with a known pattern
+                # Fill the memory array with a known pattern.
                 for address in range(LUT_DEPTH):
-                    # select() and read_word() are separate TAP scans,
-                    # and the second can't start until the first has finished.
+                    # select() and write_word() are separate TAP scans.
+                    # The second scan cannot start before the first is done.
                     select(dev, address)
                     write_word(dev, (0xA5A5A5A5 ^ address) & LUT_DATA_MASK)
-                # Read every word back and check the write was successful
+                # Read back each word and make sure that the write was
+                # successful.
                 for address in range(LUT_DEPTH):
                     select(dev, address)
                     word = read_word(dev)
@@ -204,14 +218,14 @@ def main() -> None:
                 bits = dev.bit_count(TargetMemory.LUTRAM, pblock=PBLOCK_LUTRAM)
                 print(f"Part 2: {bits} LUTRAM bits inside "
                       f"{PBLOCK_LUTRAM}.")
-                # Freeze the clock (USER1 gates the LUTRAM too) before
-                # injecting; see the guideline in Part 1.
+                # Stop the clock before the injection (USER1 also gates the
+                # LUTRAM). Refer to the guideline in Part 1.
                 enable_clock(dev, False)
 
                 print("     #  FAR       WORD  BIT")
                 watch_for_enter()
 
-                # Start injecting faults until 'Enter' is pressed
+                # Inject faults until you press Enter.
                 n = 0
                 while True:
                     if stop.is_set():
@@ -220,15 +234,15 @@ def main() -> None:
                                                pblock=PBLOCK_LUTRAM)
                     print(f"{n + 1:>6}  {report.far:08x}  "
                           f"{report.word_index:>4}  {report.bit_index:>3}")
-                    # Pause to control number of injections
+                    # Wait 0.5 s to control the number of injections.
                     time.sleep(0.5)
                     n += 1
 
                 print(f"Part 2: {n} upsets injected.")
-                # Enable the clock in order to read the LUTRAM's contents
+                # Start the clock to read the contents of the LUTRAM.
                 enable_clock(dev, True)
-                # Print the bits of every LUTRAM word, next to the value it
-                # was given, and the bits that were corrupted.
+                # Print the bits of each LUTRAM word, the value that the
+                # script wrote to the word, and the corrupted bits.
                 corrupt_words = 0
                 corrupt_bits = 0
                 print(f"{'ADDR':>6}  {'CORRECT':<{LUT_DATA_LEN}}  "
@@ -237,8 +251,8 @@ def main() -> None:
                     select(dev, address)
                     word = read_word(dev)
                     expected_word = (0xA5A5A5A5 ^ address) & LUT_DATA_MASK
-                    # The bit positions (0 = LSB) that no longer hold the
-                    # value they were given
+                    # The bit positions (0 = LSB) that changed from the
+                    # written value.
                     flipped = [bit for bit in range(LUT_DATA_LEN)
                                if (word ^ expected_word) >> bit & 1]
                     print(f"{address:>6}  {expected_word:0{LUT_DATA_LEN}b}  "

@@ -1,7 +1,10 @@
-## zedboard constraints for targeted_top -- fast/slow heartbeat counters.
+## SPDX-License-Identifier: Apache-2.0
+## Copyright (C) 2026 SOLIDKOSMOS S.A.
 
-## Zynq PS is never instantiated -- clk_i is the board's dedicated
-## 100MHz PL oscillator (bank 13, Y9), fully independent of the PS.
+## ZedBoard constraints for targeted_top: fast and slow heartbeat counters.
+
+## The design does not instantiate the Zynq PS. clk_i is the dedicated
+## 100 MHz PL oscillator of the board (bank 13, Y9), fully independent of the PS.
 
 ## Clock
 set_property -dict { PACKAGE_PIN Y9 IOSTANDARD LVCMOS33 } [get_ports clk_i]
@@ -19,7 +22,7 @@ set_property BITSTREAM.CONFIG.CONFIGRATE 33 [current_design]
 set_property CONFIG_MODE SPIx4 [current_design]
 set_property BITSTREAM.READBACK.SECURITY NONE [current_design]
 
-## Expose essential bits (needed for sk-raft's essential-bit-targeted examples)
+## Write the EBD file (the SK-RAFT examples that target essential bits use it)
 set_property BITSTREAM.SEU.ESSENTIALBITS YES [current_design]
 set_property BITSTREAM.GENERAL.PERFRAMECRC YES [current_design]
 

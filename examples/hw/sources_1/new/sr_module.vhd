@@ -1,10 +1,13 @@
 --------------------------------------------------------------------------------
 -- Company: SolidKosmos S.A.
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
 -- Module Name: sr_module
--- Description: Free-running, self-wrapping N-bit shift register seeded with
---              a single '1' bit -- used as a mass shift-register
---              fault-injection/observation target.
+-- Description: N-bit shift register that operates continuously and wraps
+--              around. The initial value has a single '1' bit. The design
+--              uses the register as a mass shift-register target for fault
+--              injection and observation.
 --------------------------------------------------------------------------------
 
 
@@ -27,14 +30,14 @@ architecture Behavioral of sr_module is
     signal mass_s_reg :  std_ulogic_vector(mass_bit_count - 1 downto 0)
         := (0 => '1', others => '0');
 
-    -- Synthesis attributes: prevent optimization/flattening for every
-    -- signal and instance --
+    -- Synthesis attribute: prevent the optimization of the shift register
+    -- signal --
     attribute dont_touch : string;
     attribute dont_touch of mass_s_reg : signal is "TRUE";
     
 begin
     
-    -- Loop-around free-running shift register
+    -- Shift register that operates continuously and loops around
     mass_sr_proc:process(clk_i)
         begin
             if rising_edge(clk_i) then

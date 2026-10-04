@@ -1,17 +1,43 @@
-# Example 2: JTAG/BSCAN-driven adder, simplex vs. TMR, single-bit upsets
+# Example 2: BSCAN-controlled adders, simplex against TMR, single-bit upsets
 
-Programs a bitstream, then compares a plain (simplex) adder to a triplicated (TMR) one, each in its own pblock. Both adders share one operand register (USER1) and each has its own result register (USER2 simplex, USER3 TMR). Each trial injects one random essential bit into each pblock, drives 100 random operand pairs through both adders, marks an adder as failed if any of its results was wrong, then reverts both bits. Trials run until you press Enter.
+This example programs a bitstream. Then it compares a simplex adder with a triplicated (TMR) adder. Each adder is in its own pblock.
+
+The two adders use one operand register (USER1). Each adder has its own result register: USER2 for the simplex adder and USER3 for the TMR adder.
+
+Each trial does these steps:
+
+1. It injects one random essential bit into each pblock.
+2. It sends 100 random operand pairs through the two adders.
+3. It marks an adder as failed if one or more of its results are wrong.
+4. It flips the two bits again to correct the upsets.
+
+The trials continue until you press Enter.
+
+## Run the example
+
+1. Make sure that the design files are in `src/design_files/`. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files-basys-3).
+2. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP`, `DEVICE` and `design`.
+3. Run the script:
 
 ```bash
+cd src
 python main.py
 ```
 
-| Constant | Default | Meaning |
+| Constant | Default | Description |
 | --- | --- | --- |
-| `design` | `tester.{bit,ebd}` + XDC | Design files, uploaded to the server by the script. |
-| `PBLOCK_SIMPLEX` / `PBLOCK_TMR` | `"pblock_sngl_add"` / `"pblock_tmr_add"` | The two pblocks under test, as named in the XDC. |
-| `OP_LEN` | `4` | Operand width; must match the design's `op_len` generic. |
+| `design` | `bscan_adder_top.{bit,ebd}` + XDC | The design files. The script uploads them to the server. |
+| `PBLOCK_SIMPLEX` / `PBLOCK_TMR` | `"pblock_sngl_add"` / `"pblock_tmr_add"` | The two pblocks for the test, as the XDC file names them. |
+| `OP_LEN` | `4` | The operand width. It must be equal to the `op_len` generic of the design. |
 
-The script first prints each pblock's essential-bit count, then keeps one status line updated with the trial count and each adder's result for that trial (green Correct / red Wrong) and its VF (vulnerability factor: the fraction of trials in which it failed). When you stop it, it prints the final error counts and VFs. Every trial reverts its bits right after checking, so the device should be left clean; interrupting with Ctrl-C mid-trial can still leave a bit flipped - reprogram before anything else in that case.
+## Result
 
-Set `SK_RAFT_SERVER_IP`, `DEVICE` and `design` at the top of `main.py` before running.
+First, the script prints the number of essential bits in each pblock. Then it updates one status line during the trials. The status line shows:
+
+- The number of trials.
+- The result of each adder for the last trial: green "Correct" or red "Wrong".
+- The vulnerability factor (VF) of each adder: the fraction of trials in which the adder failed.
+
+When you stop the script, it prints the final error counts and the VFs.
+
+Each trial corrects its bits immediately after the check. Thus the configuration of the device is clean at the end. If you stop the script with Ctrl+C during a trial, a bit can stay flipped. In that case, program the FPGA again before you do other work.

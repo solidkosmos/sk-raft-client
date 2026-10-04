@@ -1,10 +1,12 @@
 --------------------------------------------------------------------------------
 -- Company: SolidKosmos S.A.
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
 -- Module Name: examples_utilities_pkg
--- Description: Shared component declarations for the reusable building
---              blocks used across the get-started examples (BSCAN
---              interface, clock generator).
+-- Description: Shared component declarations for the reusable blocks of
+--              the getting-started examples (BSCAN interface and clock
+--              generator).
 --------------------------------------------------------------------------------
 
 library IEEE;
@@ -12,12 +14,12 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 package examples_utilities_pkg is
 
-    -- Interfacing with BSCAN.
-    -- This component spawns:
-    -- 1) A BSCAN User Register IO instance -- serializes/deserializes data
-    --    to/from JTAG BSCAN registers
-    -- 2) A BSCAN Primitive Wrapper -- wraps the BSCAN USER register primitive
-    -- per bscan_interface instance.
+    -- Interface to BSCAN.
+    -- Each bscan_interface instance contains:
+    -- 1) A BSCAN User Register IO instance. It serializes and deserializes
+    --    the data to and from the JTAG BSCAN registers.
+    -- 2) A BSCAN Primitive Wrapper. It wraps the BSCAN USER register
+    --    primitive.
     component bscan_interface is
       Generic (
         jtag_chain : integer range 1 to 4;
@@ -26,7 +28,7 @@ package examples_utilities_pkg is
         sync       : boolean := true
       );
       Port (
-        ----- CLK INPUT FOR CDC HANDLING -----
+        ----- CLK INPUT FOR CDC -----
         clk_i  : in  std_ulogic;
         ----- TCK OUTPUT FOR CDC, LOGIC ISOLATION -----
         tck_o  : out std_ulogic;
@@ -41,8 +43,8 @@ package examples_utilities_pkg is
       );
     end component;
 
-    -- Portable, family-selecting, free-running PLL passthrough wrapper
-    -- (7-series / UltraScale / UltraScale+).
+    -- Portable PLL passthrough wrapper that operates continuously. A generic
+    -- selects the family (7-series, UltraScale or UltraScale+).
     component clk_gen_wrapper is
       Generic (
         -- "7SERIES", "ULTRASCALE", or "ULTRASCALEPLUS"

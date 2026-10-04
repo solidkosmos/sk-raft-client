@@ -1,25 +1,5 @@
-#   Copyright(C) 2024 SOLIDKOSMOS S.A.
-#   All rights reserved.
-#
-#   This software ("Software") is supplied by SOLIDKOSMOS S.A. ("SolidKosmos").
-#   SolidKosmos grants you a personal, non-exclusive, non-transferable, revocable,
-#   non-sub-licensable right and license to use the Software. You may make copies of
-#   this Software, provided this copyright notice and disclaimer ("Notice") is included
-#   in all such copies. SolidKosmos reserves the right to change or discontinue the
-#   Software at any time without notice.
-#
-#   THE SOFTWARE IS PROVIDED "AS IS". SOLIDKOSMOS DISCLAIMS ALL WARRANTIES OF ANY KIND,
-#   WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-#   OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. TO THE
-#   MAXIMUM EXTENT PERMITTED UNDER LAW, IN NO EVENT SHALL SOLIDKOSMOS BE LIABLE FOR ANY DIRECT,
-#   INDIRECT, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING FROM, OUT OF OR IN
-#   CONNECTION WITH THE SOFTWARE, EVEN IF SOLIDKOSMOS HAS BEEN ADVISED OF THE POSSIBILITY OF
-#   SUCH DAMAGES. USE OF THIS SOFTWARE MAY BE SUBJECT TO TERMS AND CONDITIONS CONTAINED IN
-#   AN ADDITIONAL AGREEMENT BETWEEN YOU AND SOLIDKOSMOS. IN CASE OF CONFLICT BETWEEN THE TERMS
-#   OF THIS NOTICE AND ANY SUCH ADDITIONAL LICENSE AGREEMENT, THE TERMS OF THE AGREEMENT
-#   SHALL TAKE PRECEDENCE. BY CONTINUING TO USE THIS SOFTWARE, YOU AGREE TO THE TERMS OF
-#   THIS NOTICE. IF YOU DO NOT AGREE TO THESE TERMS, YOU ARE NOT PERMITTED TO USE THIS
-#   SOFTWARE
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2024-2026 SOLIDKOSMOS S.A.
 
 from __future__ import annotations
 
@@ -67,11 +47,11 @@ from .exceptions import (
 
 SK_RAFT_VERSION = "1.0.0.alpha.11-3-g9355663"
 
-# Size of each chunk streamed while uploading a design file.
+# The size of each chunk that the client streams during a design file upload.
 _UPLOAD_CHUNK_SIZE = 1 << 20
 
 def _rpc_detail(error: grpc.RpcError) -> str:
-    """Best-effort extraction of a gRPC error detail string."""
+    """Get the detail string of a gRPC error (best effort)."""
     try:
         return error.details()  # type: ignore[attr-defined]
     except Exception:
@@ -81,8 +61,8 @@ def _rpc_detail(error: grpc.RpcError) -> str:
 def _kind_from_area(target: TargetMemory) -> int:
     """Map a :class:`TargetMemory` to the wire ``FpgaTargetKind`` enum.
 
-    ``FpgaInjectionTarget`` carries a single ``kind``, so at most one
-    storage-element flag may be set for a specific injection.
+    ``FpgaInjectionTarget`` holds a single ``kind``. Thus, a specific
+    injection can have a maximum of one storage-element flag.
     """
     storage_flags = [
         (TargetMemory.FF, skraft_client_pb2.FPGA_TARGET_KIND_FLIP_FLOP),
@@ -103,8 +83,8 @@ def _kind_from_area(target: TargetMemory) -> int:
 def _injection_options(
     target: TargetMemory, pblock: Optional[str]
 ) -> skraft_client_pb2.FpgaInjectionOptions:
-    """Build the wire ``FpgaInjectionOptions`` for ``target``, confined to
-    the named ``pblock`` of the XDC when one is given."""
+    """Build the wire ``FpgaInjectionOptions`` for ``target``. If a
+    ``pblock`` is given, limit the injection to that pblock of the XDC."""
     return skraft_client_pb2.FpgaInjectionOptions(
         essentials=bool(target & TargetMemory.ESSENTIAL_CRAM),
         include_flip_flops=bool(target & TargetMemory.FF),
@@ -119,17 +99,18 @@ def _injection_options(
 # FpgaDevice
 # --------------------------------------------------------------------------- #
 class FpgaDevice:
-    """A reserved FPGA device. Obtain via :meth:`SkraftFpga.attach`.
+    """A reserved FPGA device. Get it with :meth:`SkraftFpga.attach`.
 
-    Usable as a context manager so the reservation is always released::
+    Use it as a context manager to always release the reservation::
 
         with client.attach("210183A1B2C3A") as dev:
             dev.uploadDesignToServer(Design(bit="top.bit", ebd="top.ebd"))
             dev.programFPGA()
     """
 
-    # Maps a Design field to the FpgaFileType enum value sent with the file
-    # through the FpgaUploadDesignFile RPC.
+    # This table maps a Design field to an FpgaFileType enum value. The
+    # client sends this value with the file through the FpgaUploadDesignFile
+    # RPC.
     _FILE_TYPES = {
         "bit": skraft_client_pb2.FPGA_FILE_TYPE_BIT,
         "ebd": skraft_client_pb2.FPGA_FILE_TYPE_EBD,
@@ -139,8 +120,8 @@ class FpgaDevice:
         "msd": skraft_client_pb2.FPGA_FILE_TYPE_MSD,
     }
 
-    # Maps a TargetMemory to the FpgaBitCategory enum value used by the
-    # FpgaGetBitCount RPC.
+    # This table maps a TargetMemory to the FpgaBitCategory enum value that
+    # the FpgaGetBitCount RPC uses.
     _BIT_CATEGORIES = {
         TargetMemory.CRAM: skraft_client_pb2.FPGA_BIT_CATEGORY_CRAM,
         TargetMemory.ESSENTIAL_CRAM:
@@ -164,7 +145,8 @@ class FpgaDevice:
         self.release()
 
     def release(self) -> None:
-        """Free the device's reserved resources (RPC: ``FpgaClose``)."""
+        """Release the reserved resources of the device
+        (RPC: ``FpgaClose``)."""
         try:
             self._stub.FpgaClose(empty_pb2.Empty())
         except grpc.RpcError as e:
@@ -174,8 +156,8 @@ class FpgaDevice:
 
     # -- design files ------------------------------------------------------ #
     def uploadDesignToServer(self, design: Design) -> None:
-        """Upload every file of ``design`` to the server and associate it
-        with the device (RPC: ``FpgaUploadDesignFile``, one stream per file).
+        """Upload each file of ``design`` to the server for this device
+        (RPC: ``FpgaUploadDesignFile``, one stream for each file).
         The server reads the files when the device is programmed.
         """
         for field_name, file_type in self._FILE_TYPES.items():
@@ -185,7 +167,8 @@ class FpgaDevice:
         self._design = design
 
     def _upload_file(self, path: str, file_type: int) -> None:
-        # Hash the file first: the server verifies it after the upload.
+        # Calculate the hash of the file first. After the upload, the server
+        # uses the hash to make sure that the file is correct.
         try:
             digest = hashlib.sha256()
             with open(path, "rb") as file:
@@ -218,7 +201,7 @@ class FpgaDevice:
 
     @property
     def design(self) -> Design:
-        """The design last uploaded to the server."""
+        """The design that was last uploaded to the server."""
         return self._design
 
     # -- programming & readback ------------------------------------------- #
@@ -257,7 +240,7 @@ class FpgaDevice:
             ) from e
 
     def shutdown(self): 
-        """Shutdowns the FPGA device."""
+        """Do a shutdown of the FPGA device (RPC: ``FpgaShutdown``)."""
         try:
             self._stub.FpgaShutdown(empty_pb2.Empty())
         except grpc.RpcError as e:
@@ -289,8 +272,8 @@ class FpgaDevice:
             capture = True if option == ReadbackOption.READBACK_CAPTURE else False
                 
             request = skraft_client_pb2.FpgaReadbackTarget(
-                start_frame_address=0, # Ignored.
-                end_frame_address=0,   # Ignored.
+                start_frame_address=0, # The server ignores this value.
+                end_frame_address=0,   # The server ignores this value.
                 capture=capture
             )
 
@@ -303,8 +286,8 @@ class FpgaDevice:
 
     @staticmethod
     def _frames_from_reply(reply) -> list[FpgaFrame]:
-        # FpgaFrame.words is now a flat repeated uint32 (the FpgaWord
-        # wrapper message was removed from the wire format).
+        # FpgaFrame.words is a flat repeated uint32. The wire format does
+        # not have the FpgaWord wrapper message any more.
         frames: list[FpgaFrame] = []
         for frame in reply.frames:
             words = [FpgaWord(value) for value in frame.words]
@@ -314,46 +297,47 @@ class FpgaDevice:
     # -- device queries (properties) -------------------------------------- #
     @property
     def cram_bits(self) -> int:
-        """Total CRAM bits in the active device
+        """The total number of CRAM bits in the active device
         (RPC: ``FpgaGetBitCount`` with ``FPGA_BIT_CATEGORY_CRAM``)."""
         return self.bit_count(TargetMemory.CRAM)
 
     @property
     def essential_cram_bits(self) -> int:
-        """Essential CRAM bits for the loaded design
-        (RPC: ``FpgaGetBitCount`` with ``FPGA_BIT_CATEGORY_ESSENTIAL_CRAM``;
-        requires the EBD file)."""
+        """The number of essential CRAM bits for the loaded design
+        (RPC: ``FpgaGetBitCount`` with ``FPGA_BIT_CATEGORY_ESSENTIAL_CRAM``).
+        The EBD file is necessary."""
         return self.bit_count(TargetMemory.ESSENTIAL_CRAM)
 
     @property
     def ff_bits(self) -> int:
-        """Flip-flop bits used by the loaded design
-        (RPC: ``FpgaGetBitCount`` with ``FPGA_BIT_CATEGORY_FLIP_FLOP``;
-        requires the LL file)."""
+        """The number of flip-flop bits that the loaded design uses
+        (RPC: ``FpgaGetBitCount`` with ``FPGA_BIT_CATEGORY_FLIP_FLOP``).
+        The LL file is necessary."""
         return self.bit_count(TargetMemory.FF)
 
     @property
     def bram_bits(self) -> int:
-        """BRAM bits used by the loaded design
-        (RPC: ``FpgaGetBitCount`` with ``FPGA_BIT_CATEGORY_BRAM``;
-        requires the LL file)."""
+        """The number of BRAM bits that the loaded design uses
+        (RPC: ``FpgaGetBitCount`` with ``FPGA_BIT_CATEGORY_BRAM``).
+        The LL file is necessary."""
         return self.bit_count(TargetMemory.BRAM)
 
     @property
     def lutram_bits(self) -> int:
-        """LUTRAM bits used by the loaded design
-        (RPC: ``FpgaGetBitCount`` with ``FPGA_BIT_CATEGORY_LUTRAM``;
-        requires the LL file)."""
+        """The number of LUTRAM bits that the loaded design uses
+        (RPC: ``FpgaGetBitCount`` with ``FPGA_BIT_CATEGORY_LUTRAM``).
+        The LL file is necessary."""
         return self.bit_count(TargetMemory.LUTRAM)
 
     def all_bit_counts(self, pblock: Optional[str] = None) -> dict[str, int]:
-        """Every bit statistic of the loaded design, over the whole device
-        (RPC: ``FpgaGetAllBitCounts``) or only inside the named ``pblock`` of
-        the XDC (RPC: ``FpgaGetBitCount`` per memory).
+        """Return all bit statistics of the loaded design, for the full
+        device (RPC: ``FpgaGetAllBitCounts``) or only for the named
+        ``pblock`` of the XDC (RPC: ``FpgaGetBitCount`` for each memory).
 
-        Inside a pblock, each memory is intersected with the pblock, e.g.
-        ``flip_flop_bits`` counts the pblock bits the LL file marks as
-        flip-flops. A memory whose design file was not uploaded counts 0.
+        For a pblock, each memory is intersected with the pblock. For
+        example, ``flip_flop_bits`` counts the bits in the pblock that the
+        LL file marks as flip-flops. A memory without an uploaded design
+        file gives a count of 0.
         """
         if pblock is not None:
             self._design.require("xdc")
@@ -387,14 +371,15 @@ class FpgaDevice:
 
     def bit_count(self, target: TargetMemory,
                   pblock: Optional[str] = None) -> int:
-        """Count the ``target`` bits of the loaded design, over the whole
-        device or only inside the named ``pblock`` of the XDC
+        """Count the ``target`` bits of the loaded design, for the full
+        device or only for the named ``pblock`` of the XDC
         (RPC: ``FpgaGetBitCount``).
 
-        ``target`` is a single memory: ``CRAM`` counts every bit,
-        ``ESSENTIAL_CRAM`` the essential bits (EBD file) and ``FF`` /
-        ``LUTRAM`` / ``BRAM`` the storage bits (LL file). With a ``pblock``,
-        only the target bits inside the pblock are counted, e.g. its bits the
+        ``target`` must be a single memory. ``CRAM`` counts all bits.
+        ``ESSENTIAL_CRAM`` counts the essential bits (EBD file). ``FF``,
+        ``LUTRAM`` and ``BRAM`` count the storage bits (LL file). With a
+        ``pblock``, the method counts only the target bits in the pblock.
+        For example, with ``FF`` it counts the bits in the pblock that the
         LL file marks as flip-flops.
         """
         if target not in self._BIT_CATEGORIES:
@@ -421,8 +406,9 @@ class FpgaDevice:
     def inject_random(
         self, target: TargetMemory, pblock: Optional[str] = None
     ) -> FpgaRandomInjectionReport:
-        """Inject a single random SEU into ``target``, optionally confined
-        to the named ``pblock`` of the XDC (RPC: ``FpgaRandomBitFlip``).
+        """Inject a single random SEU into ``target``
+        (RPC: ``FpgaRandomBitFlip``). If a ``pblock`` is given, the
+        injection is limited to that pblock of the XDC.
         """
         self._design.require(*target.required_design_files,
                              *(("xdc",) if pblock else ()))
@@ -444,15 +430,16 @@ class FpgaDevice:
     def inject_exhaustive(
         self, target: TargetMemory, pblock: Optional[str] = None
     ) -> tuple[list[FpgaInjectionReport], int]:
-        """Inject an upset into every bit of ``target``, optionally confined
-        to the named ``pblock`` of the XDC (RPC: ``FpgaExhaustiveBitFlip``).
+        """Inject an upset into each bit of ``target``
+        (RPC: ``FpgaExhaustiveBitFlip``). If a ``pblock`` is given, the
+        injection is limited to that pblock of the XDC.
 
-        Takes the same ``FpgaInjectionOptions`` selector as
-        :meth:`inject_random`, so the memories in ``target`` may be combined.
-        Returns the per-location reports together with the server-reported
-        ``injected_bit_count``, which is authoritative: it may differ from
-        ``len(reports)`` if the server truncates or aggregates the target
-        list.
+        This method uses the same ``FpgaInjectionOptions`` selector as
+        :meth:`inject_random`. Thus, you can combine memories in ``target``.
+        The method returns the report for each location and the
+        ``injected_bit_count`` from the server. ``injected_bit_count`` is the
+        reference value. It can be different from ``len(reports)`` if the
+        server truncates or aggregates the target list.
         """
         self._design.require(*target.required_design_files,
                              *(("xdc",) if pblock else ()))
@@ -480,10 +467,10 @@ class FpgaDevice:
         """Inject an upset at a specific ``(far, word_index, bit_index)``
         location, constrained to ``target`` (RPC: ``FpgaBitFlip``).
 
-        The wire message now carries a single ``FpgaTargetKind`` enum instead
-        of three booleans, so ``target`` must name at most one storage-element
-        memory (``FF``, ``LUTRAM`` or ``BRAM``); anything else is treated
-        as CRAM.
+        The wire message holds a single ``FpgaTargetKind`` enum, not three
+        booleans. Thus, ``target`` must name a maximum of one storage-element
+        memory (``FF``, ``LUTRAM`` or ``BRAM``). A ``target`` without a
+        storage-element memory is treated as CRAM.
         """
         self._design.require(*target.required_design_files)
         try:
@@ -498,15 +485,15 @@ class FpgaDevice:
             raise ConnectionFailedError(
                 f"failed to perform bit flip: {_rpc_detail(e)}"
             ) from e
-        # FpgaBitFlip returns nothing; echo the requested location.
+        # FpgaBitFlip returns nothing. Return the requested location.
         return FpgaInjectionReport(far, word_index, bit_index, target)
 
     def scrub(self, option: ScrubbingType, scrub_cycle: int,
               duration_ms: int, session_id: str = "") -> FpgaScrubReport:
         """Run a scrubbing session (RPC: ``FpgaScrubbing``).
 
-        ``ESSENTIAL`` scrubbing needs the EBD file so the server can tell
-        essential from non-essential upsets.
+        ``ESSENTIAL`` scrubbing must have the EBD file. The server uses the
+        EBD file to find which upsets are essential and which are not.
         """
         if option == ScrubbingType.ESSENTIAL:
             self._design.require("ebd")
@@ -554,7 +541,7 @@ class FpgaDevice:
         return FpgaScrubReport(summaries)
 
     def run_campaign(self, session: FpgaFiSession) -> FpgaFiSummary:
-        """Run a user-defined fault-injection campaign
+        """Run a user-defined fault injection campaign
         (RPC: ``FpgaFaultInjection``).
         """
         if session.essential:
@@ -589,8 +576,8 @@ class FpgaDevice:
                 f"failed to perform fault injection: {_rpc_detail(e)}"
             ) from e
 
-        # The reply carries only the per-word list, so derive the aggregate
-        # counts client-side. Wire real server counts here if they exist.
+        # The reply holds only the list of words. Thus, the client calculates
+        # the total counts. If the server gives real counts, use them here.
         faults_injected = len(words)
 
         corrected = faults_injected if session.correct else 0
@@ -598,12 +585,12 @@ class FpgaDevice:
 
     # -- frame utilities --------------------------------------------------- #
     def essential_frames(self) -> list[FpgaFrame]:
-        """Frames derived from the essential-bits (EBD) file
+        """Return the frames that come from the essential bits (EBD) file
         (RPC: ``FpgaEssentialFrames``).
 
-        A set bit in a returned word marks an essential bit at that position,
-        so the frames are masks rather than configuration data. Requires the
-        EBD file.
+        A set bit in a returned word marks an essential bit at that position.
+        Thus, the frames are masks, not configuration data. The EBD file is
+        necessary.
         """
         self._design.require("ebd")
         try:
@@ -615,11 +602,11 @@ class FpgaDevice:
             ) from e
 
     def mask_frames(self) -> list[FpgaFrame]:
-        """Frames derived from the readback-mask (MSD) file
+        """Return the frames that come from the readback mask (MSD) file
         (RPC: ``FpgaMaskFrames``).
 
-        A set bit marks a position to be ignored when comparing a readback
-        against the golden data. Requires the MSD file.
+        A set bit marks a position to ignore when you compare a readback
+        with the golden data. The MSD file is necessary.
         """
         self._design.require("msd")
         try:
@@ -631,7 +618,8 @@ class FpgaDevice:
             ) from e
 
     def far_list(self) -> list[int]:
-        """Every Frame Address (FAR) of the device (RPC: ``FpgaFarList``)."""
+        """Return all frame addresses (FAR) of the device
+        (RPC: ``FpgaFarList``)."""
         try:
             reply = self._stub.FpgaFarList(empty_pb2.Empty())
             return list(reply.fars)
@@ -641,8 +629,9 @@ class FpgaDevice:
             ) from e
 
     def exclude_frames(self, fars: list[int]) -> None:
-        """Exclude Frame Addresses from bulk operations
-        (RPC: ``FpgaExcludeFars``). ``inject_at`` is unaffected.
+        """Exclude frame addresses from bulk operations
+        (RPC: ``FpgaExcludeFars``). This exclusion has no effect on
+        ``inject_at``.
         """
         try:
             request = skraft_client_pb2.FpgaFarListExcludeRequest(fars=fars)
@@ -653,12 +642,12 @@ class FpgaDevice:
             ) from e
 
     def pblocks(self) -> list[FpgaPblock]:
-        """List every pblock declared in the constraints
+        """List all pblocks that the constraints declare
         (RPC: ``FpgaGetPblocks``).
 
-        Each returned :class:`FpgaPblock` carries its name and its range
-        clauses; a clause can be handed to :meth:`pblock_by_clause` to get the
-        frames it occupies. Requires the XDC file.
+        Each returned :class:`FpgaPblock` holds its name and its range
+        clauses. You can give a clause to :meth:`pblock_by_clause` to get the
+        frames that the clause occupies. The XDC file is necessary.
         """
         self._design.require("xdc")
         try:
@@ -676,15 +665,15 @@ class FpgaDevice:
             ) from e
 
     def pblock_by_clause(self, clause: str) -> list[FpgaPblockFar]:
-        """Resolve a pblock clause to the frames it occupies
+        """Find the frames that a pblock clause occupies
         (RPC: ``FpgaGetPblockFarsByClause``).
 
         ``clause`` is the pblock range expression as written in the
-        constraints, e.g. ``"SLICE_X0Y0:SLICE_X7Y49"``. Each returned
-        :class:`FpgaPblockFar` names a Frame Address and the word/bit
-        rectangles of it the pblock covers, so the result can be fed straight
-        to :meth:`inject_at` to confine injection to one region of the
-        device. Requires the XDC file.
+        constraints, for example ``"SLICE_X0Y0:SLICE_X7Y49"``. Each returned
+        :class:`FpgaPblockFar` names a frame address and the word/bit
+        rectangles in that frame that the pblock covers. You can use these
+        FAR, word and bit values with :meth:`inject_at` to limit injection
+        to one region of the device. The XDC file is necessary.
         """
         self._design.require("xdc")
         try:
@@ -715,7 +704,7 @@ class FpgaDevice:
 
     def write_bscan(self, bscan: BscanPrimitive, value: int) -> bytes:
         """Write ``value`` into the given USER register
-        (RPC: ``FpgaWriteBscan`` via ``BscanPrimitive.shift_in``).
+        (RPC: ``FpgaWriteBscan`` through ``BscanPrimitive.shift_in``).
         """
         try:
             total_bytes = -(-bscan.size_in_bits // 8) or 1
@@ -729,7 +718,7 @@ class FpgaDevice:
 
     def read_bscan(self, bscan: BscanPrimitive) -> bytes:
         """Read the current value of the given USER register
-        (RPC: ``FpgaReadBscan`` via ``BscanPrimitive.shift_in``).
+        (RPC: ``FpgaReadBscan`` through ``BscanPrimitive.shift_in``).
         """
         try:
             total_bytes = -(-bscan.size_in_bits // 8) or 1
@@ -785,9 +774,9 @@ class FpgaDevice:
 # SkraftFpga
 # --------------------------------------------------------------------------- #
 class SkraftFpga:
-    """Client/supervisor for a single SK-RAFT server connection.
+    """The client and supervisor for a single connection to an SK-RAFT server.
 
-    Usable as a context manager::
+    You can use it as a context manager::
 
         with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
             with client.attach("210183A1B2C3A") as dev:
@@ -806,7 +795,8 @@ class SkraftFpga:
         """Create a client and open the channel to the SK-RAFT server."""
         client = cls(ip, port)
         try:
-            # A full readback of a large device exceeds the default 4 MB.
+            # A full readback of a large device is larger than the default
+            # limit of 4 MB.
             client._channel = grpc.insecure_channel(
                 f"{ip}:{port}",
                 options=[("grpc.max_receive_message_length", -1),
@@ -866,10 +856,10 @@ class SkraftFpga:
 
     # -- device acquisition ------------------------------------------------ #
     def attach(self, serial_number: str) -> FpgaDevice:
-        """Reserve the device with the given serial number, e.g. the
+        """Reserve the device with the given serial number, for example the
         ``210183A1B2C3A`` of the Vivado target ``Digilent/210183A1B2C3A``
-        (RPCs: ``FpgaConnect``, ``FpgaSelectDevice``). Returns a
-        context-manageable ``FpgaDevice``.
+        (RPCs: ``FpgaConnect``, ``FpgaSelectDevice``). The method returns an
+        ``FpgaDevice`` that you can use as a context manager.
 
         If no device has this serial number, the error lists the serial
         numbers of the connected devices.
@@ -890,7 +880,7 @@ class SkraftFpga:
         return FpgaDevice(self._stub, serial_number)
 
     def _release_programmers(self) -> None:
-        """Close the programmers opened by ``FpgaConnect``, after a failed
+        """Close the programmers that ``FpgaConnect`` opened, after a failed
         :meth:`attach` (best effort)."""
         try:
             self._stub.FpgaClose(empty_pb2.Empty())
@@ -900,9 +890,9 @@ class SkraftFpga:
     # -- standalone frame utility ----------------------------------------- #
     def extract_fars_from_bitstream(self,
                                     bitstream_path: ServerPath) -> list[int]:
-        """Extract every Frame Address in a bitstream file
-        (RPC: ``FpgaExtractFarsFromBitstream``). Requires per-frame CRC in the
-        design.
+        """Extract all frame addresses from a bitstream file
+        (RPC: ``FpgaExtractFarsFromBitstream``). The design must use
+        per-frame CRC.
         """
         try:
             request = skraft_client_pb2.FpgaFarListExtractRequest(

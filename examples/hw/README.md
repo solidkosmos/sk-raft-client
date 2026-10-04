@@ -1,31 +1,19 @@
-# get_started_examples
+# Hardware designs for the getting-started examples
 
-FPGA fault-injection / side-channel testing tool. Each top-level design in
-`sources_1/new/` exercises a different fabric element (FF, LUTRAM, BRAM)
-driven and read back over JTAG/BSCAN, so results can be compared across
-elements under the same fault-injection setup.
+This folder contains the Vivado build script, the VHDL sources and the constraint files of the getting-started examples. Each top-level design in `sources_1/new/` uses a different fabric element (FF, LUTRAM, BRAM). The scripts control each design and read back its data through JTAG/BSCAN. Thus you can compare the results of the different elements with the same fault-injection setup.
 
-## Examples
+## Designs
 
-- `targeted_top` -- two independent heartbeat counters (slow, fast) for
-  targeted fault-injection experiments.
-- `bscan_adder_top` -- JTAG/BSCAN-driven adder: two BSCAN write channels feed
-  a single adder and a TMR adder, with the single adder's sum and the TMR's
-  result each read back over their own channel.
-- `ff_lut_top` -- free-running FF shift register (JTAG clock-gated) and an
-  address-mapped LUTRAM, both driven over BSCAN.
-- `brams_top` -- stock Block RAM with byte-lane Hamming SEC, driven over
-  independent JTAG/BSCAN address and data channels.
+- `targeted_top`: two independent heartbeat counters (slow and fast) for targeted fault-injection tests.
+- `bscan_adder_top`: two adders that BSCAN controls. One BSCAN write register (USER1) supplies the operands to a simplex adder and to a TMR adder. The script reads the result of the simplex adder through USER2 and the result of the TMR adder through USER3.
+- `ff_lut_top`: a flip-flop shift register that operates continuously, and a LUTRAM with an address map. The JTAG interface controls the clock of the shift register. BSCAN controls the two elements.
+- `brams_top`: one block RAM with a Hamming SEC code for each byte. Independent JTAG/BSCAN registers supply the address and the data.
 
-Each is a self-contained top -- there is no single default synthesis top for
-the project.
+Each design is a full top-level design. The project has no default synthesis top.
 
-## Building a bitstream
+## Build a bitstream
 
-`create_project.tcl` creates the Vivado project, picks one of the examples
-above as the synthesis top, and builds straight through to a bitstream. You
-only need to name the board and the example -- the script looks up that
-board's dedicated XDC from `xdc/<device>/<top>.xdc`, shipped next to it:
+The script `create_project.tcl` makes the Vivado project, sets one of the designs above as the synthesis top, and builds the bitstream. You must give only the board and the design. The script finds the XDC file of that board in `xdc/<device>/<top>.xdc`.
 
 ```
 vivado -mode batch -source create_project.tcl -tclargs <device> <top> [project_name] [project_dir] [-gui]
@@ -37,46 +25,39 @@ Example:
 vivado -mode batch -source create_project.tcl -tclargs basys3 brams_top
 ```
 
-Add `-gui` (anywhere in the args) to open the built project in the Vivado
-GUI afterward -- for inspection or further changes -- instead of exiting.
+To open the project in the Vivado GUI after the build, add `-gui` at any position in the arguments. Vivado then stays open, and you can examine or change the project.
 
-The bitstream lands at `<project_dir>/<project_name>.runs/impl_1/<top>.bit`,
-and for `targeted_top`/`bscan_adder_top`/`ff_lut_top`/`brams_top` it (plus
-EBD/LL where produced, and the XDC as `board.xdc`) is also copied straight
-into that top's `example<N>/src/design_files/`, so the matching example is
-runnable right after the build with no manual copying.
+The script writes the bitstream to `<project_dir>/<project_name>.runs/impl_1/<top>.bit`. For `targeted_top`, `bscan_adder_top`, `ff_lut_top` and `brams_top`, the script also copies these files into `example<N>/src/design_files/` of the related example:
 
-Known devices: `basys3` (Digilent Basys-3) and `zedboard` (Zedboard,
-`xc7z020clg484-1`) -- only these two are tested/shipped. To add your own
-board:
+- The bitstream.
+- The EBD and LL files, if Vivado makes them.
+- The XDC file, with the name `board.xdc`.
 
-1. `cp -r xdc/custom_template xdc/<your_board_name>`
-2. Fill in the PACKAGE_PIN/IOSTANDARD placeholders (and pblock ranges, if
-   used) in each `.xdc` file there.
-3. Add a `<your_board_name>` entry to `device_info` in `create_project.tcl`
-   with just `part` and `clk_freq` -- `g_family` is derived straight from
-   the part's Vivado `ARCHITECTURE` property, not something you supply:
+Thus you can run the related example immediately after the build. You do not have to copy files manually.
+
+The known devices are `basys3` (Digilent Basys 3, `xc7a35tcpg236-1`) and `zedboard` (ZedBoard, `xc7z020clg484-1`). SolidKosmos tested and supplies only these two boards.
+
+To add your own board:
+
+1. Copy the template folder:
+   ```
+   cp -r xdc/custom_template xdc/<your_board_name>
+   ```
+2. In each `.xdc` file of the new folder, replace the PACKAGE_PIN and IOSTANDARD placeholders. If you use pblocks, also replace the pblock ranges.
+3. In `create_project.tcl`, add an entry for `<your_board_name>` to `device_info`. Give only `part` and `clk_freq`. The script gets `g_family` from the Vivado `ARCHITECTURE` property of the part. For example:
    ```tcl
    my_board {part xc7a100tcsg324-1 clk_freq 100}
    ```
-4. Build it the same way as any other board, using the name you picked:
+4. Build the design with the name of your board, as for all other boards:
    ```
    vivado -mode batch -source create_project.tcl -tclargs my_board brams_top
    ```
 
-`get_started_examples_portable.zip` contains this script, `xdc/`, and every
-VHDL source, ready to run as above without anything else.
-
 ### Device family (`g_family` generic)
 
-Two wrappers take a `g_family` generic (`"7SERIES"`, `"ULTRASCALE"`, or
-`"ULTRASCALEPLUS"`) that selects which primitive they instantiate:
+Two wrappers have a `g_family` generic (`"7SERIES"`, `"ULTRASCALE"` or `"ULTRASCALEPLUS"`). This generic selects the primitive that the wrapper uses:
 
-- `bram_sdp_native_wrapper` -- `RAMB36E1` vs `RAMB36E2`
-- `clk_gen_wrapper` -- `PLLE2_BASE` vs `PLLE3_BASE` vs `PLLE4_BASE`
+- `bram_sdp_native_wrapper`: `RAMB36E1` or `RAMB36E2`.
+- `clk_gen_wrapper`: `PLLE2_BASE`, `PLLE3_BASE` or `PLLE4_BASE`.
 
-`create_project.tcl` sets this for you: it queries the target part's
-Vivado `ARCHITECTURE` property and passes the matching `g_family` (plus
-`clk_freq`) as a project generic, overriding the VHDL default. You don't
-set or override this yourself for a known device -- it's derived from
-whatever `part` you give that device in `device_info`.
+`create_project.tcl` sets this generic for you. It reads the Vivado `ARCHITECTURE` property of the target part. Then it gives the related `g_family` value (and `clk_freq`) as a project generic, which replaces the default value in the VHDL. For a known device, you do not set this generic yourself. The script gets it from the `part` value of the device in `device_info`.

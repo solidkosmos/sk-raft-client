@@ -1,25 +1,6 @@
-#   Copyright(C) 2024 SOLIDKOSMOS S.A.
-#   All rights reserved.
-#
-#   This software ("Software") is supplied by SOLIDKOSMOS S.A. ("SolidKosmos").
-#   SolidKosmos grants you a personal, non-exclusive, non-transferable, revocable,
-#   non-sub-licensable right and license to use the Software. You may make copies of
-#   this Software, provided this copyright notice and disclaimer ("Notice") is included
-#   in all such copies. SolidKosmos reserves the right to change or discontinue the
-#   Software at any time without notice.
-#
-#   THE SOFTWARE IS PROVIDED "AS IS". SOLIDKOSMOS DISCLAIMS ALL WARRANTIES OF ANY KIND,
-#   WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-#   OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. TO THE
-#   MAXIMUM EXTENT PERMITTED UNDER LAW, IN NO EVENT SHALL SOLIDKOSMOS BE LIABLE FOR ANY DIRECT,
-#   INDIRECT, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING FROM, OUT OF OR IN
-#   CONNECTION WITH THE SOFTWARE, EVEN IF SOLIDKOSMOS HAS BEEN ADVISED OF THE POSSIBILITY OF
-#   SUCH DAMAGES. USE OF THIS SOFTWARE MAY BE SUBJECT TO TERMS AND CONDITIONS CONTAINED IN
-#   AN ADDITIONAL AGREEMENT BETWEEN YOU AND SOLIDKOSMOS. IN CASE OF CONFLICT BETWEEN THE TERMS
-#   OF THIS NOTICE AND ANY SUCH ADDITIONAL LICENSE AGREEMENT, THE TERMS OF THE AGREEMENT
-#   SHALL TAKE PRECEDENCE. BY CONTINUING TO USE THIS SOFTWARE, YOU AGREE TO THE TERMS OF
-#   THIS NOTICE. IF YOU DO NOT AGREE TO THESE TERMS, YOU ARE NOT PERMITTED TO USE THIS
-#   SOFTWARE
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2024-2026 SOLIDKOSMOS S.A.
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -35,20 +16,21 @@ from .exceptions import DesignFileError
 # Injection selection
 # --------------------------------------------------------------------------- #
 class TargetMemory(IntFlag):
-    """Memories that can be selected for fault injection.
+    """The memories that you can select for fault injection.
 
-    Modelled as an ``IntFlag`` so memories can be combined, e.g.::
+    This class is an ``IntFlag``, so you can combine memories, for example::
 
         target = TargetMemory.FF | TargetMemory.BRAM
 
-    The wire protocol supports this for *random* and *exhaustive* injection:
-    ``FpgaInjectionOptions`` carries independent ``essentials`` /
-    ``include_flip_flops`` / ``include_lutrams`` / ``include_brams``
-    booleans. ``CRAM`` is the absence of any narrowing flag (whole CRAM).
+    The wire protocol supports combined memories for *random* and
+    *exhaustive* injection. ``FpgaInjectionOptions`` holds the independent
+    booleans ``essentials``, ``include_flip_flops``, ``include_lutrams`` and
+    ``include_brams``. ``CRAM`` means that no flag limits the target (the
+    full CRAM).
 
-    A *specific* injection (``FpgaInjectionTarget``) carries a single
-    ``FpgaTargetKind`` enum, so only one storage-element flag may be set
-    there.
+    A *specific* injection (``FpgaInjectionTarget``) holds a single
+    ``FpgaTargetKind`` enum. Thus, a specific injection can have a maximum
+    of one storage-element flag.
     """
 
     CRAM = 1 << 0
@@ -59,7 +41,7 @@ class TargetMemory(IntFlag):
 
     @property
     def required_design_files(self) -> tuple[str, ...]:
-        """The :class:`Design` fields this target depends on."""
+        """The :class:`Design` fields that this target depends on."""
         files: list[str] = []
         if self & TargetMemory.ESSENTIAL_CRAM:
             files.append("ebd")
@@ -68,23 +50,23 @@ class TargetMemory(IntFlag):
         return tuple(files)
 
 class ReadbackOption(int, Enum):
-    """Readkback options."""
+    """The readback options."""
     READBACK = 0
     READBACK_CAPTURE = 1
 
 class ScrubbingType(int, Enum):
-    """Scrubbing mode."""
+    """The scrubbing mode."""
 
     READBACK = 0
     ESSENTIAL = 1
 
 
 class FaultType(int, Enum):
-    """Fault model used by a fault-injection campaign.
+    """The fault model of a fault injection campaign.
 
-    Mirrors the wire ``FpgaFaultType`` enum, which replaced the opaque
-    ``uint32 type`` field (and the former ``InjectionType`` on the Python
-    side).
+    This enum is a copy of the wire ``FpgaFaultType`` enum. ``FpgaFaultType``
+    replaced the opaque ``uint32 type`` field (and the old ``InjectionType``
+    in the Python client).
     """
     RANDOM = skraft_client_pb2.FPGA_FAULT_TYPE_RANDOM
     EXHAUSTIVE = skraft_client_pb2.FPGA_FAULT_TYPE_EXHAUSTIVE
@@ -93,10 +75,11 @@ class FaultType(int, Enum):
 # Design-file configuration
 # --------------------------------------------------------------------------- #
 class ServerPath(str):
-    """A filesystem path resolved on the SK-RAFT *server*, not the client.
+    """A file system path that the SK-RAFT *server* resolves, not the client.
 
-    Subclasses ``str`` so it stays wire-compatible while making the
-    server-relative semantics explicit at call sites.
+    This class is a subclass of ``str``. Thus, the path stays compatible with
+    the wire format, and the call sites show clearly that the path is
+    relative to the server.
     """
 
     __slots__ = ()
@@ -107,14 +90,15 @@ class ServerPath(str):
 
 @dataclass(frozen=True)
 class Design:
-    """The files of a design, as paths on the *client* machine.
+    """The files of a design, as paths on the *client* computer.
 
-    :meth:`FpgaDevice.uploadDesignToServer` uploads every file given. Every
-    field is optional; an operation that needs a missing file raises
-    :class:`DesignFileError` naming the field.
+    :meth:`FpgaDevice.uploadDesignToServer` uploads each file that you give.
+    All fields are optional. If an operation must have a file that is not
+    set, the operation raises :class:`DesignFileError` with the name of the
+    field.
     """
 
-    bit: Optional[str] = None   # bitstream, for programming
+    bit: Optional[str] = None   # bitstream, to program the device
     ebd: Optional[str] = None   # essential bits
     ll: Optional[str] = None    # logic location (flip-flop, LUTRAM, BRAM bits)
     xdc: Optional[str] = None   # constraints (pblocks)
@@ -122,7 +106,7 @@ class Design:
     msd: Optional[str] = None   # readback mask (self-test)
 
     def require(self, *fields: str) -> None:
-        """Raise :class:`DesignFileError` if any named field is unset."""
+        """Raise :class:`DesignFileError` if a named field is not set."""
         missing = [f for f in fields if getattr(self, f) is None]
         if missing:
             raise DesignFileError(
@@ -179,12 +163,12 @@ class FpgaPblockRange:
 
     @property
     def start(self) -> int:
-        """First index of the range."""
+        """The first index of the range."""
         return self.__start
 
     @property
     def end(self) -> int:
-        """Last index of the range."""
+        """The last index of the range."""
         return self.__end
 
 
@@ -196,17 +180,18 @@ class FpgaPblockAreaRange:
 
     @property
     def bit_range(self) -> FpgaPblockRange:
-        """Bit indexes occupied inside each word of :attr:`word_range`."""
+        """The bit indexes that the area occupies in each word of
+        :attr:`word_range`."""
         return self.__bit_range
 
     @property
     def word_range(self) -> FpgaPblockRange:
-        """Word indexes occupied inside the frame."""
+        """The word indexes that the area occupies in the frame."""
         return self.__word_range
 
 
 class FpgaPblockFar:
-    """One Frame Address covered by a pblock.
+    """One frame address that a pblock covers.
     """
 
     def __init__(self, far: int,
@@ -216,22 +201,23 @@ class FpgaPblockFar:
 
     @property
     def far(self) -> int:
-        """The Frame Address (FAR)."""
+        """The frame address (FAR)."""
         return self.__far
 
     @property
     def occupied_area(self) -> list[FpgaPblockAreaRange]:
-        """The areas of this frame occupied by the pblock."""
+        """The areas of this frame that the pblock occupies."""
         return self.__occupied_area
 
 
 class FpgaPblock:
-    """A pblock declared in the constraints file (wire ``FpgaPblock``).
+    """A pblock that the constraints file declares (wire ``FpgaPblock``).
 
-    ``clauses`` are the range expressions attached to the pblock, e.g.
-    ``"SLICE_X0Y0:SLICE_X7Y49"``. They are carried on the wire as
-    ``FpgaPblockClause`` messages and unwrapped to plain strings here, so a
-    clause can be passed straight to :meth:`FpgaDevice.pblock_by_clause`.
+    ``clauses`` are the range expressions of the pblock, for example
+    ``"SLICE_X0Y0:SLICE_X7Y49"``. The wire format sends the clauses as
+    ``FpgaPblockClause`` messages. The client unwraps them to plain strings.
+    Thus, you can give a clause directly to
+    :meth:`FpgaDevice.pblock_by_clause`.
     """
 
     def __init__(self, name: str, clauses: list[str]) -> None:
@@ -240,12 +226,12 @@ class FpgaPblock:
 
     @property
     def name(self) -> str:
-        """The pblock name as written in the constraints."""
+        """The name of the pblock, as written in the constraints."""
         return self.__name
 
     @property
     def clauses(self) -> list[str]:
-        """The range expressions belonging to the pblock."""
+        """The range expressions of the pblock."""
         return self.__clauses
 
 
@@ -255,9 +241,9 @@ class FpgaPblock:
 class FpgaWord:
     """An FPGA word: a single 32-bit value.
 
-    Note: the wire format no longer has an ``FpgaWord`` message (frames carry
-    a flat ``repeated uint32``); this class is kept as a client-side
-    convenience wrapper.
+    Note: The wire format does not have an ``FpgaWord`` message any more.
+    The frames hold a flat ``repeated uint32``. The client keeps this class
+    as a convenience wrapper.
     """
 
     def __init__(self, value: int):
@@ -270,7 +256,7 @@ class FpgaWord:
 
 
 class FpgaFrame:
-    """An FPGA frame: a Frame Address (FAR) and a list of words."""
+    """An FPGA frame: a frame address (FAR) and a list of words."""
 
     def __init__(self, far: int, words: list[FpgaWord]):
         self.__far = far
@@ -278,12 +264,13 @@ class FpgaFrame:
 
     @property
     def far(self) -> int:
-        """The Frame Address (FAR) of the frame."""
+        """The frame address (FAR) of the frame."""
         return self.__far
 
     @property
     def words(self) -> list[FpgaWord]:
-        """The words of the frame; length is family-dependent."""
+        """The words of the frame. The number of words depends on the device
+        family."""
         return self.__words
 
 
@@ -293,8 +280,8 @@ class FpgaFrame:
 class BscanPrimitive:
     """A BSCAN USER register (``USER N``, with ``1 <= N <= 4``).
 
-    The range is validated in the constructor; an out-of-range id raises
-    ``ValueError`` rather than failing deep inside a write.
+    The constructor validates the range. An id that is out of range raises
+    ``ValueError`` immediately, not as a failure deep inside a write.
     """
 
     MIN_REGISTER = 1
@@ -320,10 +307,11 @@ class BscanPrimitive:
 
     def shift_in(self, grpc_client, value: bytes,
                  readonly: bool = False) -> bytes:
-        """Shift ``value`` through the register and return what comes out.
+        """Return the output of the register after ``value`` shifts through it.
 
-        Uses ``FpgaReadBscan`` when ``readonly`` is set (leaving the register
-        contents untouched) and ``FpgaWriteBscan`` otherwise.
+        If ``readonly`` is set, the method uses ``FpgaReadBscan``, and the
+        register contents do not change. If not, the method uses
+        ``FpgaWriteBscan``.
         """
         request = skraft_client_pb2.FpgaBscanTarget(
             user_register_id=self.__user_register_id,
@@ -338,8 +326,8 @@ class BscanPrimitive:
 
 
 class Bscan:
-    """A BSCAN USER register of an attached device, read and written as an
-    integer::
+    """A BSCAN USER register of an attached device. You read and write the
+    register as an integer::
 
         data = Bscan(dev, 4, 32)   # USER4, 32 bits wide
         data.write(0xA5A5A5A5)
@@ -352,7 +340,7 @@ class Bscan:
 
     @property
     def primitive(self) -> BscanPrimitive:
-        """The underlying USER register."""
+        """The USER register that this object uses."""
         return self.__primitive
 
     def write(self, value: int) -> None:
@@ -370,10 +358,13 @@ class Bscan:
 # Injection reports
 # --------------------------------------------------------------------------- #
 class FpgaInjectionReport:
-    """Result of a single *specific* injection (:meth:`FpgaDevice.inject_at`).
+    """The result of an injection at one location.
 
-    The wire ``FpgaBitFlip`` RPC returns nothing, so the report echoes the
-    requested location; ``net_name`` is therefore always ``None`` here.
+    :meth:`FpgaDevice.inject_at` returns one report. Also,
+    :meth:`FpgaDevice.inject_exhaustive` returns one report for each location.
+    For :meth:`FpgaDevice.inject_at`, the wire ``FpgaBitFlip`` RPC returns
+    nothing. Thus, the report echoes the requested location, and ``net_name``
+    is always ``None``.
     """
 
     def __init__(self, far: int, word_index: int, bit_index: int,
@@ -406,7 +397,7 @@ class FpgaInjectionReport:
 
 
 class FpgaRandomInjectionReport:
-    """Result of a single *random* injection
+    """The result of a single *random* injection
     (:meth:`FpgaDevice.inject_random`)."""
 
     def __init__(self, far: int, word_index: int, bit_index: int,
@@ -419,28 +410,28 @@ class FpgaRandomInjectionReport:
 
     @property
     def far(self) -> int:
-        """Frame Address (FAR) where the injection took place."""
+        """The frame address (FAR) where the injection occurred."""
         return self.__far
 
     @property
     def word_index(self) -> int:
-        """Word index where the injection took place."""
+        """The word index where the injection occurred."""
         return self.__word_index
 
     @property
     def bit_index(self) -> int:
-        """Bit index where the injection took place."""
+        """The bit index where the injection occurred."""
         return self.__bit_index
 
     @property
     def target(self) -> TargetMemory:
-        """The area that was injected."""
+        """The area that received the injection."""
         return self.__target
 
     @property
     def net_name(self) -> Optional[str]:
-        """Net name at the injection site if the upset hit a flip-flop, else
-        ``None``."""
+        """The net name at the injection site if the upset hit a flip-flop.
+        If not, ``None``."""
         return self.__net_name
 
 
@@ -448,7 +439,7 @@ class FpgaRandomInjectionReport:
 # Scrubbing
 # --------------------------------------------------------------------------- #
 class FpgaScrubWordSummary:
-    """Per-word detail for a word touched during a scrubbing session."""
+    """The details of one word that a scrubbing session affected."""
 
     def __init__(self, far: int, word_index: int, bit_index: int,
                  golden_word_value: int, erroneous_word_value: int,
@@ -465,47 +456,47 @@ class FpgaScrubWordSummary:
 
     @property
     def far(self) -> int:
-        """Frame Address (FAR) of the affected frame."""
+        """The frame address (FAR) of the affected frame."""
         return self.__far
 
     @property
     def word_index(self) -> int:
-        """Index of the affected word."""
+        """The index of the affected word."""
         return self.__word_index
 
     @property
     def bit_index(self) -> int:
-        """Index of the affected bit."""
+        """The index of the affected bit."""
         return self.__bit_index
 
     @property
     def golden_word_value(self) -> int:
-        """Expected (golden) word value."""
+        """The expected (golden) value of the word."""
         return self.__golden_word_value
 
     @property
     def erroneous_word_value(self) -> int:
-        """Word value observed before correction."""
+        """The observed value of the word before the correction."""
         return self.__erroneous_word_value
 
     @property
     def ebd_word_value(self) -> int:
-        """Matching word from the essential-bits (EBD) file."""
+        """The word at the same location in the essential bits (EBD) file."""
         return self.__ebd_word_value
 
     @property
     def msd_word_value(self) -> int:
-        """Matching word from the readback-mask (MSD) file."""
+        """The word at the same location in the readback mask (MSD) file."""
         return self.__msd_word_value
 
     @property
     def is_essential(self) -> bool:
-        """Whether the affected bit was essential."""
+        """True if the affected bit was essential."""
         return self.__is_essential
 
 
 class FpgaScrubSummary:
-    """Outcome of one scrub cycle within a scrubbing session."""
+    """The result of one scrub cycle in a scrubbing session."""
 
     def __init__(self, scrub_cycle: int, correction_time_ms: int,
                  idle_time_ms: int, scrub_cycle_actual_duration_ms: int,
@@ -518,34 +509,34 @@ class FpgaScrubSummary:
 
     @property
     def scrub_cycle(self) -> int:
-        """The scrub cycle this summary belongs to."""
+        """The scrub cycle of this summary."""
         return self.__scrub_cycle
 
     @property
     def correction_time_ms(self) -> int:
-        """Time spent correcting upsets, in milliseconds."""
+        """The time used to correct upsets, in milliseconds."""
         return self.__correction_time_ms
 
     @property
     def idle_time_ms(self) -> int:
-        """Idle time within the cycle, in milliseconds."""
+        """The idle time in the cycle, in milliseconds."""
         return self.__idle_time_ms
 
     @property
     def scrub_cycle_actual_duration_ms(self) -> int:
-        """Measured duration of the scrub cycle, in milliseconds."""
+        """The measured duration of the scrub cycle, in milliseconds."""
         return self.__scrub_cycle_actual_duration_ms
 
     @property
     def word_summaries(self) -> list[FpgaScrubWordSummary]:
-        """Per-word detail for the words touched during the cycle."""
+        """The details of each word that the cycle affected."""
         return self.__word_summaries
 
 
 class FpgaScrubReport:
-    """Outcome of a completed scrubbing session (RPC: ``FpgaScrubbing``).
+    """The result of a completed scrubbing session (RPC: ``FpgaScrubbing``).
 
-    The wire reply carries one :class:`FpgaScrubSummary` per scrub cycle.
+    The wire reply holds one :class:`FpgaScrubSummary` for each scrub cycle.
     """
 
     def __init__(self, scrub_summaries: list[FpgaScrubSummary]):
@@ -553,7 +544,7 @@ class FpgaScrubReport:
 
     @property
     def scrub_summaries(self) -> list[FpgaScrubSummary]:
-        """Per-cycle summaries for the session."""
+        """The summaries of each cycle of the session."""
         return self.__scrub_summaries
 
 
@@ -562,15 +553,16 @@ class FpgaScrubReport:
 # --------------------------------------------------------------------------- #
 @dataclass
 class FpgaFiSession:
-    """User-defined options for a fault-injection campaign.
+    """The user-defined options for a fault injection campaign.
 
     The upset-type shares (``sbu``/``mbu``/``mcu``) are percentages in
-    ``[0, 100]`` and must sum to ``100``; this is validated on construction.
+    ``[0, 100]``. Their sum must be ``100``. The constructor validates the
+    sum.
 
-    ``target`` selects the area. The campaign wire message only distinguishes
-    *whole CRAM* from *essential CRAM*, so ``target`` must be either
-    ``TargetMemory.CRAM`` or ``TargetMemory.ESSENTIAL_CRAM``; storage-element
-    targets are rejected.
+    ``target`` selects the area. The campaign wire message only knows the
+    difference between *full CRAM* and *essential CRAM*. Thus, ``target``
+    must be ``TargetMemory.CRAM`` or ``TargetMemory.ESSENTIAL_CRAM``. The
+    constructor rejects storage-element targets.
     """
 
     fault_type: FaultType
@@ -599,13 +591,13 @@ class FpgaFiSession:
 
     @property
     def essential(self) -> bool:
-        """Whether the campaign targets only essential bits (derived from
-        ``target``)."""
+        """True if the campaign targets only essential bits. The value comes
+        from ``target``."""
         return bool(self.target & TargetMemory.ESSENTIAL_CRAM)
 
 
 class FpgaFiWordSummary:
-    """Per-word detail for a word affected during a campaign."""
+    """The details of one word that a campaign affected."""
 
     def __init__(self, far: int, word_index: int, bit_index: int,
                  golden_word_value: int, injected_word_value: int,
@@ -619,43 +611,45 @@ class FpgaFiWordSummary:
 
     @property
     def far(self) -> int:
-        """Frame Address (FAR) of the injected frame."""
+        """The frame address (FAR) of the injected frame."""
         return self.__far
 
     @property
     def word_index(self) -> int:
-        """Index of the injected word."""
+        """The index of the injected word."""
         return self.__word_index
 
     @property
     def bit_index(self) -> int:
-        """Index of the injected bit."""
+        """The index of the injected bit."""
         return self.__bit_index
 
     @property
     def golden_word_value(self) -> int:
-        """Word value before injection."""
+        """The word value before the injection."""
         return self.__golden_word_value
 
     @property
     def injected_word_value(self) -> int:
-        """Word value after injection."""
+        """The word value after the injection."""
         return self.__injected_word_value
 
     @property
     def is_essential(self) -> bool:
-        """Whether the injected bit was essential."""
+        """True if the injected bit was essential."""
         return self.__is_essential
 
 
 class FpgaFiSummary:
-    """Outcome of a completed fault-injection campaign.
+    """The result of a completed fault injection campaign.
 
-    Note: the wire reply only carries the per-word list (plus echoed session
-    parameters). ``faults_injected`` / ``corrected`` are therefore derived
-    client-side from ``affected_words`` and the session's ``correct`` flag.
-    If the server later reports explicit counts, populate them directly
-    instead.
+    Note: The wire reply holds only the list of words (and the echoed
+    session parameters). Thus, the client calculates ``faults_injected`` and
+    ``corrected`` from ``affected_words`` and the ``correct`` flag of the
+    session.
+
+    If the server reports explicit counts in the future, set these values
+    directly from the server counts.
     """
 
     def __init__(self, session: FpgaFiSession, faults_injected: int,
@@ -667,20 +661,20 @@ class FpgaFiSummary:
 
     @property
     def session(self) -> FpgaFiSession:
-        """The session the campaign was run with."""
+        """The session that the campaign used."""
         return self.__session
 
     @property
     def faults_injected(self) -> int:
-        """Total number of faults injected."""
+        """The total number of injected faults."""
         return self.__faults_injected
 
     @property
     def corrected(self) -> int:
-        """Number of injected faults that were corrected."""
+        """The number of injected faults that were corrected."""
         return self.__corrected
 
     @property
     def affected_words(self) -> list[FpgaFiWordSummary]:
-        """Per-word detail for the affected words."""
+        """The details of each affected word."""
         return self.__affected_words

@@ -1,12 +1,15 @@
 --------------------------------------------------------------------------------
 -- Company: SolidKosmos S.A.
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
 -- Module Name: bscan_interface
--- Description: Top-level JTAG/BSCAN wrapper -- pairs a BSCAN User Register IO
---              instance with a BSCAN Primitive Wrapper, exposing a
---              synchronized read/write data path (data_to_jtag_i/
---              data_from_jtag_o) plus avail/ack handshake signals to the
---              design.
+-- Description: Top-level JTAG/BSCAN wrapper. It connects a BSCAN User
+--              Register IO instance to a BSCAN Primitive Wrapper. It gives
+--              the design a read/write data path (data_to_jtag_i/
+--              data_from_jtag_o) and avail/ack handshake signals. If sync
+--              is true, two flip-flops synchronize avail/ack to clk_i. The
+--              data path is not synchronized.
 --------------------------------------------------------------------------------
 
 
@@ -24,7 +27,7 @@ entity bscan_interface is
     sync       : boolean := true
   );
   Port ( 
-  ----- CLK INPUT FOR CDC HANDLING -----
+  ----- CLK INPUT FOR CDC -----
     clk_i : in std_ulogic;
   ----- TCK OUTPUT FOR CDC, LOGIC ISOLATION -----
     tck_o : out std_ulogic;

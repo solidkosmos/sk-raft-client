@@ -1,9 +1,11 @@
 --------------------------------------------------------------------------------
 -- Company: SolidKosmos S.A.
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
 -- Module Name: lut_memory_array
--- Description: Distributed-RAM (LUTRAM) memory array with synchronous
---              read/write, used by ff_lut_top.
+-- Description: LUTRAM (distributed RAM) memory array with a synchronous
+--              write and an asynchronous read. ff_lut_top uses this array.
 --------------------------------------------------------------------------------
 
 

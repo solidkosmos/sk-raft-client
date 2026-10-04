@@ -1,10 +1,12 @@
 --------------------------------------------------------------------------------
 -- Company: SolidKosmos S.A.
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
 -- Module Name: secded_enc8b
--- Description: 8-bit Hamming SEC encoder -- computes 4 Hamming parity bits
---              from 8 data bits, plus an overall/DED parity bit (ded_par_o)
---              for upgrading the code to SEC-DED.
+-- Description: 8-bit Hamming SEC encoder. It calculates 4 Hamming parity
+--              bits from 8 data bits. It also calculates an overall (DED)
+--              parity bit (ded_par_o) to extend the code to SECDED.
 --------------------------------------------------------------------------------
 
 
@@ -47,7 +49,7 @@ begin
         begin
             vpar := '0';
             for i in 0 to (data_len + parities_len - 1) loop
-                --parity generation for double error detection
+                -- Parity generation for double-error detection
                 vpar := vpar XOR encoded_word(i);
             end loop;
 

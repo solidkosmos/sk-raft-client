@@ -1,9 +1,12 @@
 --------------------------------------------------------------------------------
 -- Company: SolidKosmos S.A.
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
 -- Module Name: ff_lut_top
--- Description: Free-running FF shift register (JTAG clock-gated) and an
---              address-mapped LUTRAM, both driven over BSCAN.
+-- Description: An FF shift register that operates continuously (JTAG
+--              controls its clock gate) and an address-mapped LUTRAM. Both
+--              are driven over BSCAN.
 --------------------------------------------------------------------------------
 
 library IEEE;
@@ -17,18 +20,18 @@ use work.examples_utilities_pkg.all;
 
 entity ff_lut_top is
   Generic (
-    -- "7SERIES", "ULTRASCALE", or "ULTRASCALEPLUS" -- passed straight to
-    -- clk_gen_wrapper
+    -- "7SERIES", "ULTRASCALE", or "ULTRASCALEPLUS". The value goes directly
+    -- to clk_gen_wrapper.
     g_family       : string  := "7SERIES";
-    -- The lengths of the shift registers, 8 bits by default
+    -- The length of the shift register (8 bits by default)
     sr_len         : integer range 1 to 256 := 8;
-    -- The data length of each LUT data, 4 bits default (2 memory
-    -- elements = 8 LUTRAMS)
+    -- The data length of each LUTRAM word (32 bits by default)
     lut_data_len   : integer range 1 to 256 := 32;
-    -- Shift every X ms for 100 MHz clock (1000 ms => 1 s)
+    -- Half period of the shift clock in ms (for all clk_freq values). The
+    -- shift register shifts every 2 x shift_interval ms (200 ms by default).
     shift_interval : integer range 1 to 100 := 100;
-    -- Set the clock frequency to make the intervals time accurate
-    -- (default 100MHz)
+    -- The clock frequency in MHz, to make the time intervals accurate
+    -- (100 MHz by default)
     clk_freq       : integer range 1 to 400 := 100
   );
   Port (
@@ -40,9 +43,9 @@ end ff_lut_top;
 
 architecture Behavioral of ff_lut_top is
 
-    -- Function to find the least amount of 
-    -- required bits to address the whole 
-    -- memory array depth
+    -- This function finds the minimum number of
+    -- bits that is necessary to address the full
+    -- depth of the memory array.
     function clog2(depth : positive) return natural is
         variable bits : natural := 0;
         variable val  : natural := 1;
@@ -70,38 +73,38 @@ architecture Behavioral of ff_lut_top is
     signal addr_sel : natural range 0 to lut_mem_depth - 1;
     signal wr_en    : std_ulogic := '0';
     
-    -- Setting the interfacing signals of BSCAN
+    -- Interface signals of the BSCAN registers
 
     -- BSCAN USER 1 : CLOCK ENABLE ---------------------
     type bscan_clk_en_interfacing is record
-        -- read back the clock-enable state
+        -- JTAG reads back the clock-enable state.
         data_to_jtag   : std_ulogic_vector(0 downto 0);
-        -- write to enable/disable the clock
+        -- JTAG writes this bit to enable or disable the clock.
         data_from_jtag : std_ulogic_vector(0 downto 0);
     end record bscan_clk_en_interfacing;
 
     -- BSCAN USER 2 : READ SHIFT REGISTER ---------------------
     type bscan_sr_read_interfacing is record
-        -- read back the shift register state (read-only channel)
+        -- JTAG reads back the shift register state (read-only channel).
         data_to_jtag : std_ulogic_vector(sr_len - 1 downto 0);
     end record bscan_sr_read_interfacing;
 
     -- BSCAN USER 3 : ADDRESS SELECT ---------------------
     type bscan_addr_interfacing is record
-        -- read back the currently selected address
+        -- JTAG reads back the selected address.
         data_to_jtag   : std_ulogic_vector(addr_width - 1 downto 0);
-        -- write to select the address
+        -- JTAG writes this value to select the address.
         data_from_jtag : std_ulogic_vector(addr_width - 1 downto 0);
     end record bscan_addr_interfacing;
 
     -- BSCAN USER 4 : READ/WRITE DATA ---------------------
     type bscan_lut_data_interfacing is record
-        -- read back the data residing in the selected address
+        -- JTAG reads back the data in the selected address.
         data_to_jtag   : std_ulogic_vector(lut_data_len - 1 downto 0);
-        -- write data into the selected address
+        -- JTAG writes the data into the selected address.
         data_from_jtag : std_ulogic_vector(lut_data_len - 1 downto 0);
-        -- new data word available, pulses when a word is explicitly
-        -- written
+        -- New data word available. The signal goes to 1 when JTAG
+        -- writes a word.
         avail          : std_ulogic;
         avail_prev     : std_ulogic;
     end record bscan_lut_data_interfacing;
@@ -112,8 +115,8 @@ architecture Behavioral of ff_lut_top is
     signal bscan_lut_data_user : bscan_lut_data_interfacing;
     
 
-    -- Each sr_module instance generates a free-running, loop-around shift
-    -- register
+    -- Each sr_module instance makes a shift register that operates
+    -- continuously and loops around.
     component sr_module is
       Generic (
         mass_bit_count : integer range 0 to 512 := 8
@@ -124,9 +127,9 @@ architecture Behavioral of ff_lut_top is
       ); 
     end component;
 
-    -- clk_gen_wrapper and bscan_interface are declared in
-    -- examples_utilities_pkg (see use clause above); only sr_module and
-    -- lut_memory_array stay local here.
+    -- The examples_utilities_pkg package declares clk_gen_wrapper and
+    -- bscan_interface (see the use clause above). Only sr_module and
+    -- lut_memory_array have local declarations here.
 
     component lut_memory_array is
       Generic (
@@ -145,9 +148,9 @@ architecture Behavioral of ff_lut_top is
 
 begin
 
-    -- Condition the incoming clock through the portable PLL wrapper. Period
-    -- (ns) is derived straight from clk_freq (MHz) so there's only one
-    -- source of truth for the design's operating frequency.
+    -- Send the input clock through the portable PLL wrapper. The period (ns)
+    -- comes directly from clk_freq (MHz). Thus clk_freq is the only source
+    -- for the clock frequency of the design.
     clk_gen_inst : clk_gen_wrapper
       Generic map (
         g_family          => g_family,
@@ -164,11 +167,11 @@ begin
       Generic map (
         jtag_chain => 1,
         data_len_r => 1,
-        data_len_w => 1, -- addr_width bits for the address + 1 write enable
+        data_len_w => 1, -- 1 bit for the clock enable
         sync       => false
       )
       Port map ( 
-      ----- CLK INPUT FOR CDC HANDLING -----
+      ----- CLK INPUT FOR CDC -----
         clk_i => '0',
       ----- TCK OUTPUT FOR CDC, LOGIC ISOLATION -----
         tck_o => open,
@@ -184,7 +187,7 @@ begin
       
     clk_en <= bscan_clk_en_user.data_from_jtag(0);
      
-    -- Double flop to synchronize the clock gating 
+    -- Synchronize the clock-enable signal with two flip-flops
     sync_clk_en:process(safe_clk)
     begin
         if rising_edge(safe_clk) then
@@ -204,8 +207,8 @@ begin
       
     -- FF SHIFT REGISTER -------------------------------------------------------
     
-    -- Feed the gated clock into the divider to freeze intervals
-    -- Divider: produces one shift_en pulse every time_interval clk cycles
+    -- The divider uses the gated clock, so the intervals stop with the clock.
+    -- Divider: div_clk toggles every time_interval clock cycles.
     div_proc : process(buf_safe_clk)
     begin
         if rising_edge(buf_safe_clk) then
@@ -213,7 +216,7 @@ begin
                 counter  <= 0;
                 div_clk  <= not div_clk;
             else
-                counter  <= counter + 1; -- Incement 
+                counter  <= counter + 1; -- Increment
             end if;
         end if;
     end process div_proc;
@@ -232,11 +235,11 @@ begin
       Generic map (
         jtag_chain => 2,
         data_len_r => sr_len,
-        data_len_w => sr_len, -- unused
+        data_len_w => sr_len, -- not used
         sync       => false
       )
       Port map ( 
-      ----- CLK INPUT FOR CDC HANDLING -----
+      ----- CLK INPUT FOR CDC -----
         clk_i => '0',
       ----- TCK OUTPUT FOR CDC, LOGIC ISOLATION -----
         tck_o => open,
@@ -255,17 +258,17 @@ begin
  --------------------------------------------------------------------------
 
     -- LUT RAM ---------------------------------------------------------------
-    -- BSCAN USER3 : ADDRESS SELECT AND WRITE ENABLE TO LUTRAMS
+    -- BSCAN USER3 : ADDRESS SELECT FOR THE LUTRAMS
     bscan_u3_lut_ram_address:bscan_interface
       Generic map (
         jtag_chain => 3,
         data_len_r => addr_width,
-        -- addr_width bits for the address + 1 write enable
+        -- addr_width bits for the address (no write-enable bit)
         data_len_w => addr_width,
         sync       => false
       )
       Port map ( 
-      ----- CLK INPUT FOR CDC HANDLING -----
+      ----- CLK INPUT FOR CDC -----
         clk_i => '0',
       ----- TCK OUTPUT FOR CDC, LOGIC ISOLATION -----
         tck_o => open,
@@ -279,17 +282,17 @@ begin
         ux_ack_o    => open    
       );
       
-    -- BSCAN USER4 :READ/WRITE TO LUTRAMS
+    -- BSCAN USER4 : READ/WRITE TO THE LUTRAMS
     bscan_u4_lut_ram_data:bscan_interface
       Generic map (
         jtag_chain => 4,
         data_len_r => lut_data_len,
         data_len_w => lut_data_len, -- lut_data_len bits for the data
-        -- sync the control signals on the clk_i (double flopped)
+        -- Synchronize the control signals to clk_i (two flip-flops)
         sync       => true
       )
       Port map ( 
-      ----- CLK INPUT FOR CDC HANDLING -----
+      ----- CLK INPUT FOR CDC -----
         clk_i => buf_safe_clk,
       ----- TCK OUTPUT FOR CDC -----
         tck_o => open,
@@ -303,18 +306,19 @@ begin
         ux_ack_o    => open    
       );
 
-    -- Address and data r/w are on different domains but they never
-    -- collide, each operation occurs sequentially in this example
+    -- The address and the data read/write use different clock domains. They
+    -- do not collide, because the operations occur in sequence here.
 
     addr_sel <= to_integer(unsigned(
         bscan_addr_user.data_from_jtag(addr_width - 1 downto 0)));
     bscan_addr_user.data_to_jtag <=
         std_ulogic_vector(to_unsigned(addr_sel, addr_width));
     
-    -- Gated like the FF SR path: for fault injection every piece of
-    -- downstream fabric freezes on clk_en, not just the headline demo
-    -- logic. Apply this to every example's peripheral logic, regardless
-    -- of whether that example's own behaviour would still be safe without it.
+    -- This logic uses the same gated clock as the FF shift register path.
+    -- For fault injection, all downstream fabric logic stops when clk_en is
+    -- 0, not only the main demo logic. Apply this clock gate to the
+    -- peripheral logic of every example, also if that example is safe
+    -- without it.
     sample_avail:process(buf_safe_clk)
     begin
         if rising_edge(buf_safe_clk) then
@@ -322,8 +326,8 @@ begin
         end if;
     end process sample_avail;
 
-    -- Write enable signal for the LUT Mem array
-    -- Single strobe based on the safe_clk domain
+    -- Write-enable signal for the LUT memory array.
+    -- A single strobe in the buf_safe_clk domain (the gated safe_clk).
     wr_en <= '1' when bscan_lut_data_user.avail = '1'
                   and bscan_lut_data_user.avail_prev = '0' else
              '0';

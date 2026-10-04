@@ -1,10 +1,12 @@
 --------------------------------------------------------------------------------
 -- Company: SolidKosmos S.A.
+-- SPDX-License-Identifier: Apache-2.0
+-- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
 -- Module Name: secded_dec8b
--- Description: 8-bit Hamming SEC decoder -- recomputes the syndrome from
---              the 8 data bits and 4 Hamming parity bits, detecting and correcting 
--- 				any single-bit error.
+-- Description: 8-bit Hamming SEC decoder. It calculates the syndrome again
+--              from the 8 data bits and the 4 Hamming parity bits. It finds
+--              and corrects any single-bit error.
 --------------------------------------------------------------------------------
 
 
@@ -58,7 +60,7 @@ begin
     syndrome(3)<= ecc_pars_i(3) XOR data_i(4) XOR data_i(5) XOR data_i(6)
                   XOR data_i(7);
 
-    -- Correction is based on the syndrome
+    -- The syndrome selects the bit to correct
     corr_data <=
         wd_i XOR "000000000001" when (syndrome = "0001") else -- flip wd_i(0)
         wd_i XOR "000000000010" when (syndrome = "0010") else -- flip wd_i(1)
@@ -79,7 +81,7 @@ begin
         begin
             vpar := '0';
             for i in 0 to (data_len + parities_len - 1) loop
-                -- parity generation for double error detection
+                -- Parity generation for double-error detection
                 vpar := vpar XOR wd_i(i);
             end loop;
 
@@ -89,7 +91,7 @@ begin
     corr_bit_o <= '1' when (syndrome /= "0000"); --and (par_check = '1') else '0';
     -- uncorr_o   <= '1' when (syndrome /= "0000") and (par_check = '0') else '0';
 
-	uncorr_o <= '0'; -- DBUs not exercised in this example
+	uncorr_o <= '0'; -- This example does not test double-bit upsets (DBUs)
 	
 			 -- Corrected word
     dec_o <= corr_data(11) & corr_data(10) & corr_data(9) & corr_data(8) &

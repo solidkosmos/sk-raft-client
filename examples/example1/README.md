@@ -1,16 +1,16 @@
-# Example 1: Three widening steps of CRAM injection
+# Example 1: CRAM injection in three steps
 
-Walks through sk-raft's targeting mechanics in order, against one design:
+This example shows the CRAM injection functions of SK-RAFT in three steps on one design. Each step is more selective than the step before it:
 
-1. **Whole-device CRAM** - every CRAM frame is read back, then random bits anywhere in it are upset.
-2. **Essential bits** - the server picks each bit from the design's essential bits, read from the EBD.
-3. **A pblock's essential bits** - the same, confined to one pblock at a time: `pblock_slow_heartbeat`, then `pblock_fast_heartbeat`.
+1. **Full-device CRAM.** The script reads back all the CRAM frames. Then it upsets random bits in these frames.
+2. **Essential bits.** The server selects each bit from the essential bits of the design. The server reads the essential bits from the EBD file.
+3. **The essential bits of one pblock.** This step is the same as step 2, but in one pblock at a time: first `pblock_slow_heartbeat`, then `pblock_fast_heartbeat`.
 
-Every upset is held for 100 ms, then flipped back. Each step (and each pblock in step 3) runs until you press Enter, and the device is re-programmed before steps 2 and 3. Watch the toggling LEDs on the board to see the effect of each upset.
+The script keeps each upset for 100 ms. Then it flips the same bit again to correct the upset. Each step, and each pblock in step 3, continues until you press Enter. The script programs the FPGA again before steps 2 and 3. Monitor the LEDs on the board to see the effect of each upset.
 
-[`targeted_top`](../hw/sources_1/new/targeted_top.vhd)
-(fast/slow heartbeat generators, each in its own pblock) is the design this
-is written against. Its XDC declares both pblocks, e.g.:
+## Design
+
+The design for this example is [`targeted_top`](../hw/sources_1/new/targeted_top.vhd). It has a fast heartbeat counter and a slow heartbeat counter, each in its own pblock. The XDC file of the design declares the two pblocks, for example:
 
 ```tcl
 create_pblock pblock_fast_heartbeat
@@ -18,23 +18,30 @@ add_cells_to_pblock [get_pblocks pblock_fast_heartbeat] [get_cells fast_hb_inst]
 resize_pblock [get_pblocks pblock_fast_heartbeat] -add {SLICE_X54Y91:SLICE_X57Y99}
 ```
 
-A pblock constrains placement by using :
-`set_property EXCLUDE_PLACEMENT true [get_pblocks ...] `, and routing by 
-`set_property CONTAIN_ROUTING true [get_pblocks ...]`
-the latter not being used in the examples for simplicity's sake.
+A pblock keeps the cells of its instance in the given area. Two more properties control the pblock:
+
+- `set_property EXCLUDE_PLACEMENT true [get_pblocks ...]` prevents the placement of other cells in the pblock.
+- `set_property CONTAIN_ROUTING true [get_pblocks ...]` keeps the routing of the pblock inside the pblock.
+
+The examples do not use `CONTAIN_ROUTING`, to keep them simple.
+
+## Run the example
+
+1. Make sure that the design files are in `src/design_files/`. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files-basys-3).
+2. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP`, `DEVICE` and `design`.
+3. Run the script:
 
 ```bash
+cd src
 python main.py
 ```
 
-| Constant | Default | Meaning |
+| Constant | Default | Description |
 | --- | --- | --- |
-| `design` | `targeted_top.{bit,ebd}` + XDC | Design files, uploaded to the server by the script. |
-| `DEVICE` | `"210183BFD452A"` | Target board's serial; `device_list()` lists the connected ones. |
-| `pblocks` (in `main()`) | slow, fast heartbeat | Pblocks step 3 confines to, as named in the XDC. |
+| `design` | `targeted_top.{bit,ebd}` + XDC | The design files. The script uploads them to the server. |
+| `DEVICE` | `"210183BFD452A"` | The serial number of the target board. `get_devices()` gives the connected boards. |
+| `pblocks` (in `main()`) | slow and fast heartbeat | The pblocks for step 3, as the XDC file names them. |
 
-Every upset is reverted, so the device should be left clean. Interrupting
-with Ctrl-C while an upset is held can leave it in place; reprogram before
-anything else in that case.
+## Result
 
-Set `SK_RAFT_SERVER_IP`, `DEVICE` and `design` at the top of `main.py`.
+The script corrects each upset. Thus the configuration of the device is clean at the end. If you stop the script with Ctrl+C during an upset, the upset can stay in the device. In that case, program the FPGA again before you do other work.
