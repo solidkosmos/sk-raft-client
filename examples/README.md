@@ -35,7 +35,7 @@ We provide ready-to-use examples for various development boards. Extract the fil
 
 ```bash
 cd example1/prebuild/board
-unzip design_files.zip
+unzip design_files.zip 
 ```
 
 For all other boards not listed in the prebuild directory, you can build the design as described below.
