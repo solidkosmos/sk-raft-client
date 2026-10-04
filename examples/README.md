@@ -15,7 +15,7 @@ examples/
 | # | Example | Design | Description |
 | --- | --- | --- | --- |
 | 1 | [example1](example1/README.md) | [`targeted_top`](hw/sources_1/new/targeted_top.vhd) (fast and slow heartbeat counters, each in its own pblock) | Showing how to perform fault injection (FI) into random CRAM bits, random essential CRAM bits, and targeted FI into a Pblock. |
-| 2 | [example2](example2/README.md) | [`bscan_adder_top`](hw/sources_1/new/bscan_adder_top.vhd) (simplex adder and TMR adder, each in its own pblock. Input and output is provided via BSCAN) | Showing how to evaluate and compare the soft-error vulnerability of two circuits. |
+| 2 | [example2](example2/README.md) | [`bscan_adder_top`](hw/sources_1/new/bscan_adder_top.vhd) (simplex adder and TMR adder, each in its own pblock. Input and output are provided via BSCAN) | Showing how to evaluate and compare the soft-error vulnerability of two circuits. |
 | 3 | [example3](example3/README.md) | [`ff_lut_top`](hw/sources_1/new/ff_lut_top.vhd) (flip-flop shift register and LUTRAM) | Showing how to inject faults into the ARAM plane, e.g., flip-flop and LUTRAM contents. |
 | 4 | [example4](example4/README.md) | [`brams_top`](hw/sources_1/new/brams_top.vhd) (one BRAM with a Hamming SEC code for each byte) | Showing how to inject faults into the BRAMs: You corrupt CRAM bits and content data (ARAM). |
 
@@ -31,14 +31,14 @@ Each example operates with one design. The README of each example shows how to c
 
 ## Prebuilt design files
 
-We provide ready-to-use design files for the Digilent Basys 3 board (`xc7a35tcpg236`) in `src/design_files.zip` of each example. Extract the files (bitstream and the EBD, LL and XDC files) in the `src` folder of the example:
+We provide ready-to-use examples for various development boards. Extract the files (bitstream and the EBD, LL and XDC files) in the following directory:
 
 ```bash
-cd example1/src
+cd example1/prebuild/board
 unzip design_files.zip
 ```
 
-For all other boards, you can build the design as described below.
+For all other boards not listed in the prebuild directory, you can build the design as described below.
 
 ## Build a design
 
