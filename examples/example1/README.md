@@ -3,10 +3,10 @@
 This example shows the CRAM injection functions of SK-RAFT in three steps on one design. Each step is more selective than the step before it:
 
 1. **Full-device CRAM.** The script reads back all the CRAM frames. Then it upsets random bits in these frames.
-2. **Essential bits.** The server selects each bit from the essential bits of the design. The server reads the essential bits from the EBD file.
+2. **Essential bits.** The server selects each bit from the design's essential bits. The server reads the essential bits from the EBD file.
 3. **The essential bits of one pblock.** This step is the same as step 2, but in one pblock at a time: first `pblock_slow_heartbeat`, then `pblock_fast_heartbeat`.
 
-The script keeps each upset for 100 ms. Then it flips the same bit again to correct the upset. Each step, and each pblock in step 3, continues until you press Enter. The script programs the FPGA again before steps 2 and 3. Monitor the LEDs on the board to see the effect of each upset.
+The script keeps each upset for 100 ms, then flips the same bit again to correct it. Each step, and each pblock in step 3, continues until you press Enter. The script reprograms the FPGA before steps 2 and 3. Monitor the LEDs on the board to see the effect of each upset.
 
 ## Design
 
@@ -44,4 +44,4 @@ python main.py
 
 ## Result
 
-The script corrects each upset. Thus the configuration of the device is clean at the end. If you stop the script with Ctrl+C during an upset, the upset can stay in the device. In that case, program the FPGA again before you do other work.
+The script corrects each upset. Thus, the device configuration is clean at the end. If you stop the script with Ctrl+C during an upset, the upset can remain in the device. In that case, reprogram the FPGA before you do any other work.
