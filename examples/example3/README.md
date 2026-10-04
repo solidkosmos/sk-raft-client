@@ -32,7 +32,7 @@ Part 2 injects faults into the LUTRAM in `pblock_LUTRAM` (`TargetMemory.LUTRAM`)
 
 ## Run the example
 
-1. Make sure that the design files are in `src/design_files/`. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files-basys-3).
+1. Make sure that the design files are in `src/design_files/`. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files).
 2. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP`, `DEVICE` and `design`. The design files are `ff_lut_top.bit`, `ff_lut_top.ll` and the XDC file. The script uploads them to the server.
 3. Run the script:
 

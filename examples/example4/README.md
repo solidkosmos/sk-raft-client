@@ -36,7 +36,7 @@ In the two parts, the script injects one upset each 0.3 s until you press Enter.
 
 ## Run the example
 
-1. Make sure that the design files are in `src/design_files/`. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files-basys-3).
+1. Make sure that the design files are in `src/design_files/`. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files).
 2. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP`, `DEVICE` and `design`.
 3. Run the script:
 

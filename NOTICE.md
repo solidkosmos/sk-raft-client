@@ -1,6 +1,6 @@
 SK-RAFT client and getting-started examples Copyright (C) 2024-2026 SOLIDKOSMOS S.A.
 
-SOLIDKOSMOS S.A. developed this software. The Apache License, Version 2.0 applies to it. Refer to the LICENSE file.
+SOLIDKOSMOS S.A. developed this software. The Apache License, Version 2.0 applies to it. Refer to the LICENSE.md file.
 
 SK-RAFT and SolidKosmos are trademarks of SOLIDKOSMOS S.A. The Apache License, Version 2.0 does not give permission to use these trademarks.
 

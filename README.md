@@ -1,4 +1,4 @@
-## ![image-20261004221145345](C:\Users\agiak\AppData\Roaming\Typora\typora-user-images\image-20261004221145345.png)
+## ![SK-RAFT by SolidKosmos](docs/images/image-20261004221145345.png)
 
 **Getting-started examples for SK-RAFT.** 
 
@@ -41,7 +41,7 @@ To inject a fault, your script sends a gRPC request to the server. The server do
 +---------------+         results           +----------------+                +------------+
 ```
 
-The `Skraft` Python client in this repository sends the gRPC requests for you. A typical script does these steps:
+The `skraft` Python client in this repository sends the gRPC requests for you. A typical script does these steps:
 
 1. Connect to the server: `SkraftFpga.connect(ip, port)`.
 2. Reserve the board with its serial number: `client.attach(serial_number)`. To find the serial numbers of the connected boards, use `client.get_devices()`.
@@ -66,10 +66,10 @@ with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
 ## Folder structure
 
 ```
-sk-raft/
+sk-raft-deliverables/
 ├── api/python/                           Python client (skraft package)
 ├── docs/                                 Concepts and reference documents
-└── get_started/                          Example designs and scripts
+└── examples/                             Example designs and scripts
 ```
 
 ## Installation
@@ -93,6 +93,6 @@ SolidKosmos does not accept pull requests from persons outside SolidKosmos.
 
 ## Licence
 
-- The Python client (`api/python`), the examples (`examples/`) and the documents (`docs/`) are open source under the Apache License 2.0. Refer to [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+- The Python client (`api/python`), the examples (`examples/`) and the documents (`docs/`) are open source under the Apache License 2.0. Refer to [`LICENSE.md`](LICENSE.md) and [`NOTICE.md`](NOTICE.md).
 - The SK-RAFT server is not open source. The SK-RAFT Trial Licence Agreement or the SK-RAFT End User Licence Agreement applies to the server.
 - SK-RAFT and SolidKosmos are trademarks of SOLIDKOSMOS S.A. The Apache License 2.0 does not give permission to use these trademarks.

@@ -44,4 +44,4 @@ To add a new client, make a new folder in `api/` at the root of the repository. 
 
 ## Licence
 
-The Apache License 2.0 applies to all contents of this repository. Refer to [`LICENSE`](LICENSE).
+The Apache License 2.0 applies to all contents of this repository. Refer to [`LICENSE.md`](LICENSE.md).
