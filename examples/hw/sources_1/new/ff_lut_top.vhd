@@ -24,7 +24,7 @@ entity ff_lut_top is
     -- to clk_gen_wrapper.
     g_family       : string  := "7SERIES";
     -- The length of the shift register (8 bits by default)
-    sr_len         : integer range 1 to 256 := 8;
+    sr_len         : integer range 4 to 256 := 8;
     -- The data length of each LUTRAM word (32 bits by default)
     lut_data_len   : integer range 1 to 256 := 32;
     -- Half period of the shift clock in ms (for all clk_freq values). The
@@ -59,13 +59,19 @@ architecture Behavioral of ff_lut_top is
 
     constant time_interval : integer := shift_interval * clk_freq * 1000;
 
-    signal safe_clk, buf_safe_clk, div_clk : std_ulogic := '0';
+    signal safe_clk, buf_safe_clk : std_ulogic := '0';
     
     signal clk_en, clk_en_d0, clk_en_sync : std_ulogic := '0';
 
     -- FF Shift Register 
-    signal ff_sr    : std_ulogic_vector(sr_len - 1 downto 0);
-    signal counter  : integer range 0 to time_interval - 1 := 0;
+	signal ff_sr          : std_ulogic_vector(sr_len - 1 downto 0);
+	-- div_clk - gated shift clock
+	signal div_clk : std_ulogic := '0';
+	-- sr_ce is the pulse that shifts the SR
+	signal sr_ce                  : std_ulogic := '0';
+
+	constant shift_period : integer := 2 * time_interval; 
+	signal counter        : integer range 0 to shift_period - 1 := 0;
     
     -- LUT RAM 
     constant lut_mem_depth : natural := 64;
@@ -89,13 +95,18 @@ architecture Behavioral of ff_lut_top is
         data_to_jtag : std_ulogic_vector(sr_len - 1 downto 0);
     end record bscan_sr_read_interfacing;
 
-    -- BSCAN USER 3 : ADDRESS SELECT ---------------------
-    type bscan_addr_interfacing is record
-        -- JTAG reads back the selected address.
-        data_to_jtag   : std_ulogic_vector(addr_width - 1 downto 0);
-        -- JTAG writes this value to select the address.
-        data_from_jtag : std_ulogic_vector(addr_width - 1 downto 0);
-    end record bscan_addr_interfacing;
+	-- BSCAN USER 3 : ADDRESS SELECT ---------------------
+	type bscan_addr_interfacing is record
+		-- JTAG reads back the selected address.
+		data_to_jtag   : std_ulogic_vector(addr_width - 1 downto 0);
+		-- JTAG writes this value to select the address. The _sync copy is
+		-- the same value, latched in the buf_safe_clk domain.
+		data_from_jtag, data_from_jtag_sync :
+			std_ulogic_vector(addr_width - 1 downto 0);
+		-- New address available. The signal goes to 1 when JTAG writes one.
+		avail          : std_ulogic;
+		avail_prev     : std_ulogic;
+	end record bscan_addr_interfacing;
 
     -- BSCAN USER 4 : READ/WRITE DATA ---------------------
     type bscan_lut_data_interfacing is record
@@ -205,30 +216,39 @@ begin
            I => safe_clk    -- 1-bit input: Primary clock
         );
       
-    -- FF SHIFT REGISTER -------------------------------------------------------
+    -- FF SHIFT REGISTER ------------------------------------------------------
     
-    -- The divider uses the gated clock, so the intervals stop with the clock.
-    -- Divider: div_clk toggles every time_interval clock cycles.
-    div_proc : process(buf_safe_clk)
-    begin
-        if rising_edge(buf_safe_clk) then
-            if counter = time_interval - 1 then
-                counter  <= 0;
-                div_clk  <= not div_clk;
-            else
-                counter  <= counter + 1; -- Increment
-            end if;
-        end if;
-    end process div_proc;
-    
-    ff_sr_inst : sr_module
-      Generic map ( 
-        mass_bit_count => sr_len
-      ) 
-      Port map ( 
-        clk_i      => div_clk,
-        data_o     => ff_sr 
-      );
+	-- Divider runs on the gated clock 
+	-- and freezes while JTAG has the clock off.
+	-- sr_ce is a registered one-cycle pulse every shift_period cycles.
+	div_proc : process(buf_safe_clk)
+	begin
+		if rising_edge(buf_safe_clk) then
+			if counter = shift_period - 1 then
+				counter <= 0;
+				sr_ce   <= '1';
+			else
+				counter <= counter + 1;
+				sr_ce   <= '0';
+			end if;
+		end if;
+	end process div_proc;
+
+	-- Shift clock: 
+	-- buf_safe_clk passes only when the divider fires and JTAG allows it.
+	BUFGCE_sr : BUFGCE
+		Port map (
+		   O  => div_clk,
+		   CE => sr_ce,
+		   I  => buf_safe_clk  
+		);
+
+	ff_sr_inst : sr_module
+	  Generic map ( mass_bit_count => sr_len )
+	  Port map (
+		clk_i  => div_clk,
+		data_o => ff_sr
+	  );
     
     -- BSCAN U2 : READ SR STATE
     bscan_u2_read_sr:bscan_interface
@@ -259,29 +279,30 @@ begin
 
     -- LUT RAM ---------------------------------------------------------------
     -- BSCAN USER3 : ADDRESS SELECT FOR THE LUTRAMS
-    bscan_u3_lut_ram_address:bscan_interface
-      Generic map (
-        jtag_chain => 3,
-        data_len_r => addr_width,
-        -- addr_width bits for the address (no write-enable bit)
-        data_len_w => addr_width,
-        sync       => false
-      )
-      Port map ( 
-      ----- CLK INPUT FOR CDC -----
-        clk_i => '0',
-      ----- TCK OUTPUT FOR CDC, LOGIC ISOLATION -----
-        tck_o => open,
-      ----- DRCK OUTPUT FOR CDC, LOGIC ISOLATION -----
-        drck_o => open,
-      ----- DATA PATH -----
-        data_to_jtag_i   => bscan_addr_user.data_to_jtag,
-        data_from_jtag_o => bscan_addr_user.data_from_jtag,
-      ----- CONTROL SIGNALS ------
-        ux_avail_o  => open,      
-        ux_ack_o    => open    
-      );
-      
+	bscan_u3_lut_ram_address:bscan_interface
+	  Generic map (
+		jtag_chain => 3,
+		data_len_r => addr_width,
+		data_len_w => addr_width,
+		-- Synchronize the control signals to clk_i (two flip-flops)
+		sync       => true
+	  )
+	  Port map (
+	  ----- CLK INPUT FOR CDC -----
+		clk_i => buf_safe_clk,
+	  ----- TCK OUTPUT FOR CDC, LOGIC ISOLATION -----
+		tck_o => open,
+	  ----- DRCK OUTPUT FOR CDC, LOGIC ISOLATION -----
+		drck_o => open,
+	  ----- DATA PATH -----
+		data_to_jtag_i   => bscan_addr_user.data_to_jtag,
+		data_from_jtag_o => bscan_addr_user.data_from_jtag,
+	  ----- CONTROL SIGNALS ------
+		ux_avail_o  => bscan_addr_user.avail,
+		ux_ack_o    => open
+	  );
+	  
+	  
     -- BSCAN USER4 : READ/WRITE TO THE LUTRAMS
     bscan_u4_lut_ram_data:bscan_interface
       Generic map (
@@ -306,11 +327,23 @@ begin
         ux_ack_o    => open    
       );
 
-    -- The address and the data read/write use different clock domains. They
-    -- do not collide, because the operations occur in sequence here.
+    -- Generate the CDC control for the address interface. The address is
+	-- latched in the buf_safe_clk domain on the rising edge of avail, so the
+	-- LUTRAM only sees a value that is stable.
+	cdc_addr:process(buf_safe_clk)
+	begin
+		if rising_edge(buf_safe_clk) then
+			bscan_addr_user.avail_prev <= bscan_addr_user.avail;
+			if bscan_addr_user.avail = '1'
+			   and bscan_addr_user.avail_prev = '0' then
+				bscan_addr_user.data_from_jtag_sync <=
+					bscan_addr_user.data_from_jtag;
+			end if;
+		end if;
+	end process cdc_addr;
 
-    addr_sel <= to_integer(unsigned(
-        bscan_addr_user.data_from_jtag(addr_width - 1 downto 0)));
+	addr_sel <= to_integer(unsigned(bscan_addr_user.data_from_jtag_sync));
+	-- Simple feedback path for debug
     bscan_addr_user.data_to_jtag <=
         std_ulogic_vector(to_unsigned(addr_sel, addr_width));
     
