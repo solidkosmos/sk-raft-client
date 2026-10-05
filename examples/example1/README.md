@@ -10,6 +10,8 @@ The script keeps each upset for 100 ms, then flips the same bit again to correct
 
 ## Design
 
+![Block diagram of targeted_top. The safe clock generation feeds a slow heartbeat and a fast heartbeat. Each heartbeat is in its own pblock and drives an LED.](images/example1_targeted_top_abstract.png)
+
 The design for this example is [`targeted_top`](../hw/sources_1/new/targeted_top.vhd). It has a fast heartbeat counter and a slow heartbeat counter, each in its own pblock. The XDC file of the design declares the two pblocks, for example:
 
 ```tcl

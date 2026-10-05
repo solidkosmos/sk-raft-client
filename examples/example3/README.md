@@ -7,6 +7,8 @@ This example does two campaigns on one design through BSCAN:
 
 USER1 starts and stops the clock of the shift register and of the LUTRAM. The script reads the shift register through USER2. USER3 and USER4 give access to the LUTRAM (address and data).
 
+![Block diagram of ff_lut_top. USER1 controls a clock gate. The gated clock drives a clock divider with a shift register in one pblock, and a LUTRAM in another pblock. USER2 reads the shift register. USER3 and USER4 give the address and the data of the LUTRAM.](images/example3_ff_lut_top_abstract.png)
+
 ## Part 1: flip-flops
 
 Part 1 injects faults into the flip-flops in `pblock_ff_sr_inst` (`TargetMemory.FF`). The server finds the flip-flops from the LL file. If the pblock contains no flip-flops, the script stops.

@@ -2,6 +2,8 @@
 
 The design uses one RAMB36 in the 1K x 36 configuration. Each 36-bit word contains 24 data bits and 12 check bits. Logic in the fabric around the BRAM protects each data byte with its own Hamming SEC code (4 check bits for each byte). This logic is not the built-in ECC of the BRAM.
 
+![Block diagram of brams_top. A BRAM in a pblock has an encoder on the write path and a decoder with a multiplexer on the read path. USER1 controls the clock gate, USER2 selects the address, USER3 carries the data and USER4 enables the ECC correction.](images/example4_brams_top_abstract.png)
+
 ## Sequence
 
 1. The script fills the memory. Then it reads back each word to make sure that the data is correct.
