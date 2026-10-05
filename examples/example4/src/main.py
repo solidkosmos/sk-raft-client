@@ -346,8 +346,8 @@ def main() -> None:
                               f"off: the flips were in check bits and the "
                               f"decoder mis-corrected a data bit.")
 
-                print("The faults are left in place; re-program the "
-                      "device before running anything else.")
+                print("Re-programming to clear the device.")
+                dev.programFPGA()
              
     except SkraftError as e:
         print(f"Example 4 failed: {e}")
