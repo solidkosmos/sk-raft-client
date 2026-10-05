@@ -84,11 +84,7 @@ The examples do not use command-line options. To configure an example, change th
 
 Each example injects faults until you press Enter. Then the example continues to its next step, or it stops.
 
-Examples 1 and 2 correct each upset. Example 3 programs the FPGA again at the end. Example 4 does not correct its faults. 
+Examples 1 and 2 correct each upset. Examples 3 and 4 program the FPGA again at the end.
 
-**[COMMENT --> We need to do this] After example 4, program the FPGA again before you run a different script.**
-
-
-
-**[COMMENT --> We need to do this. At the start of each script, RECONFIGURE THE FPGA]** If you stop an example with Ctrl+C, the device configuration may remain incorrect. In that case, reprogram the FPGA before you run a different script.
+Each example programs the FPGA at the start. Thus you can run the examples in any order, also after you stop one with Ctrl+C. If you write your own script, program the FPGA first.
 

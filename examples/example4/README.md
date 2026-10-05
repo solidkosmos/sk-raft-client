@@ -12,6 +12,7 @@ The design uses one RAMB36 in the 1K x 36 configuration. Each 36-bit word contai
 4. The script fills the memory again.
 5. **Part 2.** The script injects content upsets (`TargetMemory.BRAM`) into the block type 1 frames. The upsets add up, and the script does not correct them.
 6. The script reads back the full memory two times: first with ECC off, then with ECC on.
+7. The script programs the FPGA again, to clear the upsets of part 2.
 
 In the two parts, the script injects one upset each 0.3 s until you press Enter. When part 2 continues for a longer time, more bytes get two or more flips. The SEC code cannot correct these bytes.
 
@@ -63,4 +64,4 @@ The main result is the number of incorrect addresses with ECC off and with ECC o
 - A word that is incorrect with ECC on had two or more flips in one byte. The SEC code cannot correct these flips, and it can also make an incorrect correction.
 - A flip in a check bit does not show with ECC off. With ECC on, the SEC code hides a single flip in a check bit.
 
-The script does not correct the faults. Program the FPGA again before you do other work.
+The script does not correct the faults. At the end, it programs the FPGA again to clear them.
