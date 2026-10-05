@@ -88,8 +88,7 @@ begin
             par_check <= vpar XOR par_i;
     end process par_check_proc;
 
-    corr_bit_o <= '1' when (syndrome /= "0000"); --and (par_check = '1') else '0';
-    -- uncorr_o   <= '1' when (syndrome /= "0000") and (par_check = '0') else '0';
+    corr_bit_o <= '1' when (syndrome /= "0000") else '0';
 
 	uncorr_o <= '0'; -- This example does not test double-bit upsets (DBUs)
 	
