@@ -17,9 +17,9 @@ use UNISIM.VComponents.all;
 -- Portable Safe-Startup PLL passthrough wrapper. The PLL operates
 -- continuously, and g_family selects the device family.
 -- The wrapper calculates CLKFBOUT_MULT from g_clkin_period_ns only (with a
--- VCO range lookup for each family). A generate statement instantiates the
--- correct native PLL primitive. The output clock has the same frequency as
--- the input clock.
+-- VCO range and a multiplier limit for each family). A generate statement
+-- instantiates the correct native PLL primitive. The output clock has the
+-- same frequency as the input clock.
 
 
 entity clk_gen_wrapper is
@@ -37,25 +37,37 @@ end clk_gen_wrapper;
 
 architecture Structure of clk_gen_wrapper is
 
-    constant c_mult_max : integer := 64;
-
-    -- PLL VCO ranges for the -1 speed grade. Sources: DS189 Spartan-7/Artix-7
-    -- Table 38 (also compared with the real Clocking Wizard behavior) and
-    -- DS923 Virtex UltraScale+. Make sure that the ranges agree with the
-    -- data sheet of your exact target part.
-    function f_pll_mult(period_ns : real; family : string;
-                         mult_max : integer) return integer is
-        variable fin     : real := 1000.0 / period_ns;
-        variable vco_min : real;
-        variable vco_max : real;
-        variable mult    : integer := 2;
+    -- PLL limits for each family, used to select CLKFBOUT_MULT.
+    --
+    -- The VCO ranges are GENERAL values. The real limits depend on the speed
+    -- grade of your exact part (and on the family), so these numbers can be
+    -- changed for each device. Check the "PLL Switching Characteristics"
+    -- table in the data sheet of your target part, and edit the values in
+    -- f_pll_mult if your part needs a narrower or wider range.
+    -- Sources for the starting values: DS189 Spartan-7/Artix-7 Table 38 (also
+    -- compared with the real Clocking Wizard behavior) and DS923 Virtex
+    -- UltraScale+. UG572 says that PLLE4_BASE is electrically the same
+    -- primitive as PLLE3_BASE.
+    --
+    -- The CLKFBOUT_MULT limits come from the primitive of each family
+    -- (UG974): PLLE2_BASE 2 to 64, PLLE3_BASE 1 to 19, PLLE4_BASE 2 to 21.
+    -- The search starts at 2, which is legal for all three.
+    function f_pll_mult(period_ns : real; family : string) return integer is
+        variable fin      : real := 1000.0 / period_ns;
+        variable vco_min  : real;
+        variable vco_max  : real;
+        variable mult_max : integer;
+        variable mult     : integer := 2;
     begin
         if family = "7SERIES" then
-            vco_min := 800.0;  vco_max := 1600.0;
+            -- PLLE2_BASE
+            vco_min := 800.0;  vco_max := 1600.0;  mult_max := 64;
+        elsif family = "ULTRASCALE" then
+            -- PLLE3_BASE
+            vco_min := 750.0;  vco_max := 1500.0;  mult_max := 19;
         else
-            -- ULTRASCALE and ULTRASCALEPLUS use the same range. UG572 says
-            -- that PLLE4_BASE is electrically the same primitive as PLLE3_BASE.
-            vco_min := 750.0;  vco_max := 1500.0;
+            -- ULTRASCALEPLUS: PLLE4_BASE
+            vco_min := 750.0;  vco_max := 1500.0;  mult_max := 21;
         end if;
 
         while (fin * real(mult) < vco_min) and (mult < mult_max) loop
@@ -63,15 +75,16 @@ architecture Structure of clk_gen_wrapper is
         end loop;
 
         assert (fin * real(mult) >= vco_min) and (fin * real(mult) <= vco_max)
-          report "f_pll_mult: no integer CLKFBOUT_MULT keeps VCO in range " &
-                 "for this g_clkin_period_ns"
+          report "f_pll_mult: no legal CLKFBOUT_MULT for family " & family &
+                 " with fin = " & real'image(fin) & " MHz (VCO range " &
+                 real'image(vco_min) & " to " & real'image(vco_max) &
+                 " MHz, multiplier 2 to " & integer'image(mult_max) & ")"
           severity failure;
 
         return mult;
     end function;
 
-    constant c_mult : integer :=
-        f_pll_mult(g_clkin_period_ns, g_family, c_mult_max);
+    constant c_mult : integer := f_pll_mult(g_clkin_period_ns, g_family);
 
     signal pll_clk_o, clkfbout, locked_sig : std_ulogic;
 
@@ -80,8 +93,8 @@ architecture Structure of clk_gen_wrapper is
     -- the shift register gives the same behaviour as the SAFE_STARTUP
     -- setting of the Clocking Wizard MMCM/PLL IP.
     signal seq_reg : std_ulogic_vector(7 downto 0) := (others => '0');
-    
-    
+
+
 begin
 
     assert false
