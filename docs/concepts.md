@@ -4,7 +4,7 @@
 
 The following figure presents a conceptual model of an SRAM-based FPGA to illustrate the radiation-induced failure modes of such devices. The model divides the chip into two layers: the configuration layer, which holds the FPGA's configuration memory (CRAM), and the application layer, which implements the circuit. A failure in the application layer can arise for two reasons. First, highly energetic particles, such as heavy ions, can strike and corrupt the CRAM bits that configure the resources the circuit uses, thereby altering the logic or routing of the implemented design. Second, particles can strike and corrupt application memory elements in the application layer (ARAM), such as flip-flops and the contents of block RAMs (BRAMs).
 
-<img src="images/image-20261004232224987.png" alt="Conceptual model of an SRAM-based FPGA" width="490" />
+<img src="images/cram-aram-layers.svg" alt="Conceptual model of an SRAM-based FPGA. The configuration memory (CRAM) layer configures the application memory (ARAM) layer, which holds flip-flops, LUTRAM and BRAM. An ion strike can flip a stored bit in ARAM or change the circuit through CRAM." width="680" />
 
 
 Each fault that SK-RAFT injects goes into one of the mentioned planes:

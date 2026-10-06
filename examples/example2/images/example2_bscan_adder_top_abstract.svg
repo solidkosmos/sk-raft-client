@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="246" viewBox="0 0 840 246" font-family="Ubuntu, sans-serif">
+<rect width="840" height="246" fill="#ffffff"/>
+<rect x="52" y="4" width="697" height="238" fill="#FFFFFF" stroke="#111111" stroke-width="1.5"/>
+<text x="4" y="110.0" font-size="15" font-weight="700" fill="#111111" text-anchor="start" dominant-baseline="central">JTAG</text>
+<rect x="64" y="86.5" width="106.75000000000001" height="47.0" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="117.375" y="102.5" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">BSCAN USER1</text>
+<text x="117.375" y="119.0" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">operands</text>
+<path d="M40,110 L50.0,110.0" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="64,110 50.0,115.0 50.0,105.0" fill="#111111"/>
+<path d="M170.75,110 L184.75,110" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<circle cx="184.75" cy="110" r="3.5" fill="#111111"/>
+<rect x="200.75" y="29.5" width="148.0" height="47" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="274.75" y="53.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">isolation buffer</text>
+<rect x="200.75" y="144.5" width="148.0" height="47" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="274.75" y="168.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">isolation buffer</text>
+<path d="M184.75,110 L184.75,53 L190.25,53.0" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="200.75,53 190.25,56.75 190.25,49.25" fill="#111111"/>
+<path d="M184.75,110 L184.75,168 L190.25,168.0" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="200.75,168 190.25,171.75 190.25,164.25" fill="#111111"/>
+<rect x="370.75" y="12" width="147" height="68" fill="#FFFFFF" stroke="#555555" stroke-width="1.5" stroke-dasharray="9 6"/>
+<text x="380.75" y="22.8" font-size="12" font-weight="400" fill="#333333" text-anchor="start" dominant-baseline="central">pblock</text>
+<rect x="382.75" y="36.0" width="123" height="34" fill="#D9D9D9" stroke="#111111" stroke-width="1.5"/>
+<text x="444.25" y="53.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">simplex adder</text>
+<path d="M348.75,53 L372.25,53.0" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="382.75,53 372.25,56.75 372.25,49.25" fill="#111111"/>
+<rect x="370.75" y="90" width="219" height="142" fill="#FFFFFF" stroke="#555555" stroke-width="1.5" stroke-dasharray="9 6"/>
+<text x="380.75" y="100.8" font-size="12" font-weight="400" fill="#333333" text-anchor="start" dominant-baseline="central">pblock</text>
+<path d="M348.75,168 L362.75,168" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<circle cx="362.75" cy="168" r="3.5" fill="#111111"/>
+<path d="M362.75,130 L362.75,206" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<rect x="382.75" y="114.0" width="64" height="32" fill="#D9D9D9" stroke="#111111" stroke-width="1.5"/>
+<text x="414.75" y="130.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">adder</text>
+<path d="M362.75,130 L372.25,130.0" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="382.75,130 372.25,133.75 372.25,126.25" fill="#111111"/>
+<rect x="382.75" y="152.0" width="64" height="32" fill="#D9D9D9" stroke="#111111" stroke-width="1.5"/>
+<text x="414.75" y="168.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">adder</text>
+<path d="M362.75,168 L372.25,168.0" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="382.75,168 372.25,171.75 372.25,164.25" fill="#111111"/>
+<rect x="382.75" y="190.0" width="64" height="32" fill="#D9D9D9" stroke="#111111" stroke-width="1.5"/>
+<text x="414.75" y="206.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">adder</text>
+<path d="M362.75,206 L372.25,206.0" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="382.75,206 372.25,209.75 372.25,202.25" fill="#111111"/>
+<rect x="480.75" y="123.0" width="97" height="90" fill="#D9D9D9" stroke="#111111" stroke-width="1.5"/>
+<text x="529.25" y="160.5" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">voter</text>
+<text x="529.25" y="177.0" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">majority vote</text>
+<path d="M446.75,130 L463.75,130 L463.75,143 L470.25,143.0" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="480.75,143 470.25,146.75 470.25,139.25" fill="#111111"/>
+<path d="M446.75,168 L470.25,168.0" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="480.75,168 470.25,171.75 470.25,164.25" fill="#111111"/>
+<path d="M446.75,206 L463.75,206 L463.75,193 L470.25,193.0" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="480.75,193 470.25,196.75 470.25,189.25" fill="#111111"/>
+<rect x="629.75" y="29.5" width="107" height="47.0" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="683.25" y="45.5" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">BSCAN USER2</text>
+<text x="683.25" y="62.0" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">simplex result</text>
+<rect x="629.75" y="144.5" width="107" height="47.0" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="683.25" y="160.5" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">BSCAN USER3</text>
+<text x="683.25" y="177.0" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">tmr result</text>
+<path d="M505.75,53 L619.25,53.0" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="629.75,53 619.25,56.75 619.25,49.25" fill="#111111"/>
+<path d="M577.75,168 L619.25,168.0" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="629.75,168 619.25,171.75 619.25,164.25" fill="#111111"/>
+<path d="M736.75,53 L775.0,53.0" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="789,53 775.0,58.0 775.0,48.0" fill="#111111"/>
+<path d="M736.75,168 L775.0,168.0" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="789,168 775.0,173.0 775.0,163.0" fill="#111111"/>
+<text x="795" y="53.0" font-size="15" font-weight="700" fill="#111111" text-anchor="start" dominant-baseline="central">JTAG</text>
+<text x="795" y="168.0" font-size="15" font-weight="700" fill="#111111" text-anchor="start" dominant-baseline="central">JTAG</text>
+<path d="M529.25,213.0 L529.25,223 L778.5,223.0" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="789,223 778.5,226.75 778.5,219.25" fill="#111111"/>
+<text x="795" y="223.0" font-size="15" font-weight="700" fill="#111111" text-anchor="start" dominant-baseline="central">led</text>
+</svg>
