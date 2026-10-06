@@ -11,6 +11,16 @@ This folder contains the Vivado build script, the VHDL sources and the constrain
 
 Each design is a full top-level design. The project has no default synthesis top.
 
+## Prebuild designs:
+
+We have prebuild design files ready to use for the Basys3, Zedboard and XXX development boards. Please unizip them in hw
+
+```
+unzip_desings.bat
+```
+
+Otherwise, you can create the designs by yourself as follows
+
 ## Build a bitstream
 
 The script `create_project.tcl` makes the Vivado project, sets one of the designs above as the synthesis top, and builds the bitstream. You must give only the board and the design. The script finds the XDC file of that board in `xdc/<device>/<top>.xdc`.

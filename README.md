@@ -10,7 +10,7 @@ This repository contains open-source getting-started examples for the SK-RAFT se
 
 ## Main functions
 
-- **Injection into the configuration RAM (CRAM).** The CRAM contains the FPGA configuration: the CLBs, the DSPs, the clock managers, the IOBs, and all other configurable resources. SK-RAFT can inject faults into all of the CRAM. 
+- **Injection into the configuration RAM (CRAM).** The CRAM contains the FPGA configuration: CLBs, DSPs, clock managers, IOBs, and all other configurable resources. SK-RAFT can inject faults into all of the CRAM. 
 - **Injection into the application RAM (ARAM).** The ARAM contains the design data during operation: the contents of the BRAMs, the flip-flops, and the LUTRAM. 
 - **Targeted fault injection.** SK-RAFT can limit the injection to:
   - The essential bits of the design.
@@ -58,7 +58,7 @@ with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
 ## Folder structure
 
 ```
-sk-raft-deliverables/
+sk-raft-client/
 ├── api/python/                           Python client (skraft package)
 ├── docs/                                 Concepts and reference documents
 └── examples/                             Example designs and scripts
@@ -83,7 +83,7 @@ To report a bug in the client, the examples or the documents, open an issue in t
 
 SolidKosmos does not accept pull requests from persons outside SolidKosmos.
 
-## Licence
+## License
 
 - The Python client (`api/python`), the examples (`examples/`) and the documents (`docs/`) are open source under the Apache License 2.0. Refer to [`LICENSE.md`](LICENSE.md) and [`NOTICE.md`](NOTICE.md).
 - The SK-RAFT server is not open source. The SK-RAFT Trial Licence Agreement or the SK-RAFT End User Licence Agreement applies to the server.

@@ -43,9 +43,9 @@ DEVICE = "210183BFD452A"
 # uploadDesignToServer() sends the files to the server. The client sends
 # only the file name of each path, not the directory.
 design = Design(
-    bit="design_files/targeted_top.bit",
-    ebd="design_files/targeted_top.ebd",
-    xdc="design_files/board.xdc",
+    bit="../../hw/design_examples/basys3/example1",
+    ebd="design_files/basys3/targeted_top.ebd",
+    xdc="design_files/basys3/board.xdc",
 )
 
 # A fixed seed gives the same sequence of step 1 injections in each run.

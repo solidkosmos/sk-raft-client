@@ -25,7 +25,7 @@ Tell what occurred. Copy the error message here.
 
 ## Environment
 
-- SK-RAFT client version (`pip show skraft`):
+- SK-RAFT .proto API Python version:
 - SK-RAFT server version:
 - Operating system:
 - Python version:
@@ -34,6 +34,8 @@ Tell what occurred. Copy the error message here.
 - Example (if applicable):
 
 ## Logs
+
+Attach SK-RAFT logs, which are in the same path
 
 Attach the console output of the script and of the SK-RAFT server.
 

@@ -8,7 +8,7 @@ SolidKosmos does not accept pull requests from persons outside SolidKosmos. Soli
 
 ## Report a bug
 
-Pilot testers and other users can report bugs through GitHub Issues. Use an issue to report a bug in the client, in the examples or in the documents.
+Users can report bugs through GitHub Issues. Use an issue to report a bug in the client, in the examples or in the documents.
 
 1. Go to the **Issues** tab of this repository.
 2. Click **New issue**.
@@ -29,7 +29,7 @@ Nobody pushes changes directly to the `main` branch. Each change goes into `main
 1. Make a new branch from `main`.
 2. Do your changes in the new branch.
 3. Write all documents and code comments in ASD-STE100 Simplified Technical English.
-4. Run the examples that your change affects, on a board.
+4. Run the examples that your change affects on a board.
 5. Open a pull request to `main`. In the description, tell what you changed and why.
 6. Wait for the approval of the repository owner. The repository owner merges the pull request.
 
