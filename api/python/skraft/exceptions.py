@@ -54,4 +54,3 @@ class FrameAddressError(SkraftError):
 class BscanError(SkraftError):
     """A boundary-scan (BSCAN) operation failed."""
 
-
