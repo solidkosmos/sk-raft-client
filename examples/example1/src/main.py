@@ -20,6 +20,7 @@ Enter to stop a step early. Look at LD0/LD1 on the board: the heartbeat
 counters show the effect of each upset.
 """
 
+import os
 import random
 import threading
 import time
@@ -42,10 +43,20 @@ DEVICE = "210183BFD452A"
 #   The XDC file (.xdc): to find the pblocks.
 # uploadDesignToServer() sends the files to the server. The client sends
 # only the file name of each path, not the directory.
+#
+# BOARD is the board of your target device: "basys3" or "zedboard", or
+# the name of your own board (see hw/README.md). The script reads the
+# design files from hw/design_examples/<BOARD>/targeted_top/. Extract
+# design_examples.zip there, or build the design with create_project.tcl.
+BOARD = "basys3"
+DESIGN_DIR = os.path.normpath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..", "..", "hw", "design_examples", BOARD, "targeted_top"))
+
 design = Design(
-    bit="../../hw/design_examples/basys3/example1",
-    ebd="design_files/basys3/targeted_top.ebd",
-    xdc="design_files/basys3/board.xdc",
+    bit=os.path.join(DESIGN_DIR, "targeted_top.bit"),
+    ebd=os.path.join(DESIGN_DIR, "targeted_top.ebd"),
+    xdc=os.path.join(DESIGN_DIR, "board.xdc"),
 )
 
 # A fixed seed gives the same sequence of step 1 injections in each run.
@@ -156,10 +167,10 @@ def main() -> None:
                 pblocks = ["pblock_slow_heartbeat", "pblock_fast_heartbeat"]
 
                 for pblock in pblocks:
-                    print(f"\n{pblock}: essential bits"
-                        f"({dev.bit_count(TargetMemory.ESSENTIAL_CRAM, 
-                                          pblock=pblock)}). "
-                        f"Press Enter to move on.")
+                    n_essential = dev.bit_count(TargetMemory.ESSENTIAL_CRAM,
+                                                pblock=pblock)
+                    print(f"\n{pblock}: essential bits ({n_essential}). "
+                          f"Press Enter to move on.")
                     watch_for_enter()
                     time.sleep(1)
                     n = 0

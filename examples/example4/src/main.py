@@ -34,6 +34,7 @@ correct.
 
 from __future__ import annotations
 
+import os
 import time
 import threading
 
@@ -51,11 +52,21 @@ DEVICE = "210248781184"
 #   The LL file (.ll): to find the BRAM/FF/LUTRAM bits that the design uses.
 # uploadDesignToServer() sends the files to the server. The client sends
 # only the file name of each path, not the directory.
+#
+# BOARD is the board of your target device: "basys3" or "zedboard", or
+# the name of your own board (see hw/README.md). The script reads the
+# design files from hw/design_examples/<BOARD>/brams_top/. Extract
+# design_examples.zip there, or build the design with create_project.tcl.
+BOARD = "basys3"
+DESIGN_DIR = os.path.normpath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..", "..", "hw", "design_examples", BOARD, "brams_top"))
+
 design = Design(
-    bit="design_files/brams_top.bit",
-    ebd="design_files/brams_top.ebd",
-    ll ="design_files/brams_top.ll",
-    xdc="design_files/board.xdc",
+    bit=os.path.join(DESIGN_DIR, "brams_top.bit"),
+    ebd=os.path.join(DESIGN_DIR, "brams_top.ebd"),
+    ll =os.path.join(DESIGN_DIR, "brams_top.ll"),
+    xdc=os.path.join(DESIGN_DIR, "board.xdc"),
 )
 
 PBLOCK_BRAM = "pblock_stock_bram"

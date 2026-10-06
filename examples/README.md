@@ -6,6 +6,7 @@
 examples/
 ├── example1/ .. example4/             SK-RAFT client examples (src/main.py)
 └── hw/                                 Vivado project (create_project.tcl)
+    ├── design_examples/                 design files: design_examples.zip and build output
     ├── sources_1/new/                   VHDL sources
     └── xdc/                             basys3/, zedboard/, custom_template/
 ```
@@ -31,14 +32,17 @@ Each example operates with one design. The README of each example shows how to c
 
 ## Prebuilt design files
 
-We provide ready-to-use examples for various development boards. Extract the files (bitstream and the EBD, LL and XDC files) in the following directory:
+SolidKosmos supplies prebuilt design files for the Basys 3 (`basys3`) and the ZedBoard (`zedboard`) in `hw/design_examples/design_examples.zip`. To extract them, run the script for your operating system:
 
 ```bash
-cd example1/prebuild/board
-unzip design_files.zip 
+cd hw/design_examples
+./unzip_designs.sh        # Linux
+unzip_designs.bat         # Windows
 ```
 
-For all other boards not listed in the prebuild directory, you can build the design as described below.
+The script extracts the bitstream and the EBD, LL and XDC files of each design to `hw/design_examples/<board>/<top>/`. Then set `BOARD` in the `main.py` of the example to your board.
+
+For all other boards, build the design as described below.
 
 ## Build a design
 
@@ -71,7 +75,7 @@ To open the project in the Vivado GUI after the build, add `-gui` at any positio
 vivado -mode batch -source create_project.tcl -tclargs zedboard brams_top -gui
 ```
 
-After a successful build, the script copies the bitstream into `example<N>/src/design_files/`. If the example uses them, the script also copies the EBD file, the LL file and `board.xdc`. You do not have to copy files manually.
+After a successful build, the script copies the bitstream, the EBD file, the LL file and `board.xdc` into `hw/design_examples/<device>/<top>/`. If this folder does not exist (for example, for your own board), the script creates it. You do not have to copy files manually.
 
 ## Run an example
 
@@ -80,7 +84,7 @@ cd exampleN/src
 python main.py
 ```
 
-The examples do not use command-line options. To configure an example, change the constants at the top of its `main.py`: `SK_RAFT_SERVER_IP`, `DEVICE`, `design` and the other constants of that example. Then run the script.
+The examples do not use command-line options. To configure an example, change the constants at the top of its `main.py`: `SK_RAFT_SERVER_IP`, `DEVICE`, `BOARD` and the other constants of that example. Then run the script.
 
 Each example injects faults until you press Enter. Then the example continues to its next step, or it stops.
 

@@ -11,15 +11,17 @@ This folder contains the Vivado build script, the VHDL sources and the constrain
 
 Each design is a full top-level design. The project has no default synthesis top.
 
-## Prebuild designs:
+## Prebuilt designs
 
-We have prebuild design files ready to use for the Basys3, Zedboard and XXX development boards. Please unizip them in hw
+`design_examples/design_examples.zip` contains the prebuilt design files of the four designs for the Basys 3 (`basys3`) and the ZedBoard (`zedboard`). To extract them, run the script for your operating system:
 
 ```
-unzip_desings.bat
+cd design_examples
+./unzip_designs.sh        # Linux
+unzip_designs.bat         # Windows
 ```
 
-Otherwise, you can create the designs by yourself as follows
+The script extracts the files to `design_examples/<board>/<top>/`. For other boards, build the designs as described below.
 
 ## Build a bitstream
 
@@ -37,13 +39,13 @@ vivado -mode batch -source create_project.tcl -tclargs basys3 brams_top
 
 To open the project in the Vivado GUI after the build, add `-gui` at any position in the arguments. Vivado then stays open, and you can examine or change the project.
 
-The script writes the bitstream to `<project_dir>/<project_name>.runs/impl_1/<top>.bit`. For `targeted_top`, `bscan_adder_top`, `ff_lut_top` and `brams_top`, the script also copies these files into `example<N>/src/design_files/` of the related example:
+The script writes the bitstream to `<project_dir>/<project_name>.runs/impl_1/<top>.bit`. For `targeted_top`, `bscan_adder_top`, `ff_lut_top` and `brams_top`, the script also copies these files into `design_examples/<device>/<top>/`:
 
 - The bitstream.
 - The EBD and LL files, if Vivado makes them.
 - The XDC file, with the name `board.xdc`.
 
-Thus you can run the related example immediately after the build. You do not have to copy files manually.
+If this folder does not exist (for example, for your own board), the script creates it. Files from `design_examples.zip` in that folder are overwritten. Thus you can run the related example immediately after the build. Set `BOARD` in its `main.py` to the name of the board.
 
 The known devices are `basys3` (Digilent Basys 3, `xc7a35tcpg236-1`) and `zedboard` (ZedBoard, `xc7z020clg484-1`). SolidKosmos tested and supplies only these two boards.
 

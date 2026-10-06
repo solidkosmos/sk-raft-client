@@ -14,7 +14,8 @@
 # xdc/<device>/<top>.xdc. It creates the project and sets <top> as the
 # synthesis top. It gets g_family directly from the ARCHITECTURE property of
 # the part in Vivado (you supply only the part and clk_freq). Then it builds
-# the project to a bitstream.
+# the project to a bitstream and copies the design files to
+# design_examples/<device>/<top>/ (see the end of this script).
 ####################################################################################
 
 # device -> {part, clk_freq (MHz)}. The script gets the family from the part
@@ -30,6 +31,7 @@ array set device_info {
 #      that folder (and the pblock SLICE/RAMB ranges, if you use pblocks).
 #   3. Add an entry here, for example:
 #        my_board {part xc7a100tcsg324-1 clk_freq 100}
+# The build then creates design_examples/<your_board_name>/ for the files.
 
 set known_tops {
     targeted_top
@@ -253,10 +255,12 @@ if { ![file exists $bit_path] } {
     return
 }
 
-# top -> the example (examples/example<N>/src/) that uses this design.
-# The main.py of each example looks for its design files (bit/ebd/ll and
-# board.xdc) in design_files/. The script copies the new files there, so you
-# can run the example immediately. A manual copy is not necessary.
+# top -> the example number N that uses this design.
+# The script copies the design files (bit/ebd/ll and board.xdc) to
+# design_examples/<device>/<top>/, next to this script. This is the same
+# layout as the prebuilt files in design_examples.zip. If the folder does not
+# exist (for example, for a new board), the script creates it. Files of a
+# previous build or of the ZIP in that folder are overwritten.
 array set top_to_example {
     targeted_top    1
     bscan_adder_top 2
@@ -266,7 +270,7 @@ array set top_to_example {
 
 if { [info exists top_to_example($top)] } {
     set example_num  $top_to_example($top)
-    set dest_dir      "$script_dir/../example$example_num/src/design_files"
+    set dest_dir      "$script_dir/design_examples/$device/$top"
     file mkdir $dest_dir
 
     file copy -force $bit_path "$dest_dir/$top.bit"
@@ -285,13 +289,13 @@ if { [info exists top_to_example($top)] } {
 
     puts "----------------------------------------------------------------------"
     puts "Bitstream written: $bit_path"
-    puts "Example $example_num ready to run -- copied to $dest_dir:"
+    puts "Example $example_num ready to run -- copied to [file normalize $dest_dir]:"
     foreach f $copied_files { puts "  - $f" }
     puts "----------------------------------------------------------------------"
 } else {
     puts "----------------------------------------------------------------------"
     puts "Bitstream written: $bit_path"
-    puts "NOTE: '$top' has no known example mapping -- design_files/ not populated."
+    puts "NOTE: '$top' has no known example mapping -- design_examples/ not populated."
     puts "----------------------------------------------------------------------"
 }
 

@@ -34,17 +34,27 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 DEVICE = "210248781184"
 
-# The design for all trials: a simplex adder and a TMR adder on a Basys 3.
+# The design for all trials: a simplex adder and a TMR adder.
 # The script gives all three files at the start:
 #   The bitstream (.bit): to program the device.
 #   The EBD file (.ebd): to find which bits are essential.
 #   The XDC file (.xdc): to find the pblocks.
 # uploadDesignToServer() sends the files to the server. The client sends
 # only the file name of each path, not the directory.
+#
+# BOARD is the board of your target device: "basys3" or "zedboard", or
+# the name of your own board (see hw/README.md). The script reads the
+# design files from hw/design_examples/<BOARD>/bscan_adder_top/. Extract
+# design_examples.zip there, or build the design with create_project.tcl.
+BOARD = "basys3"
+DESIGN_DIR = os.path.normpath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..", "..", "hw", "design_examples", BOARD, "bscan_adder_top"))
+
 design = Design(
-    bit="design_files/bscan_adder_top.bit",
-    ebd="design_files/bscan_adder_top.ebd",
-    xdc="design_files/board.xdc",
+    bit=os.path.join(DESIGN_DIR, "bscan_adder_top.bit"),
+    ebd=os.path.join(DESIGN_DIR, "bscan_adder_top.ebd"),
+    xdc=os.path.join(DESIGN_DIR, "board.xdc"),
 )
 
 # The two pblocks to test, with the names from the XDC file.
