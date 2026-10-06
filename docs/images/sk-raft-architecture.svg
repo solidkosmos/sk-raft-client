@@ -1,35 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="735" height="232" viewBox="0 0 735 232" font-family="Ubuntu, sans-serif">
-<rect width="735" height="232" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="702" height="216" viewBox="0 0 755 232" font-family="Ubuntu, 'Liberation Sans', Arial, Helvetica, sans-serif">
+<rect width="755" height="232" fill="#ffffff"/>
 <rect x="4" y="109.0" width="110" height="70" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
-<text x="59.0" y="136.5" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">your script</text>
-<text x="59.0" y="153.0" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">+ skraft client</text>
-<rect x="284" y="109.0" width="132" height="70" fill="#D9D9D9" stroke="#111111" stroke-width="1.5"/>
-<text x="350.0" y="144.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">SK-RAFT server</text>
-<rect x="506" y="4" width="225" height="224" fill="#FFFFFF" stroke="#111111" stroke-width="1.5"/>
-<text x="516" y="16.75" font-size="15" font-weight="700" fill="#333333" text-anchor="start" dominant-baseline="central">FPGA</text>
-<rect x="542" y="33" width="173" height="124" fill="#FFFFFF" stroke="#555555" stroke-width="1.5"/>
-<rect x="552" y="41.0" width="153" height="50" fill="#D9D9D9" stroke="#111111" stroke-width="1.5"/>
-<text x="628.5" y="57.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">configuration</text>
-<text x="628.5" y="75.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">memory</text>
-<rect x="552" y="99.0" width="153" height="50" fill="#D9D9D9" stroke="#111111" stroke-width="1.5"/>
-<text x="628.5" y="115.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">application</text>
-<text x="628.5" y="133.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">memory</text>
-<rect x="552" y="170.0" width="153" height="48" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
-<text x="628.5" y="194.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">BSCAN</text>
-<path d="M114,130 L270.0,130.0" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
-<polygon points="284,130 270.0,135.0 270.0,125.0" fill="#111111"/>
-<text x="199.0" y="118.0" font-size="12.5" font-weight="400" fill="#333333" text-anchor="middle" dominant-baseline="central">gRPC requests (TCP/IP)</text>
-<path d="M284,158 L128.0,158.0" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
-<polygon points="114,158 128.0,153.0 128.0,163.0" fill="#111111"/>
-<text x="199.0" y="174.0" font-size="12.5" font-weight="400" fill="#333333" text-anchor="middle" dominant-baseline="central">results</text>
-<path d="M416,144 L522,144" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
-<text x="461.0" y="132.0" font-size="12.5" font-weight="400" fill="#333333" text-anchor="middle" dominant-baseline="central">JTAG (USB)</text>
-<path d="M522,66 L522,194" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
-<path d="M522,66 L538.0,66.0" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
-<polygon points="552,66 538.0,71.0 538.0,61.0" fill="#111111"/>
-<path d="M522,124 L538.0,124.0" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
-<polygon points="552,124 538.0,129.0 538.0,119.0" fill="#111111"/>
-<path d="M522,194 L538.0,194.0" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
-<polygon points="552,194 538.0,199.0 538.0,189.0" fill="#111111"/>
-<circle cx="522" cy="144" r="4" fill="#111111"/>
+<text x="59" y="136.5" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">your script</text>
+<text x="59" y="153.0" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">+ skraft client</text>
+<rect x="284" y="109.0" width="152" height="70" fill="#D9D9D9" stroke="#111111" stroke-width="1.5"/>
+<text x="360" y="144.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">SK-RAFT server</text>
+<rect x="526" y="4" width="225" height="224" fill="#FFFFFF" stroke="#111111" stroke-width="1.5"/>
+<text x="536" y="16.75" font-size="15" font-weight="700" fill="#333333" text-anchor="start" dominant-baseline="central">FPGA</text>
+<rect x="562" y="33" width="173" height="124" fill="#FFFFFF" stroke="#555555" stroke-width="1.5"/>
+<rect x="572" y="41.0" width="153" height="50" fill="#D9D9D9" stroke="#111111" stroke-width="1.5"/>
+<text x="648.5" y="57.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">configuration</text>
+<text x="648.5" y="75.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">memory</text>
+<rect x="572" y="99.0" width="153" height="50" fill="#D9D9D9" stroke="#111111" stroke-width="1.5"/>
+<text x="648.5" y="115.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">application</text>
+<text x="648.5" y="133.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">memory</text>
+<rect x="572" y="170.0" width="153" height="48" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="648.5" y="194.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">BSCAN</text>
+<path d="M114,130 L270,130.0" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="284,130 270,135.0 270,125.0" fill="#111111"/>
+<text x="199" y="118.0" font-size="12.5" font-weight="400" fill="#333333" text-anchor="middle" dominant-baseline="central">gRPC requests (TCP/IP)</text>
+<path d="M284,158 L128,158.0" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="114,158 128,153.0 128,163.0" fill="#111111"/>
+<text x="199" y="174.0" font-size="12.5" font-weight="400" fill="#333333" text-anchor="middle" dominant-baseline="central">results</text>
+<path d="M436,144 L542,144" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<text x="481" y="132.0" font-size="12.5" font-weight="400" fill="#333333" text-anchor="middle" dominant-baseline="central">JTAG (USB)</text>
+<path d="M542,66 L542,194" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<path d="M542,66 L558,66.0" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="572,66 558,71.0 558,61.0" fill="#111111"/>
+<path d="M542,124 L558,124.0" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="572,124 558,129.0 558,119.0" fill="#111111"/>
+<path d="M542,194 L558,194.0" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="572,194 558,199.0 558,189.0" fill="#111111"/>
+<circle cx="542" cy="144" r="4" fill="#111111"/>
 </svg>
