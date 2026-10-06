@@ -8,6 +8,11 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class FpgaFarModel(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    FPGA_7SERIES_FAR_MODEL: _ClassVar[FpgaFarModel]
+    FPGA_ULTRASCALE_FAR_MODEL: _ClassVar[FpgaFarModel]
+
 class FpgaFileType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     FPGA_FILE_TYPE_UNSPECIFIED: _ClassVar[FpgaFileType]
@@ -41,6 +46,8 @@ class FpgaFaultType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     FPGA_FAULT_TYPE_RANDOM: _ClassVar[FpgaFaultType]
     FPGA_FAULT_TYPE_EXHAUSTIVE: _ClassVar[FpgaFaultType]
+FPGA_7SERIES_FAR_MODEL: FpgaFarModel
+FPGA_ULTRASCALE_FAR_MODEL: FpgaFarModel
 FPGA_FILE_TYPE_UNSPECIFIED: FpgaFileType
 FPGA_FILE_TYPE_RBD: FpgaFileType
 FPGA_FILE_TYPE_MSD: FpgaFileType
@@ -134,18 +141,20 @@ class FpgaFarDecodeRequest(_message.Message):
     def __init__(self, value: _Optional[int] = ...) -> None: ...
 
 class FpgaFarDecodeResponse(_message.Message):
-    __slots__ = ("block_type", "top_bottom", "row_address", "column_address", "minor_address")
+    __slots__ = ("far_model", "block_type", "top_bottom", "row_address", "column_address", "minor_address")
+    FAR_MODEL_FIELD_NUMBER: _ClassVar[int]
     BLOCK_TYPE_FIELD_NUMBER: _ClassVar[int]
     TOP_BOTTOM_FIELD_NUMBER: _ClassVar[int]
     ROW_ADDRESS_FIELD_NUMBER: _ClassVar[int]
     COLUMN_ADDRESS_FIELD_NUMBER: _ClassVar[int]
     MINOR_ADDRESS_FIELD_NUMBER: _ClassVar[int]
+    far_model: FpgaFarModel
     block_type: int
     top_bottom: int
     row_address: int
     column_address: int
     minor_address: int
-    def __init__(self, block_type: _Optional[int] = ..., top_bottom: _Optional[int] = ..., row_address: _Optional[int] = ..., column_address: _Optional[int] = ..., minor_address: _Optional[int] = ...) -> None: ...
+    def __init__(self, far_model: _Optional[_Union[FpgaFarModel, str]] = ..., block_type: _Optional[int] = ..., top_bottom: _Optional[int] = ..., row_address: _Optional[int] = ..., column_address: _Optional[int] = ..., minor_address: _Optional[int] = ...) -> None: ...
 
 class FpgaReadRegisterRequest(_message.Message):
     __slots__ = ("addr",)

@@ -16,7 +16,8 @@ from . import skraft_client_pb2_grpc
 from .datatypes import (
     BscanPrimitive,
     Design,
-    FpgaFar,
+    FpgaFar7series,
+    FpgaFarUltraScale,
     FpgaFiSession,
     FpgaFiSummary,
     FpgaFrame,
@@ -751,18 +752,27 @@ class FpgaDevice:
                 f"failed to write register: {_rpc_detail(e)}"
             ) from e
 
-    def decode_far(self, far: int) -> FpgaFar:
+    def decode_far(self, far: int) -> FpgaFar7series | FpgaFarUltraScale:
         try:
             request = skraft_client_pb2.FpgaFarDecodeRequest(value=far)
             reply = self._stub.FpgaDecodeFrameAddress(request)
 
-            far_decoded = FpgaFar(
-                            far,
-                            reply.block_type,
-                            reply.top_bottom,
-                            reply.row_address,
-                            reply.column_address,
-                            reply.minor_address)
+            if reply.far_model == skraft_client_pb2.FPGA_7SERIES_FAR_MODEL:
+                far_decoded = FpgaFar7series(
+                                far,
+                                reply.block_type,
+                                reply.top_bottom,
+                                reply.row_address,
+                                reply.column_address,
+                                reply.minor_address)
+            else:
+                far_decoded = FpgaFarUltraScale(
+                                far,
+                                reply.block_type,
+                                reply.row_address,
+                                reply.column_address,
+                                reply.minor_address)
+
             return far_decoded
 
         except grpc.RpcError as e:

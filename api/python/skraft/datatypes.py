@@ -114,13 +114,13 @@ class Design:
             )
 
 
+
 class FpgaFar:
-    def __init__(self, raw: int, blocktype: int, topbottom: int,
+    def __init__(self, raw: int, blocktype: int,
                  row_address: int, column_address: int, 
                  minor_address: int) -> None:
         self.__raw = raw
         self.__blocktype      = blocktype
-        self.__topbottom      = topbottom
         self.__row_address    = row_address
         self.__column_address = column_address
         self.__minor_address  = minor_address
@@ -134,10 +134,6 @@ class FpgaFar:
         return self.__blocktype
     
     @property
-    def topbottom(self) -> int:
-        return self.__topbottom
-
-    @property
     def row_address(self) -> int:
         return self.__row_address
 
@@ -148,6 +144,20 @@ class FpgaFar:
     @property
     def minor_address(self) -> int:
         return self.__minor_address
+
+class FpgaFar7series(FpgaFar):
+    def __init__(self, raw: int, blocktype: int, topbottom: int, row_address: int, column_address: int, minor_address: int) -> None:
+        self.__topbottom = topbottom
+
+        super().__init__(raw, blocktype, row_address, column_address, minor_address)
+
+    @property
+    def topbottom(self) -> int:
+        return self.__topbottom
+
+class FpgaFarUltraScale(FpgaFar):
+    def __init__(self, raw: int, blocktype: int, row_address: int, column_address: int, minor_address: int) -> None:
+        super().__init__(raw, blocktype, row_address, column_address, minor_address)
 
 
 # --------------------------------------------------------------------------- #

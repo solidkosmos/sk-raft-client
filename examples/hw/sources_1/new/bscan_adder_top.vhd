@@ -33,6 +33,7 @@ architecture Structure of bscan_adder_top is
 
     attribute keep_hierarchy : string;
     attribute keep_hierarchy of tmr_add, sngl_add : label is "TRUE";
+    attribute dont_touch : string;
     
     -- BSCAN write data path (USER1). JTAG writes the operands
     -- for the two adders.
