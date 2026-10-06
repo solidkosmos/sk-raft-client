@@ -32,7 +32,9 @@ from skraft import BscanPrimitive, Design, SkraftError, SkraftFpga, TargetMemory
 # --------------------------------------------------------------------------- #
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-DEVICE = "210248781184"
+# If you do not know the serial number of your target device,
+# use the get_devices() call to find it.
+SERIAL_NUMBER = "210183BA251CA"
 
 # The design for all trials: a simplex adder and a TMR adder.
 # The script gives all three files at the start:
@@ -46,15 +48,14 @@ DEVICE = "210248781184"
 # the name of your own board (see hw/README.md). The script reads the
 # design files from hw/design_examples/<BOARD>/bscan_adder_top/. Extract
 # design_examples.zip there, or build the design with create_project.tcl.
+# The paths are relative to src/. Run the script from that folder.
 BOARD = "basys3"
-DESIGN_DIR = os.path.normpath(os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "..", "..", "hw", "design_examples", BOARD, "bscan_adder_top"))
+DESIGN_DIR = f"../../hw/design_examples/{BOARD}/bscan_adder_top"
 
 design = Design(
-    bit=os.path.join(DESIGN_DIR, "bscan_adder_top.bit"),
-    ebd=os.path.join(DESIGN_DIR, "bscan_adder_top.ebd"),
-    xdc=os.path.join(DESIGN_DIR, "board.xdc"),
+    bit=f"{DESIGN_DIR}/bscan_adder_top.bit",
+    ebd=f"{DESIGN_DIR}/bscan_adder_top.ebd",
+    xdc=f"{DESIGN_DIR}/board.xdc",
 )
 
 # The two pblocks to test, with the names from the XDC file.
@@ -126,12 +127,12 @@ def main() -> None:
         # SK-RAFT: open the connection. Then attach to the target device.
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
-            with client.attach(DEVICE) as dev:
+            with client.attach(SERIAL_NUMBER) as dev:
                 # SK-RAFT: upload the bitstream, EBD file and XDC file.
                 # Then program the FPGA.
                 dev.uploadDesignToServer(design)
                 dev.programFPGA()
-                print(f"Programmed {DEVICE}.")
+                print(f"Programmed {SERIAL_NUMBER}.")
                 simplex_ebits = dev.bit_count(TargetMemory.ESSENTIAL_CRAM, 
                                               pblock=PBLOCK_SIMPLEX)
                 tmr_ebits = dev.bit_count(TargetMemory.ESSENTIAL_CRAM, 

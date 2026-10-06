@@ -30,7 +30,7 @@ The examples do not use `CONTAIN_ROUTING`, to keep them simple.
 ## Run the example
 
 1. Make sure that the design files are in `hw/design_examples/<board>/targeted_top/`, and set `BOARD` in `src/main.py` to your board. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files).
-2. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP`, `DEVICE` and `design`.
+2. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP` and `SERIAL_NUMBER`.
 3. Run the script:
 
 ```bash
@@ -41,7 +41,7 @@ python main.py
 | Constant | Default | Description |
 | --- | --- | --- |
 | `design` | `targeted_top.{bit,ebd}` + XDC | The design files. The script uploads them to the server. |
-| `DEVICE` | `"210183BFD452A"` | The serial number of the target board. `get_devices()` gives the connected boards. |
+| `SERIAL_NUMBER` | `"210183BFD452A"` | The serial number of the target board. `get_devices()` gives the connected boards. |
 | `pblocks` (in `main()`) | slow and fast heartbeat | The pblocks for step 3, as the XDC file names them. |
 
 ## Result

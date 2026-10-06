@@ -20,7 +20,6 @@ Enter to stop a step early. Look at LD0/LD1 on the board: the heartbeat
 counters show the effect of each upset.
 """
 
-import os
 import random
 import threading
 import time
@@ -34,7 +33,7 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 # If you do not know the serial number of your target device,
 # use the get_devices() call to find it.
-DEVICE = "210183BFD452A"
+SERIAL_NUMBER = "210183BA251CA"
 
 # The design for all steps: two heartbeat counters (LD0, LD1).
 # The script gives all three files at the start:
@@ -48,15 +47,14 @@ DEVICE = "210183BFD452A"
 # the name of your own board (see hw/README.md). The script reads the
 # design files from hw/design_examples/<BOARD>/targeted_top/. Extract
 # design_examples.zip there, or build the design with create_project.tcl.
+# The paths are relative to src/. Run the script from that folder.
 BOARD = "basys3"
-DESIGN_DIR = os.path.normpath(os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "..", "..", "hw", "design_examples", BOARD, "targeted_top"))
+DESIGN_DIR = f"../../hw/design_examples/{BOARD}/targeted_top"
 
 design = Design(
-    bit=os.path.join(DESIGN_DIR, "targeted_top.bit"),
-    ebd=os.path.join(DESIGN_DIR, "targeted_top.ebd"),
-    xdc=os.path.join(DESIGN_DIR, "board.xdc"),
+    bit=f"{DESIGN_DIR}/targeted_top.bit",
+    ebd=f"{DESIGN_DIR}/targeted_top.ebd",
+    xdc=f"{DESIGN_DIR}/board.xdc",
 )
 
 # A fixed seed gives the same sequence of step 1 injections in each run.
@@ -77,11 +75,11 @@ def main() -> None:
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
-            with client.attach(DEVICE) as dev:
+            with client.attach(SERIAL_NUMBER) as dev:
 
                 dev.uploadDesignToServer(design)
                 dev.programFPGA()
-                print(f"programmed {DEVICE} with {design.bit}")
+                print(f"programmed {SERIAL_NUMBER} with {design.bit}")
 
                 # ----------------------------------------------------------- #
                 # Step 1: random bits, anywhere in the configuration RAM.

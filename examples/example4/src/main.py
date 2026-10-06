@@ -34,15 +34,19 @@ correct.
 
 from __future__ import annotations
 
-import os
 import time
 import threading
 
 from skraft import BscanPrimitive, Design, SkraftError, SkraftFpga, TargetMemory
 
+# --------------------------------------------------------------------------- #
+# Configuration. Set these values for your setup.
+# --------------------------------------------------------------------------- #
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-DEVICE = "210248781184"
+# If you do not know the serial number of your target device,
+# use the get_devices() call to find it.
+SERIAL_NUMBER = "210183BA251CA"
 
 # The design for both parts: a single BRAM behind an ECC read path.
 # The script gives all four files at the start:
@@ -57,16 +61,15 @@ DEVICE = "210248781184"
 # the name of your own board (see hw/README.md). The script reads the
 # design files from hw/design_examples/<BOARD>/brams_top/. Extract
 # design_examples.zip there, or build the design with create_project.tcl.
+# The paths are relative to src/. Run the script from that folder.
 BOARD = "basys3"
-DESIGN_DIR = os.path.normpath(os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "..", "..", "hw", "design_examples", BOARD, "brams_top"))
+DESIGN_DIR = f"../../hw/design_examples/{BOARD}/brams_top"
 
 design = Design(
-    bit=os.path.join(DESIGN_DIR, "brams_top.bit"),
-    ebd=os.path.join(DESIGN_DIR, "brams_top.ebd"),
-    ll =os.path.join(DESIGN_DIR, "brams_top.ll"),
-    xdc=os.path.join(DESIGN_DIR, "board.xdc"),
+    bit=f"{DESIGN_DIR}/brams_top.bit",
+    ebd=f"{DESIGN_DIR}/brams_top.ebd",
+    ll =f"{DESIGN_DIR}/brams_top.ll",
+    xdc=f"{DESIGN_DIR}/board.xdc",
 )
 
 PBLOCK_BRAM = "pblock_stock_bram"
@@ -179,15 +182,13 @@ def watch_for_enter() -> None:
 #   block type (0 = configuration, 1 = BRAM content)
 #   top/bottom half (for 7 Series devices)
 #   row, column and minor frame.
-HIT_HEADER = "     #  FAR       WORD  BIT  BLK  TB  ROW  COL  MINOR"
+HIT_HEADER = "     #  FAR       WORD  BIT  BLK_TYPE"
 
 
 def print_hit(dev, n: int, report) -> None:
     frame = dev.decode_far(report.far)
     print(f"{n:>6}  {report.far:08x}  {report.word_index:>4}  "
-          f"{report.bit_index:>3}  {frame.blocktype!s:>3}  "
-          f"{frame.topbottom!s:>2}  {frame.row_address!s:>3}  "
-          f"{frame.column_address!s:>3}  {frame.minor_address!s:>5}")
+          f"{report.bit_index:>3}  {frame.blocktype!s:>3}  ")
 
 
 
@@ -197,10 +198,10 @@ def main() -> None:
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
-            with client.attach(DEVICE) as dev:
+            with client.attach(SERIAL_NUMBER) as dev:
                 dev.uploadDesignToServer(design)
                 dev.programFPGA()
-                print(f"Programmed {DEVICE}.")
+                print(f"Programmed {SERIAL_NUMBER}.")
                 enable_clock(dev, True)
 
                 # Part 1: inject upsets into the configuration frames

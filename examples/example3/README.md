@@ -35,7 +35,7 @@ Part 2 injects faults into the LUTRAM in `pblock_LUTRAM` (`TargetMemory.LUTRAM`)
 ## Run the example
 
 1. Make sure that the design files are in `hw/design_examples/<board>/ff_lut_top/`, and set `BOARD` in `src/main.py` to your board. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files).
-2. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP`, `DEVICE` and `design`. The design files are `ff_lut_top.bit`, `ff_lut_top.ll` and the XDC file. The script uploads them to the server.
+2. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP` and `SERIAL_NUMBER`. The design files are `ff_lut_top.bit`, `ff_lut_top.ll` and the XDC file. The script uploads them to the server.
 3. Run the script:
 
 ```bash

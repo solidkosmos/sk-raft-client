@@ -84,7 +84,7 @@ cd exampleN/src
 python main.py
 ```
 
-The examples do not use command-line options. To configure an example, change the constants at the top of its `main.py`: `SK_RAFT_SERVER_IP`, `DEVICE`, `BOARD` and the other constants of that example. Then run the script.
+The examples do not use command-line options. To configure an example, change the constants at the top of its `main.py`: `SK_RAFT_SERVER_IP`, `SERIAL_NUMBER`, `BOARD` and the other constants of that example. Then run the script.
 
 Each example injects faults until you press Enter. Then the example continues to its next step, or it stops.
 
