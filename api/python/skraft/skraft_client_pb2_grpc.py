@@ -187,6 +187,11 @@ class SKRaftFpgaStub(object):
                 request_serializer=skraft__client__pb2.FpgaPblockClause.SerializeToString,
                 response_deserializer=skraft__client__pb2.FpgaPblockFars.FromString,
                 _registered_method=True)
+        self.FpgaXadcSensor = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaXadcSensor',
+                request_serializer=skraft__client__pb2.FpgaXadcSensorRequest.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaXadcResult.FromString,
+                _registered_method=True)
         self.Version = channel.unary_unary(
                 '/proto.SKRaftFpga/Version',
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
@@ -391,6 +396,13 @@ class SKRaftFpgaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def FpgaXadcSensor(self, request, context):
+        """XADC sensors (7 series FPGAs and Zynq-7000 SoCs)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def Version(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -549,6 +561,11 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
                     servicer.FpgaGetPblockFarsByClause,
                     request_deserializer=skraft__client__pb2.FpgaPblockClause.FromString,
                     response_serializer=skraft__client__pb2.FpgaPblockFars.SerializeToString,
+            ),
+            'FpgaXadcSensor': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaXadcSensor,
+                    request_deserializer=skraft__client__pb2.FpgaXadcSensorRequest.FromString,
+                    response_serializer=skraft__client__pb2.FpgaXadcResult.SerializeToString,
             ),
             'Version': grpc.unary_unary_rpc_method_handler(
                     servicer.Version,
@@ -1368,6 +1385,33 @@ class SKRaftFpga(object):
             '/proto.SKRaftFpga/FpgaGetPblockFarsByClause',
             skraft__client__pb2.FpgaPblockClause.SerializeToString,
             skraft__client__pb2.FpgaPblockFars.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaXadcSensor(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaXadcSensor',
+            skraft__client__pb2.FpgaXadcSensorRequest.SerializeToString,
+            skraft__client__pb2.FpgaXadcResult.FromString,
             options,
             channel_credentials,
             insecure,

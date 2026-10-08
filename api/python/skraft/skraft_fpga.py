@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import os
-from typing import Optional
+from typing import Optional, overload
 
 import grpc
 from google.protobuf import empty_pb2
@@ -39,6 +39,8 @@ from .datatypes import (
     TargetMemory,
     ScrubbingType,
     ReadbackOption,
+    XadcSensor,
+    XadcSensorSelector,
 )
 from .exceptions import (
     BscanError,
@@ -46,6 +48,7 @@ from .exceptions import (
     DesignFileError,
     DeviceReservationError,
     FrameAddressError,
+    XadcError,
 )
 
 
@@ -1339,6 +1342,66 @@ class FpgaDevice:
         except grpc.RpcError as e:
             raise FrameAddressError(
                 f"failed to decode Frame Address: {_rpc_detail(e)}"
+            ) from e
+
+    @overload
+    def xadc(
+        self, adc_sensor_selector: XadcSensorSelector, /
+    ) -> XadcSensor: ...
+
+    @overload
+    def xadc(self, drp_address: int, /) -> XadcSensor: ...
+
+    def xadc(self, sensor: XadcSensorSelector | int, /) -> XadcSensor:
+        """
+        Read an XADC sensor of the device.
+
+        The sensor is given either by a selector of the library, for example
+        VCCINT or TEMPERATURE, or by the DRP address of its status register.
+        The value is in units of the International System of Units (SI):
+        volts (V) for voltages and degrees Celsius (degC) for temperatures.
+
+        Only the on-chip sensors, and their recorded maximum and minimum
+        values, can be read. Uses the FpgaXadcSensor RPC.
+
+        Parameters:
+            sensor (XadcSensorSelector | int): The selector of the sensor,
+                or the DRP address of its status register.
+
+        Returns:
+            XadcSensor: The value of the sensor, in V or degC.
+
+        Raises:
+            TypeError: If the sensor is neither a selector nor a DRP
+                address.
+            XadcError: If the server could not read the sensor, for example
+                because the DRP address is not a sensor, or the device does
+                not have the sensor.
+
+        Examples:
+            >>> dev.xadc(VCCINT).value       # V
+            >>> dev.xadc(TEMPERATURE).value  # degC
+            >>> dev.xadc(0x01).value         # V, VCCINT by DRP address
+        """
+        if isinstance(sensor, XadcSensorSelector):
+            addr = sensor.addr
+        elif isinstance(sensor, int) and not isinstance(sensor, bool):
+            addr = sensor
+        else:
+            raise TypeError(
+                "expected an XadcSensorSelector or a DRP address, got "
+                f"{type(sensor).__name__}"
+            )
+
+        try:
+            request = skraft_client_pb2.FpgaXadcSensorRequest(addr=addr)
+            reply = self._stub.FpgaXadcSensor(request)
+
+            return XadcSensor(addr, reply.value)
+        except grpc.RpcError as e:
+            raise XadcError(
+                f"failed to read XADC sensor at DRP address {addr:#04x}: "
+                f"{_rpc_detail(e)}"
             ) from e
 
 class SkraftFpga:
