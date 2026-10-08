@@ -73,6 +73,25 @@ def _rpc_detail(error: grpc.RpcError) -> str:
     except Exception:
         return str(error)
 
+def _read_pem(path: Optional[str]) -> Optional[bytes]:
+    """
+    Read a PEM file for the TLS connection.
+
+    Parameters:
+        path (Optional[str]): The path of the PEM file, if any.
+
+    Returns:
+        Optional[bytes]: The contents of the file, or None if no path is
+            given.
+
+    Raises:
+        OSError: If the file cannot be read.
+    """
+    if path is None:
+        return None
+    with open(path, "rb") as f:
+        return f.read()
+
 
 def _kind_from_area(target: TargetMemory) -> int:
     """
@@ -1296,32 +1315,64 @@ class SkraftFpga:
 
     # -- connection lifecycle --------------------------------------------- #
     @classmethod
-    def connect(cls, ip: str, port: int) -> "SkraftFpga":
+    def connect(cls, ip: str, port: int,
+                tls_server_cert: Optional[str] = None,
+                tls_cert: Optional[str] = None,
+                tls_key: Optional[str] = None) -> "SkraftFpga":
         """
         Create a client and open a connection to the server.
 
         After connecting, the server version is checked and a warning is
         printed if it does not match the version this client expects.
 
+        The connection uses TLS when any of the TLS files is given. This is
+        needed when the server is started with -tls-cert and -tls-key.
+
         Parameters:
             ip (str): The address of the server.
             port (int): The port of the server.
+            tls_server_cert (Optional[str]): The path of the PEM certificate
+                of the server (the -tls-cert of the server), used to verify
+                the server. Its names must include the ip given here. If it
+                is not given, the server is verified against the trusted
+                certificates of the system.
+            tls_cert (Optional[str]): The path of the PEM certificate of
+                this client. It is needed when the server is started with
+                -tls-public-key, and must hold that public key. Give it
+                together with tls_key.
+            tls_key (Optional[str]): The path of the PEM private key of this
+                client, the private key of tls_cert.
 
         Returns:
             SkraftFpga: The connected client.
 
         Raises:
+            ValueError: If only one of tls_cert and tls_key is given.
+            OSError: If a TLS file cannot be read.
             ConnectionFailedError: If the server cannot be reached.
         """
+        if (tls_cert is None) != (tls_key is None):
+            raise ValueError("TLS needs both tls_cert and tls_key")
+
         client = cls(ip, port)
+        # A full readback of a large device is larger than the default
+        # limit of 4 MB.
+        options = [("grpc.max_receive_message_length", -1),
+                   ("grpc.max_send_message_length", -1)]
         try:
-            # A full readback of a large device is larger than the default
-            # limit of 4 MB.
-            client._channel = grpc.insecure_channel(
-                f"{ip}:{port}",
-                options=[("grpc.max_receive_message_length", -1),
-                         ("grpc.max_send_message_length", -1)],
-            )
+            if tls_server_cert is None and tls_cert is None:
+                client._channel = grpc.insecure_channel(
+                    f"{ip}:{port}", options=options,
+                )
+            else:
+                credentials = grpc.ssl_channel_credentials(
+                    root_certificates=_read_pem(tls_server_cert),
+                    private_key=_read_pem(tls_key),
+                    certificate_chain=_read_pem(tls_cert),
+                )
+                client._channel = grpc.secure_channel(
+                    f"{ip}:{port}", credentials, options=options,
+                )
             client._stub = skraft_client_pb2_grpc.SKRaftFpgaStub(
                 client._channel
             )
