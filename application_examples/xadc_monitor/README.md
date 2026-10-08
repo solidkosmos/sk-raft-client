@@ -95,7 +95,7 @@ xadc_monitor/
 │   ├── build.tcl                     Vivado build script
 │   ├── src/
 │   │   ├── xadc_top.vhd              Top level: XADC, DRP read, snapshot
-│   │   ├── bscan_interface.vhd       BSCAN modules (same as examples/hw)
+│   │   ├── bscan_interface.vhd       BSCAN modules (same as get_started/hw)
 │   │   ├── bscan_primitive_wrapper.vhd
 │   │   └── bscan_user_register_io.vhd
 │   └── xdc/

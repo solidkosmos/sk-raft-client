@@ -3,7 +3,7 @@
 ## Layout
 
 ```
-examples/
+get_started/
 ├── example1/ .. example4/             SK-RAFT client examples (src/main.py)
 └── hw/                                 Vivado project (create_project.tcl)
     ├── design_examples/                 design files: design_examples.zip and build output

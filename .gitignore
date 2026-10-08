@@ -7,7 +7,7 @@
 *.rbd
 
 # Design files extracted from design_examples.zip or written by create_project.tcl
-examples/hw/design_examples/*/
+get_started/hw/design_examples/*/
 
 # Vivado projects that create_project.tcl creates
 # (default name: get_started_examples_<device>_<top>)
@@ -37,4 +37,4 @@ api/python/dist/
 .vscode/
 
 # NEORV32 hardened-core application example (excluded)
-examples/test_neo_hardened/
+application_examples/test_neo_hardened/

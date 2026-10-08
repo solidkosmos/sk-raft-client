@@ -35,10 +35,10 @@ Nobody pushes changes directly to the `main` branch. Each change goes into `main
 
 ### Add an example
 
-1. Make a new folder in `examples/`, next to `example1/` .. `example4/` and `hw/`.
+1. Make a new folder in `get_started/`, next to `example1/` .. `example4/` and `hw/`.
 2. Add a `README.md` to the new folder. Use the README of an existing example as a template.
-3. If the example has a new design, add the VHDL sources to `examples/hw/sources_1/new/` and the XDC files to `examples/hw/xdc/<device>/`.
-4. Add the example to the table in [`examples/README.md`](examples/README.md).
+3. If the example has a new design, add the VHDL sources to `get_started/hw/sources_1/new/` and the XDC files to `get_started/hw/xdc/<device>/`.
+4. Add the example to the table in [`get_started/README.md`](get_started/README.md).
 
 To add a new client, make a new folder in `api/` at the root of the repository. Add a `README.md` to the new folder.
 

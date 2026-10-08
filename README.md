@@ -61,7 +61,7 @@ with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
 sk-raft-client/
 ├── api/python/                           Python client (skraft package)
 ├── docs/                                 Concepts and reference documents
-└── examples/                             Example designs and scripts
+└── get_started/                          Example designs and scripts
 ```
 
 ## Installation
@@ -85,6 +85,6 @@ SolidKosmos does not accept pull requests from persons outside SolidKosmos.
 
 ## License
 
-- The Python client (`api/python`), the examples (`examples/`) and the documents (`docs/`) are open source under the Apache License 2.0. Refer to [`LICENSE.md`](LICENSE.md) and [`NOTICE.md`](NOTICE.md).
+- The Python client (`api/python`), the examples (`get_started/`) and the documents (`docs/`) are open source under the Apache License 2.0. Refer to [`LICENSE.md`](LICENSE.md) and [`NOTICE.md`](NOTICE.md).
 - The SK-RAFT server is not open source. The SK-RAFT Trial Licence Agreement or the SK-RAFT End User Licence Agreement applies to the server.
 - SK-RAFT and SolidKosmos are trademarks of SOLIDKOSMOS S.A. The Apache License 2.0 does not give permission to use these trademarks.
