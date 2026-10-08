@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, IntFlag, auto
-from pathlib import PurePosixPath
 from typing import Optional
 
 from . import skraft_client_pb2
@@ -105,28 +104,44 @@ class FaultType(int, Enum):
     RANDOM = skraft_client_pb2.FPGA_FAULT_TYPE_RANDOM
     EXHAUSTIVE = skraft_client_pb2.FPGA_FAULT_TYPE_EXHAUSTIVE
 
-class ServerPath(str):
+class RegisterAddress(int, Enum):
     """
-    A file path that is resolved on the SK-RAFT server, not on the client.
+    The addresses of the configuration registers of the device, for
+    FpgaDevice.read_register and FpgaDevice.write_register.
 
-    It behaves like a normal string, so it can be sent to the server as it
-    is, while making it clear in the code that the path refers to the
-    server. The path is normalised as a POSIX path when it is created.
+    They are copies of the register addresses of the SK-RAFT server: the
+    ID of each register, shifted into the register address field (bit 13)
+    of a type 1 packet header.
+
+    Attributes:
+        FAR (RegisterAddress): The frame address register.
+        CRC (RegisterAddress): The cyclic redundancy check register.
+        STATUS (RegisterAddress): The status register.
+        CTRL0 (RegisterAddress): The control register 0.
+        MASK (RegisterAddress): The masking register for CTRL0 and CTRL1.
+        CMD (RegisterAddress): The command register.
+        IDCODE (RegisterAddress): The device ID register.
+        FDRI (RegisterAddress): The frame data register input, which
+            takes the configuration data.
+        FDRO (RegisterAddress): The frame data register output, which
+            gives the readback data.
+        CTRL1 (RegisterAddress): The control register 1.
+        COR0 (RegisterAddress): The configuration option register 0.
+        COR1 (RegisterAddress): The configuration option register 1.
     """
 
-    __slots__ = ()
-
-    def __new__(cls, path: str) -> "ServerPath":
-        """
-        Create a server path.
-
-        Parameters:
-            path (str): The path on the server.
-
-        Returns:
-            ServerPath: The normalised path.
-        """
-        return super().__new__(cls, str(PurePosixPath(path)))
+    FAR = 0x01 << 13
+    CRC = 0x00 << 13
+    STATUS = 0x07 << 13
+    CTRL0 = 0x05 << 13
+    MASK = 0x06 << 13
+    CMD = 0x04 << 13
+    IDCODE = 0x0C << 13
+    FDRI = 0x02 << 13
+    FDRO = 0x03 << 13
+    CTRL1 = 0x18 << 13
+    COR0 = 0x09 << 13
+    COR1 = 0x0E << 13
 
 
 @dataclass(frozen=True)

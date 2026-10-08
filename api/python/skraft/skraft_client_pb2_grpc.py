@@ -112,9 +112,9 @@ class SKRaftFpgaStub(object):
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 _registered_method=True)
-        self.FpgaExtractFarsFromBitstream = channel.unary_unary(
+        self.FpgaExtractFarsFromBitstream = channel.stream_unary(
                 '/proto.SKRaftFpga/FpgaExtractFarsFromBitstream',
-                request_serializer=skraft__client__pb2.FpgaFarListExtractRequest.SerializeToString,
+                request_serializer=skraft__client__pb2.UploadDesignFileRequest.SerializeToString,
                 response_deserializer=skraft__client__pb2.FpgaFarListExtractResponse.FromString,
                 _registered_method=True)
         self.FpgaExcludeFars = channel.unary_unary(
@@ -297,8 +297,10 @@ class SKRaftFpgaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def FpgaExtractFarsFromBitstream(self, request, context):
+    def FpgaExtractFarsFromBitstream(self, request_iterator, context):
         """Frame address (FAR) list management
+        Streams a bitstream, as FpgaUploadDesignFile does, and returns its
+        FARs. The bitstream used to program the FPGA is not changed.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -473,9 +475,9 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
                     request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
-            'FpgaExtractFarsFromBitstream': grpc.unary_unary_rpc_method_handler(
+            'FpgaExtractFarsFromBitstream': grpc.stream_unary_rpc_method_handler(
                     servicer.FpgaExtractFarsFromBitstream,
-                    request_deserializer=skraft__client__pb2.FpgaFarListExtractRequest.FromString,
+                    request_deserializer=skraft__client__pb2.UploadDesignFileRequest.FromString,
                     response_serializer=skraft__client__pb2.FpgaFarListExtractResponse.SerializeToString,
             ),
             'FpgaExcludeFars': grpc.unary_unary_rpc_method_handler(
@@ -972,7 +974,7 @@ class SKRaftFpga(object):
             _registered_method=True)
 
     @staticmethod
-    def FpgaExtractFarsFromBitstream(request,
+    def FpgaExtractFarsFromBitstream(request_iterator,
             target,
             options=(),
             channel_credentials=None,
@@ -982,11 +984,11 @@ class SKRaftFpga(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
+        return grpc.experimental.stream_unary(
+            request_iterator,
             target,
             '/proto.SKRaftFpga/FpgaExtractFarsFromBitstream',
-            skraft__client__pb2.FpgaFarListExtractRequest.SerializeToString,
+            skraft__client__pb2.UploadDesignFileRequest.SerializeToString,
             skraft__client__pb2.FpgaFarListExtractResponse.FromString,
             options,
             channel_credentials,

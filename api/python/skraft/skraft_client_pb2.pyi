@@ -304,12 +304,6 @@ class FpgaScrubWordSummary(_message.Message):
     is_essential: bool
     def __init__(self, far: _Optional[int] = ..., word_index: _Optional[int] = ..., bit_index: _Optional[int] = ..., golden_word_value: _Optional[int] = ..., erroneous_word_value: _Optional[int] = ..., ebd_word_value: _Optional[int] = ..., msd_word_value: _Optional[int] = ..., is_essential: bool = ...) -> None: ...
 
-class FpgaFarListExtractRequest(_message.Message):
-    __slots__ = ("bitstream_path",)
-    BITSTREAM_PATH_FIELD_NUMBER: _ClassVar[int]
-    bitstream_path: str
-    def __init__(self, bitstream_path: _Optional[str] = ...) -> None: ...
-
 class FpgaFarListExtractResponse(_message.Message):
     __slots__ = ("fars",)
     FARS_FIELD_NUMBER: _ClassVar[int]

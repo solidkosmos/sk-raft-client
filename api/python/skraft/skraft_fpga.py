@@ -37,7 +37,6 @@ from .datatypes import (
     FpgaWord,
     FpgaFiWordSummary,
     TargetMemory,
-    ServerPath,
     ScrubbingType,
     ReadbackOption,
 )
@@ -275,7 +274,28 @@ class FpgaDevice:
         """
         Upload a single design file to the server.
 
-        A checksum of the file is calculated first and sent with the upload,
+        Parameters:
+            path (str): The local path of the file.
+            file_type (int): The wire value that identifies the kind of
+                file.
+
+        Raises:
+            DesignFileError: If the file cannot be read or the upload fails.
+        """
+        requests = self._file_requests(path, file_type)
+        try:
+            self._stub.FpgaUploadDesignFile(requests)
+        except grpc.RpcError as e:
+            raise DesignFileError(
+                f"failed to upload design file {path}: {_rpc_detail(e)}"
+            ) from e
+
+    @staticmethod
+    def _file_requests(path: str, file_type: int):
+        """
+        Prepare the messages that stream a design file to the server.
+
+        A checksum of the file is calculated first and sent with the file,
         so that the server can confirm the file arrived intact. The file
         content is then streamed in fixed-size chunks.
 
@@ -284,8 +304,12 @@ class FpgaDevice:
             file_type (int): The wire value that identifies the kind of
                 file.
 
+        Returns:
+            Iterator[skraft_client_pb2.UploadDesignFileRequest]: The
+                messages of the stream.
+
         Raises:
-            DesignFileError: If the file cannot be read or the upload fails.
+            DesignFileError: If the file cannot be read.
         """
         try:
             digest = hashlib.sha256()
@@ -320,12 +344,7 @@ class FpgaDevice:
                 for chunk in iter(lambda: file.read(_UPLOAD_CHUNK_SIZE), b""):
                     yield skraft_client_pb2.UploadDesignFileRequest(chunk=chunk)
 
-        try:
-            self._stub.FpgaUploadDesignFile(requests())
-        except grpc.RpcError as e:
-            raise DesignFileError(
-                f"failed to upload design file {path}: {_rpc_detail(e)}"
-            ) from e
+        return requests()
 
     @property
     def design(self) -> Design:
@@ -1024,6 +1043,38 @@ class FpgaDevice:
                 f"failed to get the FAR list: {_rpc_detail(e)}"
             ) from e
 
+    def extract_fars_from_bitstream(self, bitstream: str) -> list[int]:
+        """
+        Extract every frame address from a bitstream.
+
+        The bitstream is sent to the server only for this operation, so the
+        bitstream uploaded with uploadDesignToServer is not changed. It must
+        be generated with per-frame CRC. Uses the
+        FpgaExtractFarsFromBitstream RPC.
+
+        Parameters:
+            bitstream (str): The local path of the bitstream file.
+
+        Returns:
+            list[int]: The frame addresses found in the bitstream.
+
+        Raises:
+            DesignFileError: If the bitstream cannot be read.
+            FrameAddressError: If the frame addresses could not be
+                extracted.
+        """
+        requests = self._file_requests(
+            bitstream, skraft_client_pb2.FPGA_FILE_TYPE_BIT,
+        )
+        try:
+            reply = self._stub.FpgaExtractFarsFromBitstream(requests)
+            return list(reply.fars)
+        except grpc.RpcError as e:
+            raise FrameAddressError(
+                f"failed to extract FARs from {bitstream}: "
+                f"{_rpc_detail(e)}"
+            ) from e
+
     def exclude_frames(self, fars: list[int]) -> None:
         """
         Exclude frame addresses from feature operations.
@@ -1201,7 +1252,8 @@ class FpgaDevice:
         Uses the FpgaReadRegister RPC.
 
         Parameters:
-            reg_addr (int): The address of the register.
+            reg_addr (int): The address of the register, for example
+                RegisterAddress.STATUS.
 
         Returns:
             int: The value of the register.
@@ -1210,7 +1262,9 @@ class FpgaDevice:
             FrameAddressError: If the register could not be read.
         """
         try:
-            request = skraft_client_pb2.FpgaReadRegisterRequest(addr=reg_addr)
+            request = skraft_client_pb2.FpgaReadRegisterRequest(
+                addr=int(reg_addr),
+            )
             reply = self._stub.FpgaReadRegister(request)
 
             return reply.value
@@ -1226,15 +1280,17 @@ class FpgaDevice:
         Uses the FpgaWriteRegister RPC.
 
         Parameters:
-            reg_addr (int): The address of the register.
+            reg_addr (int): The address of the register, for example
+                RegisterAddress.CTRL0.
             value (int): The value to write.
 
         Raises:
             FrameAddressError: If the register could not be written.
         """
         try:
-            request = skraft_client_pb2.FpgaWriteRegisterRequest(addr=reg_addr, 
-                                                                 value=value)
+            request = skraft_client_pb2.FpgaWriteRegisterRequest(
+                addr=int(reg_addr), value=value,
+            )
             self._stub.FpgaWriteRegister(request)
         except grpc.RpcError as e:
             raise FrameAddressError(
@@ -1514,34 +1570,3 @@ class SkraftFpga:
             self._stub.FpgaClose(empty_pb2.Empty())
         except grpc.RpcError:
             pass
-
-    def extract_fars_from_bitstream(self,
-                                    bitstream_path: ServerPath) -> list[int]:
-        """
-        Extract every frame address from a bitstream file on the server.
-
-        The bitstream must be generated with per-frame CRC. Uses the
-        FpgaExtractFarsFromBitstream RPC.
-
-        Parameters:
-            bitstream_path (ServerPath): The path of the bitstream file on
-                the server.
-
-        Returns:
-            list[int]: The frame addresses found in the bitstream.
-
-        Raises:
-            FrameAddressError: If the frame addresses could not be
-                extracted.
-        """
-        try:
-            request = skraft_client_pb2.FpgaFarListExtractRequest(
-                bitstream_path=str(bitstream_path),
-            )
-            reply = self._stub.FpgaExtractFarsFromBitstream(request)
-            return list(reply.fars)
-        except grpc.RpcError as e:
-            raise FrameAddressError(
-                f"failed to extract FARs from {bitstream_path}: "
-                f"{_rpc_detail(e)}"
-            ) from e

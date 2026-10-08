@@ -20,8 +20,8 @@ from .datatypes import (
     FpgaWord,
     FpgaFiWordSummary,
     ReadbackOption,
+    RegisterAddress,
     ScrubbingType,
-    ServerPath,
     TargetMemory,
 )
 from .exceptions import (
@@ -51,8 +51,8 @@ __all__ = [
     "FpgaWord",
     "FpgaFiWordSummary",
     "ReadbackOption",
+    "RegisterAddress",
     "ScrubbingType",
-    "ServerPath",
     "TargetMemory",
     "BscanError",
     "ConnectionFailedError",
