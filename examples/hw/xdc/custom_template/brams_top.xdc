@@ -53,3 +53,6 @@ set_property BITSTREAM.GENERAL.PERFRAMECRC YES [current_design]
 #                                                     RAMB36_X<x0>Y<y0>:RAMB36_X<x1>Y<y1> \
 # }
 # set_property EXCLUDE_PLACEMENT 1 [get_pblocks pblock_stock_bram]
+
+## Keep BRAM enables ungated
+set_power_opt -exclude_cells [get_cells -hier -filter {REF_NAME =~ RAMB*}]

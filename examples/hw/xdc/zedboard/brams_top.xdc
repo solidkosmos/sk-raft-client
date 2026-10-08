@@ -54,3 +54,6 @@ resize_pblock [get_pblocks pblock_stock_bram] -add {RAMB18_X4Y30:RAMB18_X4Y31 \
                                                     RAMB36_X4Y15:RAMB36_X4Y15 \
 }
 set_property EXCLUDE_PLACEMENT 1 [get_pblocks pblock_stock_bram]
+
+## Keep BRAM enables ungated
+set_power_opt -exclude_cells [get_cells -hier -filter {REF_NAME =~ RAMB*}]
