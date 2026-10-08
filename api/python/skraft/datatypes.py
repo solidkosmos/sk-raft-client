@@ -1172,10 +1172,9 @@ class XadcSensor:
         return self.__value
 
 
-# The XADC sensors of the 7 series FPGAs and the Zynq-7000 SoCs, at the DRP
+# The XADC sensors of the 7 series FPGAs and SoCs, at the DRP
 # addresses of their status registers (UG480, Status Registers). The sensors
-# of the Processing System (PS) supplies, VCCPINT, VCCPAUX and VCCO_DDR, are
-# available only in Zynq-7000 SoCs.
+# of the Processing System (PS) supplies, VCCPINT, VCCPAUX and VCCO_DDR
 TEMPERATURE = XadcSensorSelector(0x00)  # degC
 VCCINT = XadcSensorSelector(0x01)  # V
 VCCAUX = XadcSensorSelector(0x02)  # V
