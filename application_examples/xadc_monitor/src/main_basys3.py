@@ -132,8 +132,10 @@ def main() -> None:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
             with client.attach(SERIAL_NUMBER) as dev:
-                print(f"Reading the XADC of {SERIAL_NUMBER} once per "
-                      f"second. Press Enter to stop.")
+                print(f"Device: serial number {dev.serial_number}, "
+                      f"part number {dev.part_number}")
+                print("Reading the XADC once per second. "
+                      "Press Enter to stop.")
                 print("max/min: the highest and lowest values since "
                       "power-up or the last XADC reset.")
                 print("-" * 80)

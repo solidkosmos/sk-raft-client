@@ -50,7 +50,7 @@ class SKRaftFpgaStub(object):
         self.FpgaSelectDevice = channel.unary_unary(
                 '/proto.SKRaftFpga/FpgaSelectDevice',
                 request_serializer=skraft__client__pb2.FpgaDeviceDetails.SerializeToString,
-                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                response_deserializer=skraft__client__pb2.FpgaDevice.FromString,
                 _registered_method=True)
         self.FpgaGetDevices = channel.unary_unary(
                 '/proto.SKRaftFpga/FpgaGetDevices',
@@ -218,7 +218,8 @@ class SKRaftFpgaServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def FpgaSelectDevice(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Returns the serial number and the part number of the selected device.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -425,7 +426,7 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
             'FpgaSelectDevice': grpc.unary_unary_rpc_method_handler(
                     servicer.FpgaSelectDevice,
                     request_deserializer=skraft__client__pb2.FpgaDeviceDetails.FromString,
-                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                    response_serializer=skraft__client__pb2.FpgaDevice.SerializeToString,
             ),
             'FpgaGetDevices': grpc.unary_unary_rpc_method_handler(
                     servicer.FpgaGetDevices,
@@ -655,7 +656,7 @@ class SKRaftFpga(object):
             target,
             '/proto.SKRaftFpga/FpgaSelectDevice',
             skraft__client__pb2.FpgaDeviceDetails.SerializeToString,
-            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            skraft__client__pb2.FpgaDevice.FromString,
             options,
             channel_credentials,
             insecure,

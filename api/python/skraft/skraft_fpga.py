@@ -1599,8 +1599,9 @@ class SkraftFpga:
             serial_number (str): The serial number of the device to reserve.
 
         Returns:
-            FpgaDevice: The reserved device. It can be used as a context
-                manager so that the reservation is released automatically.
+            FpgaDevice: The reserved device, with its serial number and
+                part number. It can be used as a context manager so that
+                the reservation is released automatically.
 
         Raises:
             DeviceReservationError: If the device could not be reserved.
@@ -1609,7 +1610,7 @@ class SkraftFpga:
         """
         try:
             self._stub.FpgaConnect(empty_pb2.Empty())
-            self._stub.FpgaSelectDevice(
+            reply = self._stub.FpgaSelectDevice(
                 skraft_client_pb2.FpgaDeviceDetails(
                     device_serial_number=serial_number,
                 )
@@ -1620,7 +1621,7 @@ class SkraftFpga:
                 f"failed to reserve device {serial_number}: "
                 f"{_rpc_detail(e)}"
             ) from e
-        return FpgaDevice(self._stub, serial_number)
+        return FpgaDevice(self._stub, serial_number, reply.part_number)
 
     def _release_programmers(self) -> None:
         """
