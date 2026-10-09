@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, IntFlag, auto
-from pathlib import PurePosixPath
 from typing import Optional
 
 from . import skraft_client_pb2
@@ -105,28 +104,44 @@ class FaultType(int, Enum):
     RANDOM = skraft_client_pb2.FPGA_FAULT_TYPE_RANDOM
     EXHAUSTIVE = skraft_client_pb2.FPGA_FAULT_TYPE_EXHAUSTIVE
 
-class ServerPath(str):
+class RegisterAddress(int, Enum):
     """
-    A file path that is resolved on the SK-RAFT server, not on the client.
+    The addresses of the configuration registers of the device, for
+    FpgaDevice.read_register and FpgaDevice.write_register.
 
-    It behaves like a normal string, so it can be sent to the server as it
-    is, while making it clear in the code that the path refers to the
-    server. The path is normalised as a POSIX path when it is created.
+    They are copies of the register addresses of the SK-RAFT server: the
+    ID of each register, shifted into the register address field (bit 13)
+    of a type 1 packet header.
+
+    Attributes:
+        FAR (RegisterAddress): The frame address register.
+        CRC (RegisterAddress): The cyclic redundancy check register.
+        STATUS (RegisterAddress): The status register.
+        CTRL0 (RegisterAddress): The control register 0.
+        MASK (RegisterAddress): The masking register for CTRL0 and CTRL1.
+        CMD (RegisterAddress): The command register.
+        IDCODE (RegisterAddress): The device ID register.
+        FDRI (RegisterAddress): The frame data register input, which
+            takes the configuration data.
+        FDRO (RegisterAddress): The frame data register output, which
+            gives the readback data.
+        CTRL1 (RegisterAddress): The control register 1.
+        COR0 (RegisterAddress): The configuration option register 0.
+        COR1 (RegisterAddress): The configuration option register 1.
     """
 
-    __slots__ = ()
-
-    def __new__(cls, path: str) -> "ServerPath":
-        """
-        Create a server path.
-
-        Parameters:
-            path (str): The path on the server.
-
-        Returns:
-            ServerPath: The normalised path.
-        """
-        return super().__new__(cls, str(PurePosixPath(path)))
+    FAR = 0x01 << 13
+    CRC = 0x00 << 13
+    STATUS = 0x07 << 13
+    CTRL0 = 0x05 << 13
+    MASK = 0x06 << 13
+    CMD = 0x04 << 13
+    IDCODE = 0x0C << 13
+    FDRI = 0x02 << 13
+    FDRO = 0x03 << 13
+    CTRL1 = 0x18 << 13
+    COR0 = 0x09 << 13
+    COR1 = 0x0E << 13
 
 
 @dataclass(frozen=True)
@@ -1090,3 +1105,99 @@ class FpgaFiSummary:
     def affected_words(self) -> list[FpgaFiWordSummary]:
         """The details of each affected word."""
         return self.__affected_words
+
+
+# --------------------------------------------------------------------------- #
+# XADC
+# --------------------------------------------------------------------------- #
+class XadcSensorSelector:
+    """
+    An XADC sensor of the device, for FpgaDevice.xadc.
+
+    The library defines a selector for each known sensor, for example VCCINT
+    or TEMPERATURE, so selectors are not normally created by hand.
+
+    Attributes:
+        addr (int): The DRP address of the status register of the sensor.
+    """
+
+    def __init__(self, addr: int):
+        """
+        Create a sensor selector.
+
+        Parameters:
+            addr (int): The DRP address of the status register of the
+                sensor.
+        """
+        self.__addr = addr
+
+    @property
+    def addr(self) -> int:
+        """The DRP address of the status register of the sensor."""
+        return self.__addr
+
+
+class XadcSensor:
+    """
+    The value of an XADC sensor, as read by FpgaDevice.xadc.
+
+    The value is in units of the International System of Units (SI): volts
+    (V) for voltages and degrees Celsius (degC) for temperatures.
+
+    Attributes:
+        addr (int): The DRP address of the status register that was read.
+        value (float): The value of the sensor, in V or degC.
+    """
+
+    def __init__(self, addr: int, value: float):
+        """
+        Create a sensor value.
+
+        Parameters:
+            addr (int): The DRP address of the status register that was
+                read.
+            value (float): The value of the sensor, in V or degC.
+        """
+        self.__addr = addr
+        self.__value = value
+
+    @property
+    def addr(self) -> int:
+        """The DRP address of the status register that was read."""
+        return self.__addr
+
+    @property
+    def value(self) -> float:
+        """The value of the sensor, in V or degC."""
+        return self.__value
+
+
+# The XADC sensors of the 7 series FPGAs and SoCs, at the DRP
+# addresses of their status registers (UG480, Status Registers). The sensors
+# of the Processing System (PS) supplies, VCCPINT, VCCPAUX and VCCO_DDR
+TEMPERATURE = XadcSensorSelector(0x00)  # degC
+VCCINT = XadcSensorSelector(0x01)  # V
+VCCAUX = XadcSensorSelector(0x02)  # V
+VREFP = XadcSensorSelector(0x04)  # V
+VREFN = XadcSensorSelector(0x05)  # V
+VCCBRAM = XadcSensorSelector(0x06)  # V
+VCCPINT = XadcSensorSelector(0x0D)  # V
+VCCPAUX = XadcSensorSelector(0x0E)  # V
+VCCO_DDR = XadcSensorSelector(0x0F)  # V
+
+# The maximum and minimum values that the XADC sensors recorded since
+# power-up or the last XADC reset.
+MAX_TEMPERATURE = XadcSensorSelector(0x20)  # degC
+MAX_VCCINT = XadcSensorSelector(0x21)  # V
+MAX_VCCAUX = XadcSensorSelector(0x22)  # V
+MAX_VCCBRAM = XadcSensorSelector(0x23)  # V
+MIN_TEMPERATURE = XadcSensorSelector(0x24)  # degC
+MIN_VCCINT = XadcSensorSelector(0x25)  # V
+MIN_VCCAUX = XadcSensorSelector(0x26)  # V
+MIN_VCCBRAM = XadcSensorSelector(0x27)  # V
+MAX_VCCPINT = XadcSensorSelector(0x28)  # V
+MAX_VCCPAUX = XadcSensorSelector(0x29)  # V
+MAX_VCCO_DDR = XadcSensorSelector(0x2A)  # V
+MIN_VCCPINT = XadcSensorSelector(0x2C)  # V
+MIN_VCCPAUX = XadcSensorSelector(0x2D)  # V
+MIN_VCCO_DDR = XadcSensorSelector(0x2E)  # V

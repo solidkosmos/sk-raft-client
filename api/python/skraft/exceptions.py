@@ -36,3 +36,7 @@ class FrameAddressError(SkraftError):
 class BscanError(SkraftError):
     """A boundary-scan (BSCAN) operation failed."""
 
+
+class XadcError(SkraftError):
+    """The read of an XADC sensor failed."""
+

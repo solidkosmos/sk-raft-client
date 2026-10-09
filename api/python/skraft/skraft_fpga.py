@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import os
-from typing import Optional
+from typing import Optional, overload
 
 import grpc
 from google.protobuf import empty_pb2
@@ -37,9 +37,10 @@ from .datatypes import (
     FpgaWord,
     FpgaFiWordSummary,
     TargetMemory,
-    ServerPath,
     ScrubbingType,
     ReadbackOption,
+    XadcSensor,
+    XadcSensorSelector,
 )
 from .exceptions import (
     BscanError,
@@ -47,6 +48,7 @@ from .exceptions import (
     DesignFileError,
     DeviceReservationError,
     FrameAddressError,
+    XadcError,
 )
 
 
@@ -72,6 +74,25 @@ def _rpc_detail(error: grpc.RpcError) -> str:
         return error.details()  # type: ignore[attr-defined]
     except Exception:
         return str(error)
+
+def _read_pem(path: Optional[str]) -> Optional[bytes]:
+    """
+    Read a PEM file for the TLS connection.
+
+    Parameters:
+        path (Optional[str]): The path of the PEM file, if any.
+
+    Returns:
+        Optional[bytes]: The contents of the file, or None if no path is
+            given.
+
+    Raises:
+        OSError: If the file cannot be read.
+    """
+    if path is None:
+        return None
+    with open(path, "rb") as f:
+        return f.read()
 
 
 def _kind_from_area(target: TargetMemory) -> int:
@@ -256,7 +277,28 @@ class FpgaDevice:
         """
         Upload a single design file to the server.
 
-        A checksum of the file is calculated first and sent with the upload,
+        Parameters:
+            path (str): The local path of the file.
+            file_type (int): The wire value that identifies the kind of
+                file.
+
+        Raises:
+            DesignFileError: If the file cannot be read or the upload fails.
+        """
+        requests = self._file_requests(path, file_type)
+        try:
+            self._stub.FpgaUploadDesignFile(requests)
+        except grpc.RpcError as e:
+            raise DesignFileError(
+                f"failed to upload design file {path}: {_rpc_detail(e)}"
+            ) from e
+
+    @staticmethod
+    def _file_requests(path: str, file_type: int):
+        """
+        Prepare the messages that stream a design file to the server.
+
+        A checksum of the file is calculated first and sent with the file,
         so that the server can confirm the file arrived intact. The file
         content is then streamed in fixed-size chunks.
 
@@ -265,8 +307,12 @@ class FpgaDevice:
             file_type (int): The wire value that identifies the kind of
                 file.
 
+        Returns:
+            Iterator[skraft_client_pb2.UploadDesignFileRequest]: The
+                messages of the stream.
+
         Raises:
-            DesignFileError: If the file cannot be read or the upload fails.
+            DesignFileError: If the file cannot be read.
         """
         try:
             digest = hashlib.sha256()
@@ -301,12 +347,7 @@ class FpgaDevice:
                 for chunk in iter(lambda: file.read(_UPLOAD_CHUNK_SIZE), b""):
                     yield skraft_client_pb2.UploadDesignFileRequest(chunk=chunk)
 
-        try:
-            self._stub.FpgaUploadDesignFile(requests())
-        except grpc.RpcError as e:
-            raise DesignFileError(
-                f"failed to upload design file {path}: {_rpc_detail(e)}"
-            ) from e
+        return requests()
 
     @property
     def design(self) -> Design:
@@ -1005,6 +1046,38 @@ class FpgaDevice:
                 f"failed to get the FAR list: {_rpc_detail(e)}"
             ) from e
 
+    def extract_fars_from_bitstream(self, bitstream: str) -> list[int]:
+        """
+        Extract every frame address from a bitstream.
+
+        The bitstream is sent to the server only for this operation, so the
+        bitstream uploaded with uploadDesignToServer is not changed. It must
+        be generated with per-frame CRC. Uses the
+        FpgaExtractFarsFromBitstream RPC.
+
+        Parameters:
+            bitstream (str): The local path of the bitstream file.
+
+        Returns:
+            list[int]: The frame addresses found in the bitstream.
+
+        Raises:
+            DesignFileError: If the bitstream cannot be read.
+            FrameAddressError: If the frame addresses could not be
+                extracted.
+        """
+        requests = self._file_requests(
+            bitstream, skraft_client_pb2.FPGA_FILE_TYPE_BIT,
+        )
+        try:
+            reply = self._stub.FpgaExtractFarsFromBitstream(requests)
+            return list(reply.fars)
+        except grpc.RpcError as e:
+            raise FrameAddressError(
+                f"failed to extract FARs from {bitstream}: "
+                f"{_rpc_detail(e)}"
+            ) from e
+
     def exclude_frames(self, fars: list[int]) -> None:
         """
         Exclude frame addresses from feature operations.
@@ -1182,7 +1255,8 @@ class FpgaDevice:
         Uses the FpgaReadRegister RPC.
 
         Parameters:
-            reg_addr (int): The address of the register.
+            reg_addr (int): The address of the register, for example
+                RegisterAddress.STATUS.
 
         Returns:
             int: The value of the register.
@@ -1191,7 +1265,9 @@ class FpgaDevice:
             FrameAddressError: If the register could not be read.
         """
         try:
-            request = skraft_client_pb2.FpgaReadRegisterRequest(addr=reg_addr)
+            request = skraft_client_pb2.FpgaReadRegisterRequest(
+                addr=int(reg_addr),
+            )
             reply = self._stub.FpgaReadRegister(request)
 
             return reply.value
@@ -1207,15 +1283,17 @@ class FpgaDevice:
         Uses the FpgaWriteRegister RPC.
 
         Parameters:
-            reg_addr (int): The address of the register.
+            reg_addr (int): The address of the register, for example
+                RegisterAddress.CTRL0.
             value (int): The value to write.
 
         Raises:
             FrameAddressError: If the register could not be written.
         """
         try:
-            request = skraft_client_pb2.FpgaWriteRegisterRequest(addr=reg_addr, 
-                                                                 value=value)
+            request = skraft_client_pb2.FpgaWriteRegisterRequest(
+                addr=int(reg_addr), value=value,
+            )
             self._stub.FpgaWriteRegister(request)
         except grpc.RpcError as e:
             raise FrameAddressError(
@@ -1266,6 +1344,66 @@ class FpgaDevice:
                 f"failed to decode Frame Address: {_rpc_detail(e)}"
             ) from e
 
+    @overload
+    def xadc(
+        self, adc_sensor_selector: XadcSensorSelector, /
+    ) -> XadcSensor: ...
+
+    @overload
+    def xadc(self, drp_address: int, /) -> XadcSensor: ...
+
+    def xadc(self, sensor: XadcSensorSelector | int, /) -> XadcSensor:
+        """
+        Read an XADC sensor of the device.
+
+        The sensor is given either by a selector of the library, for example
+        VCCINT or TEMPERATURE, or by the DRP address of its status register.
+        The value is in units of the International System of Units (SI):
+        volts (V) for voltages and degrees Celsius (degC) for temperatures.
+
+        Only the on-chip sensors, and their recorded maximum and minimum
+        values, can be read. Uses the FpgaXadcSensor RPC.
+
+        Parameters:
+            sensor (XadcSensorSelector | int): The selector of the sensor,
+                or the DRP address of its status register.
+
+        Returns:
+            XadcSensor: The value of the sensor, in V or degC.
+
+        Raises:
+            TypeError: If the sensor is neither a selector nor a DRP
+                address.
+            XadcError: If the server could not read the sensor, for example
+                because the DRP address is not a sensor, or the device does
+                not have the sensor.
+
+        Examples:
+            >>> dev.xadc(VCCINT).value       # V
+            >>> dev.xadc(TEMPERATURE).value  # degC
+            >>> dev.xadc(0x01).value         # V, VCCINT by DRP address
+        """
+        if isinstance(sensor, XadcSensorSelector):
+            addr = sensor.addr
+        elif isinstance(sensor, int) and not isinstance(sensor, bool):
+            addr = sensor
+        else:
+            raise TypeError(
+                "expected an XadcSensorSelector or a DRP address, got "
+                f"{type(sensor).__name__}"
+            )
+
+        try:
+            request = skraft_client_pb2.FpgaXadcSensorRequest(addr=addr)
+            reply = self._stub.FpgaXadcSensor(request)
+
+            return XadcSensor(addr, reply.value)
+        except grpc.RpcError as e:
+            raise XadcError(
+                f"failed to read XADC sensor at DRP address {addr:#04x}: "
+                f"{_rpc_detail(e)}"
+            ) from e
+
 class SkraftFpga:
     """
     A client for a single connection to an SK-RAFT server.
@@ -1296,32 +1434,64 @@ class SkraftFpga:
 
     # -- connection lifecycle --------------------------------------------- #
     @classmethod
-    def connect(cls, ip: str, port: int) -> "SkraftFpga":
+    def connect(cls, ip: str, port: int,
+                tls_server_cert: Optional[str] = None,
+                tls_cert: Optional[str] = None,
+                tls_key: Optional[str] = None) -> "SkraftFpga":
         """
         Create a client and open a connection to the server.
 
         After connecting, the server version is checked and a warning is
         printed if it does not match the version this client expects.
 
+        The connection uses TLS when any of the TLS files is given. This is
+        needed when the server is started with -tls-cert and -tls-key.
+
         Parameters:
             ip (str): The address of the server.
             port (int): The port of the server.
+            tls_server_cert (Optional[str]): The path of the PEM certificate
+                of the server (the -tls-cert of the server), used to verify
+                the server. Its names must include the ip given here. If it
+                is not given, the server is verified against the trusted
+                certificates of the system.
+            tls_cert (Optional[str]): The path of the PEM certificate of
+                this client. It is needed when the server is started with
+                -tls-public-key, and must hold that public key. Give it
+                together with tls_key.
+            tls_key (Optional[str]): The path of the PEM private key of this
+                client, the private key of tls_cert.
 
         Returns:
             SkraftFpga: The connected client.
 
         Raises:
+            ValueError: If only one of tls_cert and tls_key is given.
+            OSError: If a TLS file cannot be read.
             ConnectionFailedError: If the server cannot be reached.
         """
+        if (tls_cert is None) != (tls_key is None):
+            raise ValueError("TLS needs both tls_cert and tls_key")
+
         client = cls(ip, port)
+        # A full readback of a large device is larger than the default
+        # limit of 4 MB.
+        options = [("grpc.max_receive_message_length", -1),
+                   ("grpc.max_send_message_length", -1)]
         try:
-            # A full readback of a large device is larger than the default
-            # limit of 4 MB.
-            client._channel = grpc.insecure_channel(
-                f"{ip}:{port}",
-                options=[("grpc.max_receive_message_length", -1),
-                         ("grpc.max_send_message_length", -1)],
-            )
+            if tls_server_cert is None and tls_cert is None:
+                client._channel = grpc.insecure_channel(
+                    f"{ip}:{port}", options=options,
+                )
+            else:
+                credentials = grpc.ssl_channel_credentials(
+                    root_certificates=_read_pem(tls_server_cert),
+                    private_key=_read_pem(tls_key),
+                    certificate_chain=_read_pem(tls_cert),
+                )
+                client._channel = grpc.secure_channel(
+                    f"{ip}:{port}", credentials, options=options,
+                )
             client._stub = skraft_client_pb2_grpc.SKRaftFpgaStub(
                 client._channel
             )
@@ -1463,34 +1633,3 @@ class SkraftFpga:
             self._stub.FpgaClose(empty_pb2.Empty())
         except grpc.RpcError:
             pass
-
-    def extract_fars_from_bitstream(self,
-                                    bitstream_path: ServerPath) -> list[int]:
-        """
-        Extract every frame address from a bitstream file on the server.
-
-        The bitstream must be generated with per-frame CRC. Uses the
-        FpgaExtractFarsFromBitstream RPC.
-
-        Parameters:
-            bitstream_path (ServerPath): The path of the bitstream file on
-                the server.
-
-        Returns:
-            list[int]: The frame addresses found in the bitstream.
-
-        Raises:
-            FrameAddressError: If the frame addresses could not be
-                extracted.
-        """
-        try:
-            request = skraft_client_pb2.FpgaFarListExtractRequest(
-                bitstream_path=str(bitstream_path),
-            )
-            reply = self._stub.FpgaExtractFarsFromBitstream(request)
-            return list(reply.fars)
-        except grpc.RpcError as e:
-            raise FrameAddressError(
-                f"failed to extract FARs from {bitstream_path}: "
-                f"{_rpc_detail(e)}"
-            ) from e

@@ -304,12 +304,6 @@ class FpgaScrubWordSummary(_message.Message):
     is_essential: bool
     def __init__(self, far: _Optional[int] = ..., word_index: _Optional[int] = ..., bit_index: _Optional[int] = ..., golden_word_value: _Optional[int] = ..., erroneous_word_value: _Optional[int] = ..., ebd_word_value: _Optional[int] = ..., msd_word_value: _Optional[int] = ..., is_essential: bool = ...) -> None: ...
 
-class FpgaFarListExtractRequest(_message.Message):
-    __slots__ = ("bitstream_path",)
-    BITSTREAM_PATH_FIELD_NUMBER: _ClassVar[int]
-    bitstream_path: str
-    def __init__(self, bitstream_path: _Optional[str] = ...) -> None: ...
-
 class FpgaFarListExtractResponse(_message.Message):
     __slots__ = ("fars",)
     FARS_FIELD_NUMBER: _ClassVar[int]
@@ -373,6 +367,18 @@ class FpgaBscanOutput(_message.Message):
     VALUE_FIELD_NUMBER: _ClassVar[int]
     value: bytes
     def __init__(self, value: _Optional[bytes] = ...) -> None: ...
+
+class FpgaXadcSensorRequest(_message.Message):
+    __slots__ = ("addr",)
+    ADDR_FIELD_NUMBER: _ClassVar[int]
+    addr: int
+    def __init__(self, addr: _Optional[int] = ...) -> None: ...
+
+class FpgaXadcResult(_message.Message):
+    __slots__ = ("value",)
+    VALUE_FIELD_NUMBER: _ClassVar[int]
+    value: float
+    def __init__(self, value: _Optional[float] = ...) -> None: ...
 
 class FpgaInjectionTarget(_message.Message):
     __slots__ = ("frame_address", "word_index", "bit_index", "kind", "net_name")
