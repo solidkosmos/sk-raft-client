@@ -56,7 +56,7 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 # If you do not know the serial number of your target device,
 # use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA251CA"
+SERIAL_NUMBER = "210248781184"
 
 # The ZedBoard has a Zynq-7000 device. Thus ZYNQ is True, and the script
 # also reads the supplies of the Processing System (PS).
@@ -131,6 +131,7 @@ def main() -> None:
         # SK-RAFT: open the connection. Then attach to the target device.
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
+
             with client.attach(SERIAL_NUMBER) as dev:
                 print(f"Device: serial number {dev.serial_number}, "
                       f"part number {dev.part_number}")

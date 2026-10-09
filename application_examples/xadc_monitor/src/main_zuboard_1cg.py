@@ -56,7 +56,7 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 # If you do not know the serial number of your target device,
 # use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA251CA"
+SERIAL_NUMBER = "1234-oj1A"
 
 # The ZUBoard 1CG has a Zynq UltraScale+ device. The SK-RAFT server reads
 # the supplies of the Processing System (PS) only in Zynq-7000 devices,
