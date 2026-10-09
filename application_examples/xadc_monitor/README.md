@@ -3,31 +3,10 @@
 This example reads the temperature and voltage sensors of the FPGA once per second. Each sensor has one line, with its current value and its highest and lowest values. The script writes the lines again after each read, so the values update in place:
 
 ```
-<<<<<<< HEAD
-xadc_monitor/
-├── README.md
-├── hw/
-│   ├── build.tcl                     Vivado build script
-│   ├── src/
-│   │   ├── xadc_top.vhd              Top level: XADC, DRP read, snapshot
-│   │   ├── bscan_interface.vhd       BSCAN modules (same as get_started/hw)
-│   │   ├── bscan_primitive_wrapper.vhd
-│   │   └── bscan_user_register_io.vhd
-│   └── xdc/
-│       ├── basys3.xdc
-│       ├── zedboard.xdc
-│       └── custom_template.xdc
-├── images/
-└── src/
-    ├── main.py                       SK-RAFT client script
-    ├── design_files/                 build.tcl writes the files here
-    └── logs/                         main.py writes the CSV logs here
-=======
 Temp  =   46.4C | max=  47.2C | min=  30.1C
 vint  =   999mV | max= 1003mV | min=  997mV
 vaux  =  1799mV | max= 1802mV | min= 1796mV
 vbram =  1000mV | max= 1002mV | min=  998mV
->>>>>>> b57b130069baef9b83cf8c881d2ee9eb5b9dab2b
 ```
 
 The values above are an example. The values of your device and board are different.
