@@ -5,8 +5,7 @@
 // Licensed under the BSD-3-Clause license, see LICENSE for details.          //
 // SPDX-License-Identifier: BSD-3-Clause                                      //
 // ========================================================================== //
-// Modified by SolidKosmos S.A. (2026): repurposed from the stock             //
-// "hello_world" example into a hardening demo. Runs CoreMark and installs    //
+// Modified by SolidKosmos S.A. (2026):  Runs CoreMark and installs           //
 // custom fast-interrupt handlers for the DMEM/register-file ECC correction   //
 // and CPU-control/frontend FSM-state and PC/RA parity interrupts added by    //
 // this project's hardened NEORV32 build. See THIRD_PARTY_NOTICES.md at the   //
