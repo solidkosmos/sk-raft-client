@@ -39,6 +39,7 @@ from .datatypes import (
     TargetMemory,
     ScrubbingType,
     ReadbackOption,
+    XadcRegister,
     XadcSensor,
     XadcSensorSelector,
 )
@@ -187,6 +188,28 @@ def _pblock_names(pblocks: Optional[Iterable[str]]) -> list[str]:
         names.add(name)
 
     return sorted(names)
+
+
+def _xadc_register_address(register: XadcRegister | int) -> int:
+    """
+    Check an XADC control register and get its DRP address.
+
+    Parameters:
+        register (XadcRegister | int): The register, or its DRP address.
+
+    Returns:
+        int: The DRP address of the register.
+
+    Raises:
+        TypeError: If the register is not an XadcRegister or an int.
+    """
+    # A bool is also an int, but True and False are not addresses.
+    if not isinstance(register, int) or isinstance(register, bool):
+        raise TypeError(
+            "expected an XadcRegister or a DRP address, got "
+            f"{type(register).__name__}"
+        )
+    return int(register)
 
 
 class FpgaDevice:
@@ -1558,6 +1581,93 @@ class FpgaDevice:
         except grpc.RpcError as e:
             raise XadcError(
                 f"failed to read XADC sensor at DRP address {addr:#04x}: "
+                f"{_rpc_detail(e)}"
+            ) from e
+
+    def read_xadc_register(self, register: XadcRegister | int) -> int:
+        """
+        Read an XADC register of the device.
+
+        Only the flag register, the configuration registers and the alarm
+        registers can be read, see XadcRegister. Uses the
+        FpgaXadcReadRegister RPC.
+
+        Parameters:
+            register (XadcRegister | int): The register, or its DRP
+                address.
+
+        Returns:
+            int: The raw 16-bit value of the register.
+
+        Raises:
+            TypeError: If the register is not an XadcRegister or an int.
+            XadcError: If the server could not read the register, for
+                example because the DRP address is not the flag register, or
+                a configuration or alarm register.
+
+        Examples:
+            >>> dev.read_xadc_register(XadcRegister.CONFIG1)
+            >>> dev.read_xadc_register(XadcRegister.FLAG) & 0x0001  # ALM0
+        """
+        addr = _xadc_register_address(register)
+
+        try:
+            request = skraft_client_pb2.FpgaXadcReadRegisterRequest(
+                addr=addr,
+            )
+            reply = self._stub.FpgaXadcReadRegister(request)
+
+            return reply.value
+        except grpc.RpcError as e:
+            raise XadcError(
+                f"failed to read XADC register {addr:#04x}: "
+                f"{_rpc_detail(e)}"
+            ) from e
+
+    def write_xadc_register(
+        self, register: XadcRegister | int, value: int
+    ) -> None:
+        """
+        Write a raw value into an XADC control register of the device.
+
+        Only the configuration registers and the alarm registers can be
+        written, see XadcRegister. The flag register is read only. UG480
+        gives the meaning of each bit. Uses the FpgaXadcWriteRegister RPC.
+
+        Parameters:
+            register (XadcRegister | int): The register, or its DRP
+                address.
+            value (int): The raw 16-bit value to write.
+
+        Raises:
+            TypeError: If the register is not an XadcRegister or an int, or
+                if the value is not an int.
+            ValueError: If the value does not fit in 16 bits.
+            XadcError: If the server could not write the register, for
+                example because the DRP address is not a configuration or
+                alarm register.
+
+        Examples:
+            >>> dev.write_xadc_register(XadcRegister.ALARM8, 0x5800)
+        """
+        addr = _xadc_register_address(register)
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise TypeError(
+                f"expected the value as int, got {type(value).__name__}"
+            )
+        if not 0 <= value <= 0xFFFF:
+            raise ValueError(
+                f"an XADC register holds 16 bits, got {value:#x}"
+            )
+
+        try:
+            request = skraft_client_pb2.FpgaXadcWriteRegisterRequest(
+                addr=addr, value=value,
+            )
+            self._stub.FpgaXadcWriteRegister(request)
+        except grpc.RpcError as e:
+            raise XadcError(
+                f"failed to write XADC register {addr:#04x}: "
                 f"{_rpc_detail(e)}"
             ) from e
 

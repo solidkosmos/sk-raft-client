@@ -392,6 +392,26 @@ class FpgaXadcResult(_message.Message):
     value: float
     def __init__(self, value: _Optional[float] = ...) -> None: ...
 
+class FpgaXadcReadRegisterRequest(_message.Message):
+    __slots__ = ("addr",)
+    ADDR_FIELD_NUMBER: _ClassVar[int]
+    addr: int
+    def __init__(self, addr: _Optional[int] = ...) -> None: ...
+
+class FpgaXadcWriteRegisterRequest(_message.Message):
+    __slots__ = ("addr", "value")
+    ADDR_FIELD_NUMBER: _ClassVar[int]
+    VALUE_FIELD_NUMBER: _ClassVar[int]
+    addr: int
+    value: int
+    def __init__(self, addr: _Optional[int] = ..., value: _Optional[int] = ...) -> None: ...
+
+class FpgaXadcRegisterContent(_message.Message):
+    __slots__ = ("value",)
+    VALUE_FIELD_NUMBER: _ClassVar[int]
+    value: int
+    def __init__(self, value: _Optional[int] = ...) -> None: ...
+
 class FpgaInjectionTarget(_message.Message):
     __slots__ = ("frame_address", "word_index", "bit_index", "kind", "net_name")
     FRAME_ADDRESS_FIELD_NUMBER: _ClassVar[int]

@@ -1201,3 +1201,75 @@ MAX_VCCO_DDR = XadcSensorSelector(0x2A)  # V
 MIN_VCCPINT = XadcSensorSelector(0x2C)  # V
 MIN_VCCPAUX = XadcSensorSelector(0x2D)  # V
 MIN_VCCO_DDR = XadcSensorSelector(0x2E)  # V
+
+
+class XadcRegister(int, Enum):
+    """
+    The XADC registers, at their DRP addresses, for
+    FpgaDevice.read_xadc_register and FpgaDevice.write_xadc_register.
+
+    Only the flag register, the configuration registers and the alarm
+    registers are accessible. The flag register is read only. The values are
+    raw 16-bit contents. UG480 (Status Registers, Control Registers) gives the
+    meaning of each bit, and the ADC transfer functions give the codes of the
+    alarm thresholds. The thresholds of the Processing System (PS) supplies
+    exist only in Zynq-7000 SoCs.
+
+    The flag register shows the state of the alarms. Bit 0 is ALM0
+    (temperature), bit 1 is ALM1 (VCCINT), bit 2 is ALM2 (VCCAUX), bit 3 is
+    OT (over-temperature), bit 4 is ALM3 (VCCBRAM), and bits 5 to 7 are ALM4
+    to ALM6 (VCCPINT, VCCPAUX, VCCO_DDR). In the default sequencer mode
+    (CONFIG1), only OT operates. Bits 9 to 11 are REF, JTGR and JTGD.
+
+    Caution: the four least significant bits of ALARM3 select the automatic
+    shutdown at the over-temperature (OT) limit. The value 0011b enables it.
+
+    Attributes:
+        FLAG (XadcRegister): Flag register (3Fh), read only.
+        CONFIG0 (XadcRegister): Configuration register 0 (40h).
+        CONFIG1 (XadcRegister): Configuration register 1 (41h).
+        CONFIG2 (XadcRegister): Configuration register 2 (42h).
+        ALARM0 (XadcRegister): Temperature upper threshold (50h).
+        ALARM1 (XadcRegister): VCCINT upper threshold (51h).
+        ALARM2 (XadcRegister): VCCAUX upper threshold (52h).
+        ALARM3 (XadcRegister): Over-temperature (OT) limit (53h).
+        ALARM4 (XadcRegister): Temperature lower threshold (54h).
+        ALARM5 (XadcRegister): VCCINT lower threshold (55h).
+        ALARM6 (XadcRegister): VCCAUX lower threshold (56h).
+        ALARM7 (XadcRegister): Over-temperature (OT) reset (57h).
+        ALARM8 (XadcRegister): VCCBRAM upper threshold (58h).
+        ALARM9 (XadcRegister): VCCPINT upper threshold (59h), Zynq-7000
+            only.
+        ALARM10 (XadcRegister): VCCPAUX upper threshold (5Ah), Zynq-7000
+            only.
+        ALARM11 (XadcRegister): VCCO_DDR upper threshold (5Bh), Zynq-7000
+            only.
+        ALARM12 (XadcRegister): VCCBRAM lower threshold (5Ch).
+        ALARM13 (XadcRegister): VCCPINT lower threshold (5Dh), Zynq-7000
+            only.
+        ALARM14 (XadcRegister): VCCPAUX lower threshold (5Eh), Zynq-7000
+            only.
+        ALARM15 (XadcRegister): VCCO_DDR lower threshold (5Fh), Zynq-7000
+            only.
+    """
+
+    FLAG = 0x3F
+    CONFIG0 = 0x40
+    CONFIG1 = 0x41
+    CONFIG2 = 0x42
+    ALARM0 = 0x50
+    ALARM1 = 0x51
+    ALARM2 = 0x52
+    ALARM3 = 0x53
+    ALARM4 = 0x54
+    ALARM5 = 0x55
+    ALARM6 = 0x56
+    ALARM7 = 0x57
+    ALARM8 = 0x58
+    ALARM9 = 0x59
+    ALARM10 = 0x5A
+    ALARM11 = 0x5B
+    ALARM12 = 0x5C
+    ALARM13 = 0x5D
+    ALARM14 = 0x5E
+    ALARM15 = 0x5F
