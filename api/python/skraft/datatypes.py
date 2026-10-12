@@ -1271,8 +1271,10 @@ class XadcAlarm:
 # TEMPERATURE_UPPER, and goes off below TEMPERATURE_LOWER. The
 # over-temperature alarm does the same with OT_LIMIT and OT_RESET. A supply
 # alarm is on while the voltage is above its upper threshold or below its
-# lower threshold. If ALARM3 (53h) holds 0000h, OT_LIMIT reads -273.15 degC,
-# but the XADC uses the default limit, 125 degC.
+# lower threshold. The XADC uses the default OT limit, 125 degC, if ALARM3
+# (53h) holds 0000h (7 series), or if its four LSBs are not 0011b
+# (UltraScale). The server converts the temperatures with the transfer
+# function of the family of the device (UG480, UG580).
 TEMPERATURE_UPPER = XadcAlarmSelector(0x50)  # degC
 TEMPERATURE_LOWER = XadcAlarmSelector(0x54)  # degC
 OT_LIMIT = XadcAlarmSelector(0x53)  # degC
@@ -1301,7 +1303,9 @@ class XadcFlags:
 
     An alarm attribute is True while the alarm is on. In the default mode
     of the sequencer, the XADC disables all the alarms, except the
-    over-temperature alarm (UG480, Sequencer Modes).
+    over-temperature alarm (UG480 and UG580, Sequencer Modes). In Zynq
+    UltraScale+ MPSoCs, vccpint, vccpaux and vcco_ddr are the alarms of
+    VCC_PSINTLP, VCC_PSINTFP and VCC_PSAUX.
 
     Attributes:
         temperature (bool): The temperature alarm (ALM0) is on.

@@ -16,12 +16,15 @@ below the lower threshold (TEMPERATURE_LOWER).
 
 In the default mode of the sequencer, the XADC disables all the alarms,
 except the over-temperature alarm (OT). Thus the script sets the XADC to
-the Independent ADC mode (CONFIG1, 41h). In this mode, ADC A monitors the
-on-chip sensors as in the default mode, and the alarms operate. At the
-end, the script writes back the original values of CONFIG1 and of the two
-thresholds.
+the single channel mode, on the temperature sensor (CONFIG0, 40h, and
+CONFIG1, 41h). In this mode, the XADC converts only the temperature, and
+the alarms operate. The other sensors keep their last values until the
+end. At the end, the script writes back the original values of CONFIG0,
+CONFIG1 and of the two thresholds.
 
-The script is for 7 series FPGAs and Zynq-7000 SoCs (UG480).
+The script is for 7 series FPGAs and Zynq-7000 SoCs (XADC, UG480), and for
+UltraScale and UltraScale+ devices (SYSMON, UG580). The same register
+values operate on all of them.
 """
 
 import os
@@ -53,16 +56,22 @@ MARGIN_C = 5.0
 # The time between two reads, in seconds.
 READ_PERIOD_S = 0.5
 
-# The value of CONFIG1 (41h) during the example (UG480, Control
-# Registers):
-#   bits 15-12  SEQ3-SEQ0 = 1000: Independent ADC mode.
+# The values of CONFIG0 (40h) and CONFIG1 (41h) during the example. The
+# XADC (UG480) and the SYSMON (UG580) use the same bits.
+# CONFIG0:
+#   bits 13-12  AVG1-AVG0 = 01: average of 16 samples, as in default mode.
+#   bits 5-0    CH5-CH0 = 000000: the on-chip temperature sensor.
+TEMPERATURE_CHANNEL = 0x1000
+# CONFIG1:
+#   bits 15-12  SEQ3-SEQ0 = 0011: single channel mode (sequencer off).
 #   bits 11-8   ALM6-ALM3 = 1111: VCCBRAM and PS supply alarms disabled.
-#   bits 7-4    CAL3-CAL0 = 1010: offset and gain correction for the ADC
-#               and for the supply sensors.
+#   bits 7-4    CAL3-CAL0 = 1101: correction of the ADC offset and of the
+#               supply sensors. CAL1 is 0: the UltraScale SYSMON does not
+#               support it.
 #   bits 3-2    ALM2-ALM1 = 11: VCCAUX and VCCINT alarms disabled.
 #   bit 1       ALM0 = 0: temperature alarm enabled.
 #   bit 0       OT = 0: over-temperature alarm enabled, as in default mode.
-ALARM_MODE = 0x8FAC
+ALARM_MODE = 0x3FDC
 
 # The stages of the example: (what happens, lower threshold, upper
 # threshold). The thresholds are distances from the temperature at the
@@ -129,11 +138,13 @@ def show_alarm(dev) -> None:
 
 def run_stages(dev) -> None:
     # SK-RAFT: read the original values, to write them back at the end.
+    config0 = dev.read_xadc_register(XadcRegister.CONFIG0)
     config1 = dev.read_xadc_register(XadcRegister.CONFIG1)
     original_lower = dev.xadc_alarm(TEMPERATURE_LOWER).value
     original_upper = dev.xadc_alarm(TEMPERATURE_UPPER).value
-    print(f"Original values: CONFIG1 = {config1:04X}h, "
-          f"lower = {original_lower:.1f}C, upper = {original_upper:.1f}C")
+    print(f"Original values: CONFIG0 = {config0:04X}h, "
+          f"CONFIG1 = {config1:04X}h, lower = {original_lower:.1f}C, "
+          f"upper = {original_upper:.1f}C")
     start = dev.xadc(TEMPERATURE).value
     print(f"Temperature at the start: {start:.1f}C. "
           "The thresholds move around this value.")
@@ -144,18 +155,22 @@ def run_stages(dev) -> None:
             if number == 1:
                 # Enable the alarms only after the first thresholds are in
                 # place. They put ALM0 off, whatever its state was before.
+                # Select the channel first, then the mode.
+                dev.write_xadc_register(XadcRegister.CONFIG0,
+                                        TEMPERATURE_CHANNEL)
                 dev.write_xadc_register(XadcRegister.CONFIG1, ALARM_MODE)
             print(f"\nStage {number} of {len(STAGES)}: {text}")
             print("Press Enter for the next stage.")
             show_alarm(dev)
     finally:
         # SK-RAFT: write back the original values. CONFIG1 first, thus the
-        # alarms stop before the thresholds change.
+        # alarms stop before the channel and the thresholds change.
         dev.write_xadc_register(XadcRegister.CONFIG1, config1)
+        dev.write_xadc_register(XadcRegister.CONFIG0, config0)
         dev.set_xadc_alarm(TEMPERATURE_UPPER, original_upper)
         dev.set_xadc_alarm(TEMPERATURE_LOWER, original_lower)
-        print("\nWrote back the original values of CONFIG1 and of the "
-              "thresholds.")
+        print("\nWrote back the original values of CONFIG0, CONFIG1 and of "
+              "the thresholds.")
 
 
 def main() -> None:
@@ -166,10 +181,8 @@ def main() -> None:
             with client.attach(SERIAL_NUMBER) as dev:
                 print(f"Device: serial number {dev.serial_number}, "
                       f"part number {dev.part_number}")
-                if not dev.part_number.startswith("XC7"):
-                    print("This example is for 7 series FPGAs and "
-                          "Zynq-7000 SoCs only.")
-                    return
+                # SK-RAFT: the server refuses the devices that do not have
+                # a supported XADC or SYSMON.
                 if dev.xadc_flags().jtag_read_only:
                     print("The design allows only reads of the XADC "
                           "through JTAG (JTAG_XADC = StatusOnly).")

@@ -1673,8 +1673,9 @@ class FpgaDevice:
         The server converts it into the raw value of the alarm register, and
         reads the register back to verify the write. The server keeps the
         bits of the register that are not part of the threshold, for example
-        the automatic shutdown enable of OT_LIMIT. Uses the FpgaXadcSetAlarm
-        RPC.
+        the automatic shutdown enable of OT_LIMIT, or the hysteresis or
+        window mode of TEMPERATURE_LOWER in UltraScale+ devices. Uses the
+        FpgaXadcSetAlarm RPC.
 
         Caution: if the automatic shutdown is enabled, the device shuts down
         when the temperature is above OT_LIMIT.
