@@ -107,6 +107,11 @@ class SKRaftFpgaStub(object):
                 request_serializer=skraft__client__pb2.FpgaFiSession.SerializeToString,
                 response_deserializer=skraft__client__pb2.FpgaFiSummary.FromString,
                 _registered_method=True)
+        self.FpgaConfigureSeed = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaConfigureSeed',
+                request_serializer=skraft__client__pb2.FpgaSeedOptions.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
         self.FpgaProgram = channel.unary_unary(
                 '/proto.SKRaftFpga/FpgaProgram',
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
@@ -291,6 +296,12 @@ class SKRaftFpgaServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def FpgaFaultInjection(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaConfigureSeed(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -482,6 +493,11 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
                     servicer.FpgaFaultInjection,
                     request_deserializer=skraft__client__pb2.FpgaFiSession.FromString,
                     response_serializer=skraft__client__pb2.FpgaFiSummary.SerializeToString,
+            ),
+            'FpgaConfigureSeed': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaConfigureSeed,
+                    request_deserializer=skraft__client__pb2.FpgaSeedOptions.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
             'FpgaProgram': grpc.unary_unary_rpc_method_handler(
                     servicer.FpgaProgram,
@@ -954,6 +970,33 @@ class SKRaftFpga(object):
             '/proto.SKRaftFpga/FpgaFaultInjection',
             skraft__client__pb2.FpgaFiSession.SerializeToString,
             skraft__client__pb2.FpgaFiSummary.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaConfigureSeed(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaConfigureSeed',
+            skraft__client__pb2.FpgaSeedOptions.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,
             channel_credentials,
             insecure,

@@ -716,12 +716,53 @@ class FpgaDevice:
                 f"failed to count the {target.name} bits: {_rpc_detail(e)}"
             ) from e
 
+    def configure_seed(self, seed: int) -> None:
+        """
+        Set the seed of the random generator for random injections.
+
+        With the same seed, the same design and the same targets,
+        inject_random selects the same sequence of locations. Thus, you can
+        repeat a random campaign. Each SkraftFpga.attach sets a new seed
+        from the current time. Thus, set the seed after attach. Uses the
+        FpgaConfigureSeed RPC.
+
+        Parameters:
+            seed (int): The seed, from 0 to 2**32 - 1.
+
+        Raises:
+            TypeError: If the seed is not an integer.
+            ValueError: If the seed is out of range.
+            ConnectionFailedError: If the server could not set the seed.
+
+        Examples:
+            >>> dev.configure_seed(42)
+            >>> dev.inject_random(TargetMemory.ESSENTIAL_CRAM)
+        """
+        if not isinstance(seed, int) or isinstance(seed, bool):
+            raise TypeError(
+                f"expected an integer seed, got {type(seed).__name__}"
+            )
+        # The server keeps the seed in a 32-bit unsigned integer.
+        if not 0 <= seed <= 0xFFFFFFFF:
+            raise ValueError(
+                f"the seed must be from 0 to {0xFFFFFFFF}, got {seed}"
+            )
+
+        try:
+            request = skraft_client_pb2.FpgaSeedOptions(seed=seed)
+            self._stub.FpgaConfigureSeed(request)
+        except grpc.RpcError as e:
+            raise ConnectionFailedError(
+                f"failed to configure the seed {seed}: {_rpc_detail(e)}"
+            ) from e
+
     def inject_random(
         self, target: TargetMemory, pblock: Optional[str] = None
     ) -> FpgaRandomInjectionReport:
         """
         Inject a single upset at a random location.
 
+        To repeat the same locations, set the seed with configure_seed.
         Uses the FpgaRandomBitFlip RPC.
 
         Parameters:

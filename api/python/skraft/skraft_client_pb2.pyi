@@ -394,6 +394,12 @@ class FpgaInjectionTarget(_message.Message):
     net_name: str
     def __init__(self, frame_address: _Optional[int] = ..., word_index: _Optional[int] = ..., bit_index: _Optional[int] = ..., kind: _Optional[_Union[FpgaTargetKind, str]] = ..., net_name: _Optional[str] = ...) -> None: ...
 
+class FpgaSeedOptions(_message.Message):
+    __slots__ = ("seed",)
+    SEED_FIELD_NUMBER: _ClassVar[int]
+    seed: int
+    def __init__(self, seed: _Optional[int] = ...) -> None: ...
+
 class FpgaInjectionOptions(_message.Message):
     __slots__ = ("essentials", "include_flip_flops", "include_lutrams", "include_brams", "include_pblock", "pblock_name")
     ESSENTIALS_FIELD_NUMBER: _ClassVar[int]
