@@ -192,6 +192,16 @@ class SKRaftFpgaStub(object):
                 request_serializer=skraft__client__pb2.FpgaPblockClause.SerializeToString,
                 response_deserializer=skraft__client__pb2.FpgaPblockFars.FromString,
                 _registered_method=True)
+        self.FpgaExcludePblocks = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaExcludePblocks',
+                request_serializer=skraft__client__pb2.FpgaPblockListExcludeRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
+        self.FpgaIncludePblocks = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaIncludePblocks',
+                request_serializer=skraft__client__pb2.FpgaPblockListIncludeRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
         self.FpgaXadcSensor = channel.unary_unary(
                 '/proto.SKRaftFpga/FpgaXadcSensor',
                 request_serializer=skraft__client__pb2.FpgaXadcSensorRequest.SerializeToString,
@@ -408,6 +418,20 @@ class SKRaftFpgaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def FpgaExcludePblocks(self, request, context):
+        """Excludes the bits of the named pblocks from the injection.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaIncludePblocks(self, request, context):
+        """Includes the named pblocks again, after FpgaExcludePblocks.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def FpgaXadcSensor(self, request, context):
         """XADC sensors (7 series FPGAs and Zynq-7000 SoCs)
         """
@@ -578,6 +602,16 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
                     servicer.FpgaGetPblockFarsByClause,
                     request_deserializer=skraft__client__pb2.FpgaPblockClause.FromString,
                     response_serializer=skraft__client__pb2.FpgaPblockFars.SerializeToString,
+            ),
+            'FpgaExcludePblocks': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaExcludePblocks,
+                    request_deserializer=skraft__client__pb2.FpgaPblockListExcludeRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'FpgaIncludePblocks': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaIncludePblocks,
+                    request_deserializer=skraft__client__pb2.FpgaPblockListIncludeRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
             'FpgaXadcSensor': grpc.unary_unary_rpc_method_handler(
                     servicer.FpgaXadcSensor,
@@ -1429,6 +1463,60 @@ class SKRaftFpga(object):
             '/proto.SKRaftFpga/FpgaGetPblockFarsByClause',
             skraft__client__pb2.FpgaPblockClause.SerializeToString,
             skraft__client__pb2.FpgaPblockFars.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaExcludePblocks(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaExcludePblocks',
+            skraft__client__pb2.FpgaPblockListExcludeRequest.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaIncludePblocks(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaIncludePblocks',
+            skraft__client__pb2.FpgaPblockListIncludeRequest.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,
             channel_credentials,
             insecure,

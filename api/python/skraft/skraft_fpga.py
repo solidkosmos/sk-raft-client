@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import os
-from typing import Optional, overload
+from typing import Iterable, Optional, overload
 
 import grpc
 from google.protobuf import empty_pb2
@@ -151,6 +151,42 @@ def _injection_options(
         include_pblock=pblock is not None,
         pblock_name=pblock or "",
     )
+
+
+def _pblock_names(pblocks: Optional[Iterable[str]]) -> list[str]:
+    """
+    Check a collection of pblock names and put the names in a list.
+
+    Parameters:
+        pblocks (Optional[Iterable[str]]): The names of pblocks from the
+            constraints (XDC) file, for example a set. None and an empty
+            collection give an empty list.
+
+    Returns:
+        list[str]: The names in alphabetical order, each name one time.
+
+    Raises:
+        TypeError: If pblocks is one string, or if it holds a name that is
+            not a string.
+    """
+    if pblocks is None:
+        return []
+    # A string is also iterable, but each character would become a name.
+    if isinstance(pblocks, str):
+        raise TypeError(
+            "expected a collection of pblock names, for example "
+            f"{{{pblocks!r}}}, got a str"
+        )
+
+    names: set[str] = set()
+    for name in pblocks:
+        if not isinstance(name, str):
+            raise TypeError(
+                f"expected a pblock name as str, got {type(name).__name__}"
+            )
+        names.add(name)
+
+    return sorted(names)
 
 
 class FpgaDevice:
@@ -757,13 +793,17 @@ class FpgaDevice:
             ) from e
 
     def inject_random(
-        self, target: TargetMemory, pblock: Optional[str] = None
+        self,
+        target: TargetMemory,
+        pblock: Optional[str] = None,
+        exclude_pblock: Optional[Iterable[str]] = None,
     ) -> FpgaRandomInjectionReport:
         """
         Inject a single upset at a random location.
 
         To repeat the same locations, set the seed with configure_seed.
-        Uses the FpgaRandomBitFlip RPC.
+        Uses the FpgaRandomBitFlip RPC. With exclude_pblock, it also uses
+        the FpgaExcludePblocks and FpgaIncludePblocks RPCs.
 
         Parameters:
             target (TargetMemory): The memories where the upset may be
@@ -771,18 +811,43 @@ class FpgaDevice:
             pblock (Optional[str]): The name of a pblock from the
                 constraints (XDC) file. If given, the upset is injected
                 inside that pblock.
+            exclude_pblock (Optional[Iterable[str]]): The names of pblocks
+                from the constraints (XDC) file, for example a set. If
+                given, the upset is not injected into the bits of these
+                pblocks. The exclusion applies to this call only.
 
         Returns:
             FpgaRandomInjectionReport: The location of the injected upset
                 and, when known, the name of the affected net.
 
         Raises:
+            TypeError: If exclude_pblock is one string, or if it holds a
+                name that is not a string.
+            ValueError: If exclude_pblock holds the pblock given in pblock.
             DesignFileError: If a design file needed for the target or
-                the pblock has not been uploaded.
+                the pblocks has not been uploaded.
+            FrameAddressError: If the server could not exclude the pblocks,
+                or could not include them again.
             ConnectionFailedError: If the server could not inject the upset.
+
+        Examples:
+            >>> dev.inject_random(TargetMemory.FF, exclude_pblock={"pb_sr"})
+            >>> dev.inject_random(
+            ...     TargetMemory.FF,
+            ...     exclude_pblock={"pb_sr", "pb_sr2", "pb_sr3"},
+            ... )
         """
+        excluded = _pblock_names(exclude_pblock)
+        if pblock is not None and pblock in excluded:
+            raise ValueError(
+                f"exclude_pblock holds the injected pblock {pblock!r}"
+            )
+
         self._design.require(*target.required_design_files,
-                             *(("xdc",) if pblock else ()))
+                             *(("xdc",) if pblock or excluded else ()))
+        if excluded:
+            self._exclude_pblocks(excluded)
+
         try:
             request = _injection_options(target, pblock)
             reply = self._stub.FpgaRandomBitFlip(request)
@@ -796,6 +861,57 @@ class FpgaDevice:
         except grpc.RpcError as e:
             raise ConnectionFailedError(
                 f"failed to perform random bit flip: {_rpc_detail(e)}"
+            ) from e
+        finally:
+            # The server keeps an exclusion until the next programming. The
+            # exclusion applies to this call only, thus include the pblocks
+            # again, also if the injection failed.
+            if excluded:
+                self._include_pblocks(excluded)
+
+    def _exclude_pblocks(self, names: list[str]) -> None:
+        """
+        Exclude pblocks from the injection on the server.
+
+        The server keeps the exclusion until _include_pblocks or the next
+        programming. Uses the FpgaExcludePblocks RPC.
+
+        Parameters:
+            names (list[str]): The names of the pblocks to exclude.
+
+        Raises:
+            FrameAddressError: If the server could not exclude the pblocks.
+        """
+        try:
+            request = skraft_client_pb2.FpgaPblockListExcludeRequest(
+                pblock_names=names,
+            )
+            self._stub.FpgaExcludePblocks(request)
+        except grpc.RpcError as e:
+            raise FrameAddressError(
+                f"failed to exclude the pblocks {names}: {_rpc_detail(e)}"
+            ) from e
+
+    def _include_pblocks(self, names: list[str]) -> None:
+        """
+        Include pblocks in the injection on the server again.
+
+        Uses the FpgaIncludePblocks RPC.
+
+        Parameters:
+            names (list[str]): The names of the pblocks to include.
+
+        Raises:
+            FrameAddressError: If the server could not include the pblocks.
+        """
+        try:
+            request = skraft_client_pb2.FpgaPblockListIncludeRequest(
+                pblock_names=names,
+            )
+            self._stub.FpgaIncludePblocks(request)
+        except grpc.RpcError as e:
+            raise FrameAddressError(
+                f"failed to include the pblocks {names}: {_rpc_detail(e)}"
             ) from e
 
     def inject_exhaustive(

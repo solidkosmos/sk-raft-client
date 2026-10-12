@@ -134,6 +134,18 @@ class FpgaPblockFars(_message.Message):
     fars: _containers.RepeatedCompositeFieldContainer[FpgaPblockFar]
     def __init__(self, fars: _Optional[_Iterable[_Union[FpgaPblockFar, _Mapping]]] = ...) -> None: ...
 
+class FpgaPblockListExcludeRequest(_message.Message):
+    __slots__ = ("pblock_names",)
+    PBLOCK_NAMES_FIELD_NUMBER: _ClassVar[int]
+    pblock_names: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, pblock_names: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class FpgaPblockListIncludeRequest(_message.Message):
+    __slots__ = ("pblock_names",)
+    PBLOCK_NAMES_FIELD_NUMBER: _ClassVar[int]
+    pblock_names: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, pblock_names: _Optional[_Iterable[str]] = ...) -> None: ...
+
 class FpgaFarDecodeRequest(_message.Message):
     __slots__ = ("value",)
     VALUE_FIELD_NUMBER: _ClassVar[int]
