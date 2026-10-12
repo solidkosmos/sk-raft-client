@@ -1,0 +1,16 @@
+# The Vivado projects that create_project.tcl creates (default name:
+# sem_arbitration). Everything in them is generated from hw/ and
+# create_project.tcl.
+/basys3/sem_arbitration/
+/te0841/sem_arbitration/
+
+# Vivado projects with another name (first argument of create_project.tcl)
+*.xpr
+*.cache/
+*.gen/
+*.hw/
+*.ip_user_files/
+*.runs/
+*.sim/
+*.srcs/
+.Xil/
