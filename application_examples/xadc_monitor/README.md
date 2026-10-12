@@ -99,7 +99,7 @@ with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
 
 The library has a selector for each sensor in the table above. It also has `VREFP` and `VREFN`, the voltages on the reference inputs of the ADC. On a board that uses the on-chip reference, these pins connect to ground, and both values are 0 V. Thus the example does not show them.
 
-`dev.xadc()` reads only the on-chip sensors. It does not read the external analog inputs (VP/VN and VAUX), the calibration registers or the flag register. To read the flag register, use `dev.read_xadc_register()`: see the `xadc_alarm` example. If a read fails, `dev.xadc()` raises `XadcError`. `XadcError` is a `SkraftError`.
+`dev.xadc()` reads only the on-chip sensors. It does not read the external analog inputs (VP/VN and VAUX), the calibration registers or the flag register. For the alarms and the flag register, use `dev.xadc_alarm()`, `dev.set_xadc_alarm()` and `dev.xadc_flags()`: see the `xadc_alarm` example. If a read fails, `dev.xadc()` raises `XadcError`. `XadcError` is a `SkraftError`.
 
 ## Troubleshooting
 

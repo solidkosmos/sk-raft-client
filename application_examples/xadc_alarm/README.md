@@ -1,12 +1,12 @@
 # XADC alarm: set off and clear the temperature alarm through JTAG
 
-This example sets off and clears the temperature alarm (ALM0) of the XADC. The script moves the thresholds of the alarm around the temperature of the FPGA, and shows the state of the alarm from the flag register. The temperature does not change: only the thresholds move.
+This example sets off and clears the temperature alarm (ALM0) of the XADC. The script moves the thresholds of the alarm around the temperature of the FPGA, and shows the state of the alarm. The temperature does not change: only the thresholds move.
 
 The example has five stages. Each stage waits for Enter. During a stage, the script reads the temperature, the thresholds and the alarm twice per second, and writes the line again in place:
 
 ```
 Device: serial number 210183BA251CA, part number XC7A35T
-Original values: CONFIG1 = 0000h, ALARM0 = 0000h, ALARM4 = 0000h
+Original values: CONFIG1 = 0000h, lower = -273.1C, upper = -273.1C
 Temperature at the start: 46.4C. The thresholds move around this value.
 --------------------------------------------------------------------------------
 
@@ -25,24 +25,24 @@ Temp =   46.5C | lower =   36.4C | upper =   41.4C | ALM0 = ON
 
 The values above are an example. The values of your device and board are different.
 
-The SK-RAFT server writes and reads the XADC registers through the JTAG interface (the `XADC_DRP` instruction). The example does not need a design, and it does not program the FPGA.
+The script gives the thresholds in degrees Celsius. The SK-RAFT server converts them into the values of the alarm registers, and decodes the state of the alarms from the flag register. The server accesses the XADC through the JTAG interface (the `XADC_DRP` instruction). The example does not need a design, and it does not program the FPGA.
 
 ## How the temperature alarm works
 
-ALM0 has hysteresis. Two alarm registers set its thresholds:
+ALM0 has hysteresis. Two thresholds control it:
 
 | Temperature | ALM0 |
 | --- | --- |
-| Above the upper threshold (`ALARM0`, `50h`) | Goes on. |
-| Below the lower threshold (`ALARM4`, `54h`) | Goes off. |
+| Above the upper threshold (`TEMPERATURE_UPPER`, alarm register `50h`) | Goes on. |
+| Below the lower threshold (`TEMPERATURE_LOWER`, alarm register `54h`) | Goes off. |
 | Between the two thresholds | Does not change. |
 
 The XADC is in the default mode of the sequencer after power-up, and when the design does not use the XADC. In the default mode, the XADC disables all the alarms, except the over-temperature alarm (OT) (UG480, Sequencer Modes). Thus the script sets the XADC to the Independent ADC mode. In this mode, ADC A monitors the on-chip sensors as in the default mode, and the alarms operate. The values of the sensors continue to update.
 
 ## What the script does
 
-1. It reads the original values of `CONFIG1`, `ALARM0` and `ALARM4`, and the temperature at the start (T).
-2. It writes the thresholds of stage 1. Then it writes `CONFIG1` to set the Independent ADC mode.
+1. It reads the original values of `CONFIG1` and of the two thresholds, and the temperature at the start (T).
+2. It sets the thresholds of stage 1. Then it writes `CONFIG1` to set the Independent ADC mode.
 3. It moves the thresholds for each stage, and shows the state of ALM0:
 
 | Stage | Lower threshold | Upper threshold | ALM0 |
@@ -55,16 +55,17 @@ The XADC is in the default mode of the sequencer after power-up, and when the de
 
 Stages 2 and 4 use the same thresholds, but ALM0 is different: the state of ALM0 depends on the earlier stage. This is the hysteresis. Stage 1 puts ALM0 off, also if the alarm was on before the example.
 
-4. It writes back the original values: `CONFIG1` first, then `ALARM0` and `ALARM4`. The script also does this step when you press Ctrl+C, or when an error occurs.
+4. It writes back the original values: `CONFIG1` first, then the two thresholds. The script also does this step when you press Ctrl+C, or when an error occurs.
 
-## Registers
+## The calls of the example
 
-| Register | Address | Access | Use in the example |
-| --- | --- | --- | --- |
-| `XadcRegister.FLAG` | `3Fh` | Read only | Bit 0: ALM0 (1 = on). Bit 10: JTGR (1 = the design allows only reads through JTAG). |
-| `XadcRegister.CONFIG1` | `41h` | Read and write | The sequencer mode and the alarm enables. |
-| `XadcRegister.ALARM0` | `50h` | Read and write | The upper threshold of the temperature alarm. |
-| `XadcRegister.ALARM4` | `54h` | Read and write | The lower threshold of the temperature alarm. |
+| Call | Use in the example |
+| --- | --- |
+| `dev.xadc_alarm(TEMPERATURE_UPPER)`, `dev.xadc_alarm(TEMPERATURE_LOWER)` | Read a threshold, in degrees Celsius. |
+| `dev.set_xadc_alarm(TEMPERATURE_UPPER, value)`, `dev.set_xadc_alarm(TEMPERATURE_LOWER, value)` | Set a threshold, in degrees Celsius. The server converts the value, writes the alarm register and reads it back. |
+| `dev.xadc_flags()` | Read the state of the alarms: `temperature` is ALM0. `jtag_read_only` shows if the design allows only reads through JTAG. |
+| `dev.xadc(TEMPERATURE)` | Read the temperature, in degrees Celsius. |
+| `dev.read_xadc_register(XadcRegister.CONFIG1)`, `dev.write_xadc_register(XadcRegister.CONFIG1, value)` | Read and write the mode of the sequencer, as a raw 16-bit value. |
 
 During the example, `CONFIG1` is `8FACh`:
 
@@ -76,8 +77,6 @@ During the example, `CONFIG1` is `8FACh`:
 | 3-2 | ALM2-ALM1 | `11` | The VCCAUX and VCCINT alarms are disabled. |
 | 1 | ALM0 | `0` | The temperature alarm is enabled. |
 | 0 | OT | `0` | The over-temperature alarm is enabled, as in the default mode. |
-
-The thresholds are raw 16-bit values. Bits 15-4 hold the 12-bit code of the temperature, and bits 3-0 are zero. The script converts between degrees Celsius and codes with the temperature transfer function of UG480 (on-chip reference): code = (T + 273.15) × 4096 / 503.975. `dev.xadc(TEMPERATURE)` uses the same function.
 
 ## Supported devices
 
@@ -91,7 +90,7 @@ The script works with all the 7 series FPGAs and Zynq-7000 SoCs (UG480). On othe
 
 ## Requirements
 
-- SK-RAFT server, with the FPGA board connected through JTAG. The server must read the flag register.
+- SK-RAFT server, with the FPGA board connected through JTAG. The server must support the XADC alarms (`FpgaXadcAlarm`, `FpgaXadcSetAlarm` and `FpgaXadcFlags`).
 - A 7 series FPGA or a Zynq-7000 device, for example one of the boards above.
 - Python 3.9 or a later version, with the `skraft` package installed (`api/python`).
 - A terminal that supports ANSI escape sequences, for example Windows Terminal, the Windows 10/11 console, or a Linux or macOS terminal.
@@ -118,26 +117,44 @@ python main.py
 
 ## Result
 
-At the end, the script writes back the original values of `CONFIG1`, `ALARM0` and `ALARM4`. The XADC goes back to its original mode, for example the default mode. If the script cannot write back the values (for example, if the connection to the server stops), switch the board off and on, or program the FPGA again.
+At the end, the script writes back the original values of `CONFIG1` and of the two thresholds. The XADC goes back to its original mode, for example the default mode. If the script cannot write back the values (for example, if the connection to the server stops), switch the board off and on, or program the FPGA again.
 
 While the example runs, a design that uses the alarm outputs of the XADC (ALM and OT) sees the changes of the alarm. Thus run the example with a design that does not use the XADC, or with no design.
 
-## Use the alarm registers in your own script
+## Use the alarms in your own script
 
 ```python
-from skraft import SkraftFpga, XadcRegister
+from skraft import SkraftFpga, TEMPERATURE_UPPER, VCCINT_LOWER
 
 with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
     with client.attach("210183BA251CA") as dev:
-        upper = dev.read_xadc_register(XadcRegister.ALARM0)  # raw 16 bits
-        dev.write_xadc_register(XadcRegister.ALARM0, upper)
-        flags = dev.read_xadc_register(XadcRegister.FLAG)
-        print("ALM0 is on" if flags & 0x0001 else "ALM0 is off")
+        print(dev.xadc_alarm(TEMPERATURE_UPPER).value)  # degrees Celsius
+        dev.set_xadc_alarm(TEMPERATURE_UPPER, 85.0)     # degrees Celsius
+        dev.set_xadc_alarm(VCCINT_LOWER, 0.97)          # volts
+        flags = dev.xadc_flags()
+        print("ALM0 is on" if flags.temperature else "ALM0 is off")
 ```
 
-`dev.read_xadc_register()` reads the flag register (`3Fh`), the configuration registers (`40h` to `42h`) and the alarm registers (`50h` to `5Fh`). `dev.write_xadc_register()` writes the configuration registers and the alarm registers. The flag register is read only. Both functions accept an `XadcRegister`, or the DRP address as an `int`. The values are raw 16-bit contents: UG480 gives the meaning of each bit. The server refuses the other addresses, for example the test registers (`43h` to `47h`) and the sequence registers (`48h` to `4Fh`). If a read or a write fails, the functions raise `XadcError`.
+`dev.xadc_alarm()` returns an `XadcAlarm` with two attributes: `addr`, the DRP address of the alarm register, and `value`, the threshold in SI units. `dev.set_xadc_alarm()` sets a threshold in SI units. Both functions accept a selector of the `skraft` library, or the DRP address of the alarm register:
 
-Caution: the four least significant bits of `ALARM3` (`53h`) select the automatic shutdown at the over-temperature limit. The value `0011b` enables it, if the bitstream also enables it (`BITSTREAM.CONFIG.OVERTEMPPOWERDOWN`). Then the device shuts down when the temperature is above the limit in `ALARM3`.
+| Selectors (upper, lower) | Alarm registers | Unit | Devices |
+| --- | --- | --- | --- |
+| `TEMPERATURE_UPPER`, `TEMPERATURE_LOWER` | `50h`, `54h` | degC | All |
+| `OT_LIMIT`, `OT_RESET` | `53h`, `57h` | degC | All |
+| `VCCINT_UPPER`, `VCCINT_LOWER` | `51h`, `55h` | V | All |
+| `VCCAUX_UPPER`, `VCCAUX_LOWER` | `52h`, `56h` | V | All |
+| `VCCBRAM_UPPER`, `VCCBRAM_LOWER` | `58h`, `5Ch` | V | All |
+| `VCCPINT_UPPER`, `VCCPINT_LOWER` | `59h`, `5Dh` | V | Zynq-7000 only |
+| `VCCPAUX_UPPER`, `VCCPAUX_LOWER` | `5Ah`, `5Eh` | V | Zynq-7000 only |
+| `VCCO_DDR_UPPER`, `VCCO_DDR_LOWER` | `5Bh`, `5Fh` | V | Zynq-7000 only |
+
+The server converts the thresholds with the transfer functions of UG480, the same functions as `dev.xadc()`. It keeps the four least significant bits of the alarm register, and reads the register back after the write. A threshold outside the range of the ADC (-273.15 to 230.70 degC, 0 to 2.9993 V) causes an error.
+
+`dev.xadc_flags()` returns an `XadcFlags`. The attributes `temperature`, `vccint`, `vccaux`, `over_temperature`, `vccbram`, `vccpint`, `vccpaux` and `vcco_ddr` are `True` while the alarm is on. The attributes `internal_reference`, `jtag_read_only` and `jtag_disabled` show the reference of the ADC and the JTAG access that the design allows.
+
+If a read or a write fails, the functions raise `XadcError`.
+
+Caution: the four least significant bits of the `OT_LIMIT` register (`53h`) select the automatic shutdown at the over-temperature limit. The value `0011b` enables it, if the bitstream also enables it (`BITSTREAM.CONFIG.OVERTEMPPOWERDOWN`). Then the device shuts down when the temperature is above `OT_LIMIT`. `dev.set_xadc_alarm()` does not change these bits. If the register holds `0000h`, `OT_LIMIT` reads -273.15 degC, but the XADC uses the default limit, 125 degC.
 
 ## Troubleshooting
 
@@ -145,7 +162,7 @@ Caution: the four least significant bits of `ALARM3` (`53h`) select the automati
 | --- | --- | --- |
 | `This example is for 7 series FPGAs and Zynq-7000 SoCs only.` | The device is not a 7 series or Zynq-7000 device, for example a Zynq UltraScale+ device. | Use a 7 series or Zynq-7000 board. |
 | `The design allows only reads of the XADC through JTAG (JTAG_XADC = StatusOnly).` | The design sets `BITSTREAM.GENERAL.JTAG_XADC` to `StatusOnly`. | Program the FPGA with a design that does not limit the JTAG access to the XADC. |
-| `Example failed: ALARM0 is 0000h after the write of ...h` | The XADC ignores the writes through JTAG. A possible cause: the design disables the JTAG access to the XADC (`BITSTREAM.GENERAL.JTAG_XADC` is `Disable`), or the PS of a Zynq-7000 device uses the XADC through its dedicated interface. | Program the FPGA with a design that does not disable the JTAG access. |
-| `DRP address 3Fh is not an XADC configuration or alarm register` | The SK-RAFT server is older than the client, and does not read the flag register. | Update the SK-RAFT server. |
+| `XADC alarm 50h holds ...h after the write of ...h, the design may limit the JTAG access to the XADC` | The XADC ignores the writes through JTAG. A possible cause: the design disables the JTAG access to the XADC (`BITSTREAM.GENERAL.JTAG_XADC` is `Disable`), or the PS of a Zynq-7000 device uses the XADC through its dedicated interface. | Program the FPGA with a design that does not disable the JTAG access. |
+| `failed to read the XADC flags: unknown method FpgaXadcFlags ...` | The SK-RAFT server is older than the client, and does not support the XADC alarms. | Update the SK-RAFT server. |
 | ALM0 does not go on in stage 3 | The design uses the XADC, and changes `CONFIG1` or the thresholds through the DRP of the XADC. | Run the example with a design that does not use the XADC, or with no design. |
 | The line shows `←[K`, or a new line appears at each read | The terminal does not support ANSI escape sequences (for example, some IDE consoles). | Run the script in a terminal window. |

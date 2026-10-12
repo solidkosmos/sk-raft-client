@@ -1203,6 +1203,213 @@ MIN_VCCPAUX = XadcSensorSelector(0x2D)  # V
 MIN_VCCO_DDR = XadcSensorSelector(0x2E)  # V
 
 
+class XadcAlarmSelector:
+    """
+    An XADC alarm threshold of the device, for FpgaDevice.xadc_alarm and
+    FpgaDevice.set_xadc_alarm.
+
+    The library defines a selector for each alarm register, for example
+    TEMPERATURE_UPPER or VCCINT_LOWER, so selectors are not normally created
+    by hand.
+
+    Attributes:
+        addr (int): The DRP address of the alarm register.
+    """
+
+    def __init__(self, addr: int):
+        """
+        Create an alarm selector.
+
+        Parameters:
+            addr (int): The DRP address of the alarm register.
+        """
+        self.__addr = addr
+
+    @property
+    def addr(self) -> int:
+        """The DRP address of the alarm register."""
+        return self.__addr
+
+
+class XadcAlarm:
+    """
+    The threshold of an XADC alarm, as read by FpgaDevice.xadc_alarm.
+
+    The value is in units of the International System of Units (SI): volts
+    (V) for voltages and degrees Celsius (degC) for temperatures.
+
+    Attributes:
+        addr (int): The DRP address of the alarm register that was read.
+        value (float): The threshold, in V or degC.
+    """
+
+    def __init__(self, addr: int, value: float):
+        """
+        Create an alarm threshold.
+
+        Parameters:
+            addr (int): The DRP address of the alarm register that was
+                read.
+            value (float): The threshold, in V or degC.
+        """
+        self.__addr = addr
+        self.__value = value
+
+    @property
+    def addr(self) -> int:
+        """The DRP address of the alarm register that was read."""
+        return self.__addr
+
+    @property
+    def value(self) -> float:
+        """The threshold, in V or degC."""
+        return self.__value
+
+
+# The XADC alarm thresholds, at the DRP addresses of their alarm registers
+# (UG480, Automatic Alarms). The temperature alarm goes on above
+# TEMPERATURE_UPPER, and goes off below TEMPERATURE_LOWER. The
+# over-temperature alarm does the same with OT_LIMIT and OT_RESET. A supply
+# alarm is on while the voltage is above its upper threshold or below its
+# lower threshold. If ALARM3 (53h) holds 0000h, OT_LIMIT reads -273.15 degC,
+# but the XADC uses the default limit, 125 degC.
+TEMPERATURE_UPPER = XadcAlarmSelector(0x50)  # degC
+TEMPERATURE_LOWER = XadcAlarmSelector(0x54)  # degC
+OT_LIMIT = XadcAlarmSelector(0x53)  # degC
+OT_RESET = XadcAlarmSelector(0x57)  # degC
+VCCINT_UPPER = XadcAlarmSelector(0x51)  # V
+VCCINT_LOWER = XadcAlarmSelector(0x55)  # V
+VCCAUX_UPPER = XadcAlarmSelector(0x52)  # V
+VCCAUX_LOWER = XadcAlarmSelector(0x56)  # V
+VCCBRAM_UPPER = XadcAlarmSelector(0x58)  # V
+VCCBRAM_LOWER = XadcAlarmSelector(0x5C)  # V
+
+# The thresholds of the Processing System (PS) supplies, in Zynq-7000 SoCs
+# only.
+VCCPINT_UPPER = XadcAlarmSelector(0x59)  # V
+VCCPINT_LOWER = XadcAlarmSelector(0x5D)  # V
+VCCPAUX_UPPER = XadcAlarmSelector(0x5A)  # V
+VCCPAUX_LOWER = XadcAlarmSelector(0x5E)  # V
+VCCO_DDR_UPPER = XadcAlarmSelector(0x5B)  # V
+VCCO_DDR_LOWER = XadcAlarmSelector(0x5F)  # V
+
+
+class XadcFlags:
+    """
+    The state of the XADC alarms and of the JTAG access, as read by
+    FpgaDevice.xadc_flags from the flag register (3Fh).
+
+    An alarm attribute is True while the alarm is on. In the default mode
+    of the sequencer, the XADC disables all the alarms, except the
+    over-temperature alarm (UG480, Sequencer Modes).
+
+    Attributes:
+        temperature (bool): The temperature alarm (ALM0) is on.
+        vccint (bool): The VCCINT alarm (ALM1) is on.
+        vccaux (bool): The VCCAUX alarm (ALM2) is on.
+        over_temperature (bool): The over-temperature alarm (OT) is on.
+        vccbram (bool): The VCCBRAM alarm (ALM3) is on.
+        vccpint (bool): The VCCPINT alarm (ALM4) is on, Zynq-7000 only.
+        vccpaux (bool): The VCCPAUX alarm (ALM5) is on, Zynq-7000 only.
+        vcco_ddr (bool): The VCCO_DDR alarm (ALM6) is on, Zynq-7000 only.
+        internal_reference (bool): The ADC uses the on-chip reference
+            (REF).
+        jtag_read_only (bool): The design allows only reads of the XADC
+            through JTAG (JTGR).
+        jtag_disabled (bool): The design disables the JTAG access to the
+            XADC (JTGD).
+    """
+
+    def __init__(self, temperature: bool, vccint: bool, vccaux: bool,
+                 over_temperature: bool, vccbram: bool, vccpint: bool,
+                 vccpaux: bool, vcco_ddr: bool, internal_reference: bool,
+                 jtag_read_only: bool, jtag_disabled: bool):
+        """
+        Create the state of the XADC flags.
+
+        Parameters:
+            temperature (bool): The temperature alarm (ALM0) is on.
+            vccint (bool): The VCCINT alarm (ALM1) is on.
+            vccaux (bool): The VCCAUX alarm (ALM2) is on.
+            over_temperature (bool): The over-temperature alarm (OT) is on.
+            vccbram (bool): The VCCBRAM alarm (ALM3) is on.
+            vccpint (bool): The VCCPINT alarm (ALM4) is on.
+            vccpaux (bool): The VCCPAUX alarm (ALM5) is on.
+            vcco_ddr (bool): The VCCO_DDR alarm (ALM6) is on.
+            internal_reference (bool): The ADC uses the on-chip reference.
+            jtag_read_only (bool): The design allows only reads of the
+                XADC through JTAG.
+            jtag_disabled (bool): The design disables the JTAG access to
+                the XADC.
+        """
+        self.__temperature = temperature
+        self.__vccint = vccint
+        self.__vccaux = vccaux
+        self.__over_temperature = over_temperature
+        self.__vccbram = vccbram
+        self.__vccpint = vccpint
+        self.__vccpaux = vccpaux
+        self.__vcco_ddr = vcco_ddr
+        self.__internal_reference = internal_reference
+        self.__jtag_read_only = jtag_read_only
+        self.__jtag_disabled = jtag_disabled
+
+    @property
+    def temperature(self) -> bool:
+        """The temperature alarm (ALM0) is on."""
+        return self.__temperature
+
+    @property
+    def vccint(self) -> bool:
+        """The VCCINT alarm (ALM1) is on."""
+        return self.__vccint
+
+    @property
+    def vccaux(self) -> bool:
+        """The VCCAUX alarm (ALM2) is on."""
+        return self.__vccaux
+
+    @property
+    def over_temperature(self) -> bool:
+        """The over-temperature alarm (OT) is on."""
+        return self.__over_temperature
+
+    @property
+    def vccbram(self) -> bool:
+        """The VCCBRAM alarm (ALM3) is on."""
+        return self.__vccbram
+
+    @property
+    def vccpint(self) -> bool:
+        """The VCCPINT alarm (ALM4) is on, Zynq-7000 only."""
+        return self.__vccpint
+
+    @property
+    def vccpaux(self) -> bool:
+        """The VCCPAUX alarm (ALM5) is on, Zynq-7000 only."""
+        return self.__vccpaux
+
+    @property
+    def vcco_ddr(self) -> bool:
+        """The VCCO_DDR alarm (ALM6) is on, Zynq-7000 only."""
+        return self.__vcco_ddr
+
+    @property
+    def internal_reference(self) -> bool:
+        """The ADC uses the on-chip reference (REF)."""
+        return self.__internal_reference
+
+    @property
+    def jtag_read_only(self) -> bool:
+        """The design allows only reads of the XADC through JTAG (JTGR)."""
+        return self.__jtag_read_only
+
+    @property
+    def jtag_disabled(self) -> bool:
+        """The design disables the JTAG access to the XADC (JTGD)."""
+        return self.__jtag_disabled
+
+
 class XadcRegister(int, Enum):
     """
     The XADC registers, at their DRP addresses, for
@@ -1213,7 +1420,9 @@ class XadcRegister(int, Enum):
     raw 16-bit contents. UG480 (Status Registers, Control Registers) gives the
     meaning of each bit, and the ADC transfer functions give the codes of the
     alarm thresholds. The thresholds of the Processing System (PS) supplies
-    exist only in Zynq-7000 SoCs.
+    exist only in Zynq-7000 SoCs. FpgaDevice.xadc_alarm and
+    FpgaDevice.set_xadc_alarm give the thresholds in SI units, and
+    FpgaDevice.xadc_flags decodes the flag register.
 
     The flag register shows the state of the alarms. Bit 0 is ALM0
     (temperature), bit 1 is ALM1 (VCCINT), bit 2 is ALM2 (VCCAUX), bit 3 is

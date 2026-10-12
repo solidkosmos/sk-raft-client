@@ -207,6 +207,21 @@ class SKRaftFpgaStub(object):
                 request_serializer=skraft__client__pb2.FpgaXadcSensorRequest.SerializeToString,
                 response_deserializer=skraft__client__pb2.FpgaXadcResult.FromString,
                 _registered_method=True)
+        self.FpgaXadcAlarm = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaXadcAlarm',
+                request_serializer=skraft__client__pb2.FpgaXadcAlarmRequest.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaXadcResult.FromString,
+                _registered_method=True)
+        self.FpgaXadcSetAlarm = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaXadcSetAlarm',
+                request_serializer=skraft__client__pb2.FpgaXadcSetAlarmRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
+        self.FpgaXadcFlags = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaXadcFlags',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaXadcFlagsResult.FromString,
+                _registered_method=True)
         self.FpgaXadcReadRegister = channel.unary_unary(
                 '/proto.SKRaftFpga/FpgaXadcReadRegister',
                 request_serializer=skraft__client__pb2.FpgaXadcReadRegisterRequest.SerializeToString,
@@ -449,6 +464,26 @@ class SKRaftFpgaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def FpgaXadcAlarm(self, request, context):
+        """XADC alarm thresholds (50h-5Fh), in SI units, and the state of the
+        alarms, from the flag register.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaXadcSetAlarm(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaXadcFlags(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def FpgaXadcReadRegister(self, request, context):
         """XADC registers, as raw 16-bit values: the flag register (3Fh, read
         only), the configuration registers (40h-42h) and the alarm registers
@@ -642,6 +677,21 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
                     servicer.FpgaXadcSensor,
                     request_deserializer=skraft__client__pb2.FpgaXadcSensorRequest.FromString,
                     response_serializer=skraft__client__pb2.FpgaXadcResult.SerializeToString,
+            ),
+            'FpgaXadcAlarm': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaXadcAlarm,
+                    request_deserializer=skraft__client__pb2.FpgaXadcAlarmRequest.FromString,
+                    response_serializer=skraft__client__pb2.FpgaXadcResult.SerializeToString,
+            ),
+            'FpgaXadcSetAlarm': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaXadcSetAlarm,
+                    request_deserializer=skraft__client__pb2.FpgaXadcSetAlarmRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'FpgaXadcFlags': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaXadcFlags,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=skraft__client__pb2.FpgaXadcFlagsResult.SerializeToString,
             ),
             'FpgaXadcReadRegister': grpc.unary_unary_rpc_method_handler(
                     servicer.FpgaXadcReadRegister,
@@ -1579,6 +1629,87 @@ class SKRaftFpga(object):
             '/proto.SKRaftFpga/FpgaXadcSensor',
             skraft__client__pb2.FpgaXadcSensorRequest.SerializeToString,
             skraft__client__pb2.FpgaXadcResult.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaXadcAlarm(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaXadcAlarm',
+            skraft__client__pb2.FpgaXadcAlarmRequest.SerializeToString,
+            skraft__client__pb2.FpgaXadcResult.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaXadcSetAlarm(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaXadcSetAlarm',
+            skraft__client__pb2.FpgaXadcSetAlarmRequest.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaXadcFlags(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaXadcFlags',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            skraft__client__pb2.FpgaXadcFlagsResult.FromString,
             options,
             channel_credentials,
             insecure,

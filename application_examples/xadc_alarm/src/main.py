@@ -6,19 +6,20 @@
 The script moves the thresholds of the temperature alarm (ALM0) of the
 XADC around the temperature of the FPGA, and shows the state of the alarm.
 The temperature does not change, only the thresholds move. The server
-writes the alarm registers and reads the flag register through the JTAG
+converts the thresholds into the values of the alarm registers, and reads
+the state of the alarms from the flag register, through the JTAG
 interface. The script does not program the FPGA.
 
 ALM0 has hysteresis. It goes on when the temperature is above the upper
-threshold (ALARM0, 50h). Then it stays on until the temperature is below
-the lower threshold (ALARM4, 54h).
+threshold (TEMPERATURE_UPPER). Then it stays on until the temperature is
+below the lower threshold (TEMPERATURE_LOWER).
 
 In the default mode of the sequencer, the XADC disables all the alarms,
 except the over-temperature alarm (OT). Thus the script sets the XADC to
 the Independent ADC mode (CONFIG1, 41h). In this mode, ADC A monitors the
 on-chip sensors as in the default mode, and the alarms operate. At the
-end, the script writes back the original values of CONFIG1, ALARM0 and
-ALARM4.
+end, the script writes back the original values of CONFIG1 and of the two
+thresholds.
 
 The script is for 7 series FPGAs and Zynq-7000 SoCs (UG480).
 """
@@ -26,7 +27,14 @@ The script is for 7 series FPGAs and Zynq-7000 SoCs (UG480).
 import os
 import threading
 
-from skraft import TEMPERATURE, SkraftError, SkraftFpga, XadcRegister
+from skraft import (
+    TEMPERATURE,
+    TEMPERATURE_LOWER,
+    TEMPERATURE_UPPER,
+    SkraftError,
+    SkraftFpga,
+    XadcRegister,
+)
 
 # --------------------------------------------------------------------------- #
 # Configuration. Set these values for your setup.
@@ -45,10 +53,6 @@ MARGIN_C = 5.0
 # The time between two reads, in seconds.
 READ_PERIOD_S = 0.5
 
-# The registers of the temperature alarm.
-UPPER = XadcRegister.ALARM0  # 50h: ALM0 goes on above this temperature
-LOWER = XadcRegister.ALARM4  # 54h: ALM0 goes off below this temperature
-
 # The value of CONFIG1 (41h) during the example (UG480, Control
 # Registers):
 #   bits 15-12  SEQ3-SEQ0 = 1000: Independent ADC mode.
@@ -59,10 +63,6 @@ LOWER = XadcRegister.ALARM4  # 54h: ALM0 goes off below this temperature
 #   bit 1       ALM0 = 0: temperature alarm enabled.
 #   bit 0       OT = 0: over-temperature alarm enabled, as in default mode.
 ALARM_MODE = 0x8FAC
-
-# The bits of the flag register (3Fh).
-FLAG_ALM0 = 0x0001  # 1: the temperature alarm is on
-FLAG_JTGR = 0x0400  # 1: the design allows only reads through JTAG
 
 # The stages of the example: (what happens, lower threshold, upper
 # threshold). The thresholds are distances from the temperature at the
@@ -98,47 +98,28 @@ os.system("")
 CLEAR_TO_END_OF_LINE = "\033[K"
 
 
-# The temperature transfer function of the XADC, with the on-chip reference
-# (UG480, ADC Transfer Functions). dev.xadc(TEMPERATURE) uses the same
-# function. The 12-bit code is in bits 15-4 of the register.
-def to_celsius(raw: int) -> float:
-    return (raw >> 4) * 503.975 / 4096 - 273.15
-
-
-def to_raw(celsius: float) -> int:
-    code = round((celsius + 273.15) * 4096 / 503.975)
-    return min(max(code, 0), 0xFFF) << 4
-
-
-def write_register(dev, register: XadcRegister, value: int) -> None:
-    # SK-RAFT: write the register, then read it back. If the design
-    # disables the JTAG access to the XADC, the value does not change.
-    dev.write_xadc_register(register, value)
-    read_back = dev.read_xadc_register(register)
-    if read_back != value:
-        raise RuntimeError(f"{register.name} is {read_back:04X}h after "
-                           f"the write of {value:04X}h")
-
-
 def set_thresholds(dev, lower: float, upper: float) -> None:
+    # SK-RAFT: set the two thresholds, in degrees Celsius. The server
+    # converts them, and reads each register back to verify the write.
     # Keep the lower threshold below the upper threshold: when the
-    # thresholds go up, write the upper threshold first.
-    writes = [(LOWER, lower), (UPPER, upper)]
-    if to_raw(upper) > dev.read_xadc_register(UPPER):
-        writes.reverse()
-    for register, celsius in writes:
-        write_register(dev, register, to_raw(celsius))
+    # thresholds go up, set the upper threshold first.
+    if upper > dev.xadc_alarm(TEMPERATURE_UPPER).value:
+        dev.set_xadc_alarm(TEMPERATURE_UPPER, upper)
+        dev.set_xadc_alarm(TEMPERATURE_LOWER, lower)
+    else:
+        dev.set_xadc_alarm(TEMPERATURE_LOWER, lower)
+        dev.set_xadc_alarm(TEMPERATURE_UPPER, upper)
 
 
 def show_alarm(dev) -> None:
     watch_for_enter()
     while True:
-        # SK-RAFT: read the temperature, the thresholds from the alarm
-        # registers and the state of ALM0 from the flag register.
+        # SK-RAFT: read the temperature, the two thresholds and the state
+        # of the alarms.
         temperature = dev.xadc(TEMPERATURE).value
-        lower = to_celsius(dev.read_xadc_register(LOWER))
-        upper = to_celsius(dev.read_xadc_register(UPPER))
-        alarm = dev.read_xadc_register(XadcRegister.FLAG) & FLAG_ALM0
+        lower = dev.xadc_alarm(TEMPERATURE_LOWER).value
+        upper = dev.xadc_alarm(TEMPERATURE_UPPER).value
+        alarm = dev.xadc_flags().temperature
         print(f"\rTemp = {temperature:6.1f}C | lower = {lower:6.1f}C | "
               f"upper = {upper:6.1f}C | ALM0 = {'ON' if alarm else 'off'}"
               f"{CLEAR_TO_END_OF_LINE}", end="", flush=True)
@@ -148,11 +129,11 @@ def show_alarm(dev) -> None:
 
 def run_stages(dev) -> None:
     # SK-RAFT: read the original values, to write them back at the end.
-    original = {register: dev.read_xadc_register(register)
-                for register in (XadcRegister.CONFIG1, UPPER, LOWER)}
-    print("Original values: " + ", ".join(
-        f"{register.name} = {value:04X}h"
-        for register, value in original.items()))
+    config1 = dev.read_xadc_register(XadcRegister.CONFIG1)
+    original_lower = dev.xadc_alarm(TEMPERATURE_LOWER).value
+    original_upper = dev.xadc_alarm(TEMPERATURE_UPPER).value
+    print(f"Original values: CONFIG1 = {config1:04X}h, "
+          f"lower = {original_lower:.1f}C, upper = {original_upper:.1f}C")
     start = dev.xadc(TEMPERATURE).value
     print(f"Temperature at the start: {start:.1f}C. "
           "The thresholds move around this value.")
@@ -163,17 +144,18 @@ def run_stages(dev) -> None:
             if number == 1:
                 # Enable the alarms only after the first thresholds are in
                 # place. They put ALM0 off, whatever its state was before.
-                write_register(dev, XadcRegister.CONFIG1, ALARM_MODE)
+                dev.write_xadc_register(XadcRegister.CONFIG1, ALARM_MODE)
             print(f"\nStage {number} of {len(STAGES)}: {text}")
             print("Press Enter for the next stage.")
             show_alarm(dev)
     finally:
         # SK-RAFT: write back the original values. CONFIG1 first, thus the
         # alarms stop before the thresholds change.
-        for register, value in original.items():
-            dev.write_xadc_register(register, value)
-        print("\nWrote back the original values of CONFIG1, ALARM0 and "
-              "ALARM4.")
+        dev.write_xadc_register(XadcRegister.CONFIG1, config1)
+        dev.set_xadc_alarm(TEMPERATURE_UPPER, original_upper)
+        dev.set_xadc_alarm(TEMPERATURE_LOWER, original_lower)
+        print("\nWrote back the original values of CONFIG1 and of the "
+              "thresholds.")
 
 
 def main() -> None:
@@ -188,12 +170,12 @@ def main() -> None:
                     print("This example is for 7 series FPGAs and "
                           "Zynq-7000 SoCs only.")
                     return
-                if dev.read_xadc_register(XadcRegister.FLAG) & FLAG_JTGR:
+                if dev.xadc_flags().jtag_read_only:
                     print("The design allows only reads of the XADC "
                           "through JTAG (JTAG_XADC = StatusOnly).")
                     return
                 run_stages(dev)
-    except (SkraftError, RuntimeError) as e:
+    except SkraftError as e:
         print(f"Example failed: {e}")
         return
     except KeyboardInterrupt:

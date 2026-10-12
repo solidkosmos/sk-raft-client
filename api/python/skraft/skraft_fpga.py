@@ -39,6 +39,9 @@ from .datatypes import (
     TargetMemory,
     ScrubbingType,
     ReadbackOption,
+    XadcAlarm,
+    XadcAlarmSelector,
+    XadcFlags,
     XadcRegister,
     XadcSensor,
     XadcSensorSelector,
@@ -210,6 +213,31 @@ def _xadc_register_address(register: XadcRegister | int) -> int:
             f"{type(register).__name__}"
         )
     return int(register)
+
+
+def _xadc_alarm_address(alarm: XadcAlarmSelector | int) -> int:
+    """
+    Check an XADC alarm threshold and get the DRP address of its register.
+
+    Parameters:
+        alarm (XadcAlarmSelector | int): The selector of the threshold, or
+            the DRP address of its alarm register.
+
+    Returns:
+        int: The DRP address of the alarm register.
+
+    Raises:
+        TypeError: If the alarm is neither a selector nor a DRP address.
+    """
+    if isinstance(alarm, XadcAlarmSelector):
+        return alarm.addr
+    # A bool is also an int, but True and False are not addresses.
+    if not isinstance(alarm, int) or isinstance(alarm, bool):
+        raise TypeError(
+            "expected an XadcAlarmSelector or a DRP address, got "
+            f"{type(alarm).__name__}"
+        )
+    return alarm
 
 
 class FpgaDevice:
@@ -1583,6 +1611,143 @@ class FpgaDevice:
                 f"failed to read XADC sensor at DRP address {addr:#04x}: "
                 f"{_rpc_detail(e)}"
             ) from e
+
+    @overload
+    def xadc_alarm(
+        self, adc_alarm_selector: XadcAlarmSelector, /
+    ) -> XadcAlarm: ...
+
+    @overload
+    def xadc_alarm(self, drp_address: int, /) -> XadcAlarm: ...
+
+    def xadc_alarm(self, alarm: XadcAlarmSelector | int, /) -> XadcAlarm:
+        """
+        Read an XADC alarm threshold of the device.
+
+        The threshold is given either by a selector of the library, for
+        example TEMPERATURE_UPPER or VCCINT_LOWER, or by the DRP address of
+        its alarm register. The server converts the raw value of the
+        register. The value is in units of the International System of
+        Units (SI): volts (V) for voltages and degrees Celsius (degC) for
+        temperatures. Uses the FpgaXadcAlarm RPC.
+
+        Parameters:
+            alarm (XadcAlarmSelector | int): The selector of the threshold,
+                or the DRP address of its alarm register.
+
+        Returns:
+            XadcAlarm: The threshold, in V or degC.
+
+        Raises:
+            TypeError: If the alarm is neither a selector nor a DRP
+                address.
+            XadcError: If the server could not read the threshold, for
+                example because the DRP address is not an alarm register,
+                or the device does not have the alarm.
+
+        Examples:
+            >>> dev.xadc_alarm(TEMPERATURE_UPPER).value  # degC
+            >>> dev.xadc_alarm(VCCINT_LOWER).value       # V
+        """
+        addr = _xadc_alarm_address(alarm)
+
+        try:
+            request = skraft_client_pb2.FpgaXadcAlarmRequest(addr=addr)
+            reply = self._stub.FpgaXadcAlarm(request)
+
+            return XadcAlarm(addr, reply.value)
+        except grpc.RpcError as e:
+            raise XadcError(
+                f"failed to read XADC alarm at DRP address {addr:#04x}: "
+                f"{_rpc_detail(e)}"
+            ) from e
+
+    def set_xadc_alarm(
+        self, alarm: XadcAlarmSelector | int, value: float
+    ) -> None:
+        """
+        Set an XADC alarm threshold of the device.
+
+        The value is in units of the International System of Units (SI):
+        volts (V) for voltages and degrees Celsius (degC) for temperatures.
+        The server converts it into the raw value of the alarm register, and
+        reads the register back to verify the write. The server keeps the
+        bits of the register that are not part of the threshold, for example
+        the automatic shutdown enable of OT_LIMIT. Uses the FpgaXadcSetAlarm
+        RPC.
+
+        Caution: if the automatic shutdown is enabled, the device shuts down
+        when the temperature is above OT_LIMIT.
+
+        Parameters:
+            alarm (XadcAlarmSelector | int): The selector of the threshold,
+                or the DRP address of its alarm register.
+            value (float): The threshold, in V or degC.
+
+        Raises:
+            TypeError: If the alarm is neither a selector nor a DRP
+                address, or if the value is not a number.
+            XadcError: If the server could not set the threshold, for
+                example because the value is outside the range of the ADC,
+                or the design does not allow writes through JTAG.
+
+        Examples:
+            >>> dev.set_xadc_alarm(TEMPERATURE_UPPER, 85.0)  # degC
+            >>> dev.set_xadc_alarm(VCCINT_LOWER, 0.97)       # V
+        """
+        addr = _xadc_alarm_address(alarm)
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            raise TypeError(
+                f"expected the value as a number, got {type(value).__name__}"
+            )
+
+        try:
+            request = skraft_client_pb2.FpgaXadcSetAlarmRequest(
+                addr=addr, value=value,
+            )
+            self._stub.FpgaXadcSetAlarm(request)
+        except grpc.RpcError as e:
+            raise XadcError(
+                f"failed to set XADC alarm at DRP address {addr:#04x}: "
+                f"{_rpc_detail(e)}"
+            ) from e
+
+    def xadc_flags(self) -> XadcFlags:
+        """
+        Read the state of the XADC alarms of the device.
+
+        The server reads the flag register and decodes it. Uses the
+        FpgaXadcFlags RPC.
+
+        Returns:
+            XadcFlags: The state of each alarm and of the JTAG access.
+
+        Raises:
+            XadcError: If the server could not read the flag register.
+
+        Examples:
+            >>> dev.xadc_flags().temperature  # True while ALM0 is on
+        """
+        try:
+            reply = self._stub.FpgaXadcFlags(empty_pb2.Empty())
+        except grpc.RpcError as e:
+            raise XadcError(
+                f"failed to read the XADC flags: {_rpc_detail(e)}"
+            ) from e
+
+        return XadcFlags(
+            temperature=reply.temperature,
+            vccint=reply.vccint,
+            vccaux=reply.vccaux,
+            over_temperature=reply.over_temperature,
+            vccbram=reply.vccbram,
+            vccpint=reply.vccpint,
+            vccpaux=reply.vccpaux,
+            vcco_ddr=reply.vcco_ddr,
+            internal_reference=reply.internal_reference,
+            jtag_read_only=reply.jtag_read_only,
+            jtag_disabled=reply.jtag_disabled,
+        )
 
     def read_xadc_register(self, register: XadcRegister | int) -> int:
         """

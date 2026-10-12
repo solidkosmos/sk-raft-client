@@ -392,6 +392,46 @@ class FpgaXadcResult(_message.Message):
     value: float
     def __init__(self, value: _Optional[float] = ...) -> None: ...
 
+class FpgaXadcAlarmRequest(_message.Message):
+    __slots__ = ("addr",)
+    ADDR_FIELD_NUMBER: _ClassVar[int]
+    addr: int
+    def __init__(self, addr: _Optional[int] = ...) -> None: ...
+
+class FpgaXadcSetAlarmRequest(_message.Message):
+    __slots__ = ("addr", "value")
+    ADDR_FIELD_NUMBER: _ClassVar[int]
+    VALUE_FIELD_NUMBER: _ClassVar[int]
+    addr: int
+    value: float
+    def __init__(self, addr: _Optional[int] = ..., value: _Optional[float] = ...) -> None: ...
+
+class FpgaXadcFlagsResult(_message.Message):
+    __slots__ = ("temperature", "vccint", "vccaux", "over_temperature", "vccbram", "vccpint", "vccpaux", "vcco_ddr", "internal_reference", "jtag_read_only", "jtag_disabled")
+    TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
+    VCCINT_FIELD_NUMBER: _ClassVar[int]
+    VCCAUX_FIELD_NUMBER: _ClassVar[int]
+    OVER_TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
+    VCCBRAM_FIELD_NUMBER: _ClassVar[int]
+    VCCPINT_FIELD_NUMBER: _ClassVar[int]
+    VCCPAUX_FIELD_NUMBER: _ClassVar[int]
+    VCCO_DDR_FIELD_NUMBER: _ClassVar[int]
+    INTERNAL_REFERENCE_FIELD_NUMBER: _ClassVar[int]
+    JTAG_READ_ONLY_FIELD_NUMBER: _ClassVar[int]
+    JTAG_DISABLED_FIELD_NUMBER: _ClassVar[int]
+    temperature: bool
+    vccint: bool
+    vccaux: bool
+    over_temperature: bool
+    vccbram: bool
+    vccpint: bool
+    vccpaux: bool
+    vcco_ddr: bool
+    internal_reference: bool
+    jtag_read_only: bool
+    jtag_disabled: bool
+    def __init__(self, temperature: bool = ..., vccint: bool = ..., vccaux: bool = ..., over_temperature: bool = ..., vccbram: bool = ..., vccpint: bool = ..., vccpaux: bool = ..., vcco_ddr: bool = ..., internal_reference: bool = ..., jtag_read_only: bool = ..., jtag_disabled: bool = ...) -> None: ...
+
 class FpgaXadcReadRegisterRequest(_message.Message):
     __slots__ = ("addr",)
     ADDR_FIELD_NUMBER: _ClassVar[int]
