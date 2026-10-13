@@ -24,7 +24,8 @@ from dataclasses import dataclass
 import serial
 
 # A SEM report: the frame address (PA), then lines "WD <word> BT <bit>".
-REPORT = re.compile(r"PA ([0-9A-F]{8})(.*?)(?:END|$)", re.DOTALL)
+# PA has 8 hex digits on 7 series and 7 on UltraScale.
+REPORT = re.compile(r"PA ([0-9A-F]{7,8})(.*?)(?:END|$)", re.DOTALL)
 BIT = re.compile(r"WD ([0-9A-F]{2}) BT ([0-9A-F]{2})")
 
 
