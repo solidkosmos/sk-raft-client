@@ -38,7 +38,7 @@ The `skraft` Python client in this repository sends the gRPC requests for you. A
 1. Connect to the server: `SkraftFpga.connect(ip, port)`.
 2. Reserve the board with its serial number: `client.attach(serial_number)`. To find the serial numbers of the connected boards, use `client.get_devices()`.
 3. Upload the design files (bitstream, EBD, LL and XDC files) to the server: `dev.uploadDesignToServer(design)`.
-4. Program the FPGA: `dev.programFPGA()`.
+4. Program the FPGA with an uploaded design: `dev.programFPGA(design)`. The server keeps each uploaded design. Thus, you can upload several designs, and then program the one to use.
 5. Inject faults, for example: `dev.inject_random(TargetMemory.ESSENTIAL_CRAM)`.
 6. Read the effect of the faults, for example through BSCAN: `dev.read_bscan(...)`.
 
@@ -49,8 +49,9 @@ from skraft import Design, SkraftFpga, TargetMemory
 
 with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
     with client.attach("210183BFD452A") as dev:
-        dev.uploadDesignToServer(Design(bit="top.bit", ebd="top.ebd"))
-        dev.programFPGA()
+        design = Design(bit="top.bit", ebd="top.ebd")
+        dev.uploadDesignToServer(design)
+        dev.programFPGA(design)
         report = dev.inject_random(TargetMemory.ESSENTIAL_CRAM)
         print(f"far {report.far:#010x} word {report.word_index} bit {report.bit_index}")
 ```

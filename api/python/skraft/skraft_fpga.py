@@ -61,6 +61,10 @@ SK_RAFT_VERSION = "1.0.0.alpha.11-3-g9355663"
 # The size of each chunk that the client streams during a design file upload.
 _UPLOAD_CHUNK_SIZE = 1 << 20
 
+# The number of hexadecimal digits of the checksum in the name of the folder
+# of a design on the server.
+_DESIGN_CHECKSUM_DIGITS = 8
+
 def _rpc_detail(error: grpc.RpcError) -> str:
     """
     Get a readable description of a gRPC error.
@@ -252,7 +256,8 @@ class FpgaDevice:
         serial_number (str): The serial number of the device.
         part_number (str): The part number of the device. Empty if it is
             not known.
-        design (Design): The design that was last uploaded to the server.
+        design (Design): The design that was last uploaded to the server,
+            or programmed.
     """
 
     # This table maps a Design field to an FpgaFileType enum value. The
@@ -342,9 +347,11 @@ class FpgaDevice:
         Upload the files of a design to the server.
 
         Each file is sent in its own stream through the FpgaUploadDesignFile
-        RPC. The server keeps the files and uses them in later operations.
-        Once every file has been sent, the design is also kept on the client
-        so that later calls can check which files are available.
+        RPC. The server keeps the files of each design in a folder of its
+        own. Thus, you can upload several designs, and then program one of
+        them with programFPGA. Once every file has been sent, the design is
+        also kept on the client so that later calls can check which files
+        are available.
 
         Parameters:
             design (Design): The design whose files should be uploaded.
@@ -354,25 +361,65 @@ class FpgaDevice:
             DesignFileError: If a design file cannot be read or its upload
                 fails.
         """
+        for path, info in self._design_files(design):
+            self._upload_file(path, info)
+        self._design = design
+
+    def _design_files(
+        self, design: Design
+    ) -> list[tuple[str, skraft_client_pb2.FpgaDesignFileInfo]]:
+        """
+        Describe the files of a design, as the server keeps them.
+
+        The server keeps the files of each design in a folder of its own, so
+        that two designs with the same file names do not overwrite each
+        other. The name of the folder is the name of the bitstream and a
+        short checksum of all the files of the design. Thus, the same files
+        always go to the same folder.
+
+        Parameters:
+            design (Design): The design. Files that are not set are skipped.
+
+        Returns:
+            list[tuple[str, skraft_client_pb2.FpgaDesignFileInfo]]: The
+                local path and the description of each file.
+
+        Raises:
+            DesignFileError: If a design file cannot be read.
+        """
+        files = []
         for field_name, file_type in self._FILE_TYPES.items():
             path = getattr(design, field_name)
             if path is not None:
-                self._upload_file(path, file_type)
-        self._design = design
+                files.append((path, self._file_info(path, file_type)))
 
-    def _upload_file(self, path: str, file_type: int) -> None:
+        checksum = hashlib.sha256()
+        for _, info in files:
+            checksum.update(f"{info.type}:{info.sha256}\n".encode())
+        name = "design"
+        if design.bit is not None:
+            name = os.path.splitext(os.path.basename(design.bit))[0]
+        folder = f"{name}_{checksum.hexdigest()[:_DESIGN_CHECKSUM_DIGITS]}"
+
+        for _, info in files:
+            info.relative_path = f"{folder}/{info.relative_path}"
+        return files
+
+    def _upload_file(
+        self, path: str, info: skraft_client_pb2.FpgaDesignFileInfo
+    ) -> None:
         """
         Upload a single design file to the server.
 
         Parameters:
             path (str): The local path of the file.
-            file_type (int): The wire value that identifies the kind of
-                file.
+            info (skraft_client_pb2.FpgaDesignFileInfo): The description of
+                the file, from _file_info.
 
         Raises:
             DesignFileError: If the file cannot be read or the upload fails.
         """
-        requests = self._file_requests(path, file_type)
+        requests = self._file_requests(path, info)
         try:
             self._stub.FpgaUploadDesignFile(requests)
         except grpc.RpcError as e:
@@ -381,13 +428,15 @@ class FpgaDevice:
             ) from e
 
     @staticmethod
-    def _file_requests(path: str, file_type: int):
+    def _file_info(
+        path: str, file_type: int
+    ) -> skraft_client_pb2.FpgaDesignFileInfo:
         """
-        Prepare the messages that stream a design file to the server.
+        Describe a local design file for the server.
 
-        A checksum of the file is calculated first and sent with the file,
-        so that the server can confirm the file arrived intact. The file
-        content is then streamed in fixed-size chunks.
+        A checksum of the file is calculated, so that the server can confirm
+        that the file arrived intact, and that it did not change before the
+        programming.
 
         Parameters:
             path (str): The local path of the file.
@@ -395,8 +444,8 @@ class FpgaDevice:
                 file.
 
         Returns:
-            Iterator[skraft_client_pb2.UploadDesignFileRequest]: The
-                messages of the stream.
+            skraft_client_pb2.FpgaDesignFileInfo: The type, the file name,
+                the size and the checksum (sha256) of the file.
 
         Raises:
             DesignFileError: If the file cannot be read.
@@ -406,11 +455,38 @@ class FpgaDevice:
             with open(path, "rb") as file:
                 for chunk in iter(lambda: file.read(_UPLOAD_CHUNK_SIZE), b""):
                     digest.update(chunk)
+            size = os.path.getsize(path)
         except OSError as e:
             raise DesignFileError(
                 f"failed to read design file {path}: {e}"
             ) from e
 
+        return skraft_client_pb2.FpgaDesignFileInfo(
+            type=file_type,
+            relative_path=os.path.basename(path),
+            size=size,
+            sha256=digest.hexdigest(),
+        )
+
+    @staticmethod
+    def _file_requests(
+        path: str, info: skraft_client_pb2.FpgaDesignFileInfo
+    ):
+        """
+        Prepare the messages that stream a design file to the server.
+
+        The description of the file is sent first. The file content is then
+        streamed in fixed-size chunks.
+
+        Parameters:
+            path (str): The local path of the file.
+            info (skraft_client_pb2.FpgaDesignFileInfo): The description of
+                the file, from _file_info.
+
+        Returns:
+            Iterator[skraft_client_pb2.UploadDesignFileRequest]: The
+                messages of the stream.
+        """
         def requests():
             """
             Produce the messages for the upload stream.
@@ -422,14 +498,7 @@ class FpgaDevice:
                 skraft_client_pb2.UploadDesignFileRequest: The next message
                     in the stream.
             """
-            yield skraft_client_pb2.UploadDesignFileRequest(
-                info=skraft_client_pb2.FpgaDesignFileInfo(
-                    type=file_type,
-                    relative_path=os.path.basename(path),
-                    size=os.path.getsize(path),
-                    sha256=digest.hexdigest(),
-                )
-            )
+            yield skraft_client_pb2.UploadDesignFileRequest(info=info)
             with open(path, "rb") as file:
                 for chunk in iter(lambda: file.read(_UPLOAD_CHUNK_SIZE), b""):
                     yield skraft_client_pb2.UploadDesignFileRequest(chunk=chunk)
@@ -439,32 +508,61 @@ class FpgaDevice:
     @property
     def design(self) -> Design:
         """
-        The design that was last uploaded to the server.
+        The design that was last uploaded to the server, or programmed.
 
         Returns:
-            Design: The last uploaded design, or an empty design if nothing
-                has been uploaded yet.
+            Design: The last uploaded or programmed design, or an empty
+                design if nothing has been uploaded yet.
         """
         return self._design
 
-    def programFPGA(self) -> None:
+    def programFPGA(self, design: Optional[Design] = None) -> None:
         """
-        Program the device with the uploaded bitstream.
+        Program the device with an uploaded design.
 
-        The bitstream must be uploaded first. Uses the FpgaProgram RPC.
+        Upload the design with uploadDesignToServer first. The server keeps
+        each uploaded design. Thus, you can upload several designs, and then
+        program the one to use. The client reads the local files of the
+        design again, and the server checks that its copies are the same.
+        After the programming, later calls check the files of this design.
+        Uses the FpgaProgram RPC.
+
+        Parameters:
+            design (Optional[Design]): The design to program. If not given,
+                the design that was last uploaded or programmed is used.
 
         Raises:
-            DesignFileError: If the bitstream has not been uploaded.
+            TypeError: If the design is not a Design.
+            DesignFileError: If the design has no bitstream, or if a design
+                file cannot be read.
             ConnectionFailedError: If the server could not program the
-                device.
+                device, for example because the design was not uploaded.
+
+        Examples:
+            >>> dev.uploadDesignToServer(design_a)
+            >>> dev.uploadDesignToServer(design_b)
+            >>> dev.programFPGA(design_a)
+            >>> dev.programFPGA(design_b)
         """
-        self._design.require("bit")
+        if design is None:
+            design = self._design
+        if not isinstance(design, Design):
+            raise TypeError(
+                f"expected a Design, got {type(design).__name__}"
+            )
+        design.require("bit")
+
+        files = [info for _, info in self._design_files(design)]
         try:
-            self._stub.FpgaProgram(empty_pb2.Empty())
+            self._stub.FpgaProgram(
+                skraft_client_pb2.FpgaProgramRequest(files=files)
+            )
         except grpc.RpcError as e:
             raise ConnectionFailedError(
-                f"failed to program the target FPGA device: {_rpc_detail(e)}"
+                f"failed to program the target FPGA device with "
+                f"{design.bit}: {_rpc_detail(e)}"
             ) from e
+        self._design = design
 
     def readback_range(self, start_far: int,
                        end_far: int) -> list[FpgaFrame]:
@@ -605,6 +703,49 @@ class FpgaDevice:
             words = [FpgaWord(value) for value in frame.words]
             frames.append(FpgaFrame(frame.frame_address, words))
         return frames
+
+    def write_frame(self, frame: FpgaFrame, restore: bool = False) -> None:
+        """
+        Write one configuration frame to the device.
+
+        The server writes the words of the frame at the frame address of
+        the frame. The frame must have all the words of a frame of the
+        device, as a frame from readback has. Uses the FpgaWriteFrame RPC.
+
+        Parameters:
+            frame (FpgaFrame): The frame to write.
+            restore (bool): If True, the server also restores the
+                flip-flops and RAMs of the whole device after the write.
+                Keep it False to change only the configuration data.
+
+        Raises:
+            TypeError: If the frame is not an FpgaFrame.
+            ConnectionFailedError: If the server could not write the frame,
+                for example because the frame address is not on the device
+                or the number of words is not correct.
+
+        Examples:
+            >>> frames = dev.readback(ReadbackOption.READBACK)
+            >>> dev.write_frame(frames[1])
+        """
+        if not isinstance(frame, FpgaFrame):
+            raise TypeError(
+                f"expected an FpgaFrame, got {type(frame).__name__}"
+            )
+
+        try:
+            request = skraft_client_pb2.FpgaWriteFrameRequest(
+                frame=skraft_client_pb2.FpgaFrame(
+                    frame_address=frame.far,
+                    words=[word.value for word in frame.words],
+                ),
+                restore=restore,
+            )
+            self._stub.FpgaWriteFrame(request)
+        except grpc.RpcError as e:
+            raise ConnectionFailedError(
+                f"failed to write frame {frame.far:#010x}: {_rpc_detail(e)}"
+            ) from e
 
     @property
     def cram_bits(self) -> int:
@@ -1275,7 +1416,8 @@ class FpgaDevice:
                 extracted.
         """
         requests = self._file_requests(
-            bitstream, skraft_client_pb2.FPGA_FILE_TYPE_BIT,
+            bitstream,
+            self._file_info(bitstream, skraft_client_pb2.FPGA_FILE_TYPE_BIT),
         )
         try:
             reply = self._stub.FpgaExtractFarsFromBitstream(requests)
