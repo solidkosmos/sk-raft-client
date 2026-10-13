@@ -95,7 +95,8 @@ def main() -> None:
                 print(f"frames read back: {len(frames)}")
                 time.sleep(1)
                 watch_for_enter()
-                n = 0  # the number of injections in this step
+                # the number of injections in this step
+                n = 0
                 while True:
                     if stop.is_set():
                         break
@@ -105,7 +106,8 @@ def main() -> None:
                     # The number of words in a frame depends on the
                     # architecture.
                     word_index = rng.randint(0, len(frame.words) - 1)
-                    bit_index = rng.randint(0, 31)  # each word has 32 bits
+                    # each word has 32 bits
+                    bit_index = rng.randint(0, 31)
                     report = dev.inject_at(frame.far, word_index, bit_index,
                                         TargetMemory.CRAM)
                     print(f"{n + 1:3d}: far {report.far:#010x} "
@@ -113,7 +115,8 @@ def main() -> None:
                         f"bit {report.bit_index:2d}")
                     n += 1
 
-                    time.sleep(0.1)  # keep the upset for 100 ms
+                    # keep the upset for 100 ms
+                    time.sleep(0.1)
 
                     # Flip the same bit again to correct the upset.
                     dev.inject_at(frame.far, word_index, bit_index,
@@ -129,7 +132,8 @@ def main() -> None:
                 print(f"\nStep 2: essential bits only",
                       f"({dev.bit_count(TargetMemory.ESSENTIAL_CRAM)})",
                       f". Press Enter to move on.")
-                dev.programFPGA()  # program again for a clean start
+                # program again for a clean start
+                dev.programFPGA()
 
                 watch_for_enter()
                 n = 0
@@ -145,7 +149,8 @@ def main() -> None:
                         f"bit {report.bit_index:2d}")
                     n += 1
 
-                    time.sleep(0.1)  # keep the upset for 100 ms
+                    # keep the upset for 100 ms
+                    time.sleep(0.1)
                     dev.inject_at(report.far, report.word_index,
                                   report.bit_index, TargetMemory.CRAM)
 
@@ -159,7 +164,8 @@ def main() -> None:
                 # alone.
                 # ----------------------------------------------------------- #
                 print("\nStep 3: one pblock at a time.")
-                dev.programFPGA()  # program again for a clean start
+                # program again for a clean start
+                dev.programFPGA()
 
                 # The names of the two pblocks, as declared in the XDC file.
                 pblocks = ["pblock_slow_heartbeat", "pblock_fast_heartbeat"]
@@ -187,7 +193,8 @@ def main() -> None:
                             f"bit {report.bit_index:2d}")
                         n += 1
 
-                        time.sleep(0.1)  # keep the upset for 100 ms
+                        # keep the upset for 100 ms
+                        time.sleep(0.1)
                         dev.inject_at(report.far, report.word_index,
                                     report.bit_index, 
                                     TargetMemory.CRAM)

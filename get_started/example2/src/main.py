@@ -187,7 +187,8 @@ def main() -> None:
                     # Correct the upset in both adders. Essential bits are
                     # CRAM bits. Thus, use the plain CRAM target to flip
                     # them again.
-                    if True: # Set to False to keep the injected faults
+                    # Set to False to keep the injected faults
+                    if True:
                               # (accumulative fault injection).
                         dev.inject_at(report_sim.far, report_sim.word_index,
                                     report_sim.bit_index, TargetMemory.CRAM)

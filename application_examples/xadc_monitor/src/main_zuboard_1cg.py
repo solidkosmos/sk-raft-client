@@ -110,11 +110,13 @@ def lines_up(n: int) -> str:
 
 
 def celsius(value: float) -> str:
-    return f"{value:6.1f}C"  # dev.xadc() gives C
+    # dev.xadc() gives C
+    return f"{value:6.1f}C"
 
 
 def millivolts(value: float) -> str:
-    return f"{value * 1000:5.0f}mV"  # dev.xadc() gives V
+    # dev.xadc() gives V
+    return f"{value * 1000:5.0f}mV"
 
 
 def sensor_lines(dev, voltages) -> list[str]:
@@ -144,7 +146,8 @@ def main() -> None:
                       "power-up or the last XADC reset.")
                 print("-" * 80)
                 watch_for_enter()
-                written = 0  # the number of lines on the screen
+                # the number of lines on the screen
+                written = 0
                 while True:
                     lines = sensor_lines(dev, voltages)
                     # Go back to the first line. Then write all the lines

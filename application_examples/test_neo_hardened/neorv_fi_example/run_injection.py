@@ -26,9 +26,12 @@ from skraft import Design, FpgaDevice, SkraftError, SkraftFpga
 import bscan_routine_helpers as bscan
 
 # --- User-specific settings: update these for your setup ---
-SK_RAFT_SERVER_IP   = "127.0.0.1"      # address of the SK-RAFT server
-SK_RAFT_SERVER_PORT = 50051            # port of the SK-RAFT server
-SERIAL_NUMBER = "210183BFD452A"        # target board's serial number
+# address of the SK-RAFT server
+SK_RAFT_SERVER_IP = "127.0.0.1"
+# port of the SK-RAFT server
+SK_RAFT_SERVER_PORT = 50051
+# target board's serial number
+SERIAL_NUMBER = "210183BFD452A"
 # The design files (paths relative to this folder). The script uploads them
 # to the server. The Generate Bitstream run of the project from
 # create_project.tcl writes the .bit, .ebd and .ll files to IMPL_DIR. Change
@@ -42,17 +45,24 @@ TOP         = "neorv32_test_setup_bootloader"
 HARNESS_PBLOCK = "harness_pblock"
 # Campaign results, relative to this folder (created if missing)
 RESULTS_DIR = "injection_results"
-UART_PORT   = "COM5"     # serial port of the DUT's UART
-UART_BAUD   = 500000     # must match BAUD_RATE of the firmware (see README)
+# serial port of the DUT's UART
+UART_PORT = "COM5"
+# must match BAUD_RATE of the firmware (see README)
+UART_BAUD = 500000
 # -------------------------------------------------------------
 
 # Cycle counts of the benchmark (clock cycles of the NEORV32)
-BENCHMARK_CYCLES  = 8_678_667   # cycles in which a fault is injected
-CAMPAIGN_CYCLES   = 2 * BENCHMARK_CYCLES  # cycles of one campaign run
-GOLDEN_RUN_CYCLES = 13_000_000  # cycles of the golden run
-MAX_U32           = 0xFFFF_FFFF  # largest step count of one U2 write
+# cycles in which a fault is injected
+BENCHMARK_CYCLES = 8_678_667
+# cycles of one campaign run
+CAMPAIGN_CYCLES = 2 * BENCHMARK_CYCLES
+# cycles of the golden run
+GOLDEN_RUN_CYCLES = 13_000_000
+# largest step count of one U2 write
+MAX_U32 = 0xFFFF_FFFF
 
-CRC_INIT = 0xE9F5  # start value of the CRC of the UART message
+# start value of the CRC of the UART message
+CRC_INIT = 0xE9F5
 
 # U2 values at the end of a run: count at zero, or UART drain sentinel
 COUNT_ZERO        = bytes(4)
@@ -231,7 +241,8 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
     # Set target_idx to select the target memory type for this campaign
     categories  = ["EBITS", "BRAM", "FF", "LUT"]
     run_counts  = [14000, 14000, 14000, 14000]
-    target_idx  = 0   # 0=EBITS (essential CRAM bits)  1=BRAM  2=FF  3=LUT
+    # 0=EBITS (essential CRAM bits)  1=BRAM  2=FF  3=LUT
+    target_idx = 0
 
     category_list              = [False, False, False, False]
     category_list[target_idx]  = True
