@@ -35,6 +35,3 @@ api/python/dist/
 # Editors
 .idea/
 .vscode/
-
-# NEORV32 hardened-core application example (excluded)
-application_examples/test_neo_hardened/
