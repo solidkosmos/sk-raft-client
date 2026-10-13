@@ -159,13 +159,16 @@ def status_text(status: int, names: tuple[str, ...], fatal: int) -> str:
             fatal error state.
 
     Returns:
-        str: The names of the set bits, "FATAL" for the fatal error state.
+        str: The names of the set bits, with "idle" first if no state bit
+            is set. "FATAL" for the fatal error state.
     """
     if status & fatal == fatal:
         return "FATAL (all state bits set)"
     names_set = [name for bit, name in enumerate(names)
                  if status & (1 << bit)]
-    return ", ".join(names_set) or "idle"
+    if not status & fatal:
+        names_set.insert(0, "idle")
+    return ", ".join(names_set)
 
 
 def print_reports(upsets: list[Upset], text: str, show: bool,

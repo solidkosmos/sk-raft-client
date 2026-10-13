@@ -73,17 +73,19 @@ The script does not reset the SEM (`R 00`). In observation, the SEM ignores `R 0
 
 ## The experiments
 
-| # | Target | Upsets | Result on the Basys 3 |
-| --- | --- | --- | --- |
-| 1 | Anywhere | One single bit upset (SBU) | The SEM corrects the bit and reports it (`SED OK`, `COR`). |
-| 2 | Anywhere | Two adjacent bits in one word of a frame | The SEM detects a double error (`DED`) and stops as uncorrectable. |
-| 3 | Anywhere | Three bits in one frame, in different words | The SEM cannot correct the frame. It reports `SED NG`, or it corrects a wrong bit and then reports `CRC`. Then it stops as uncorrectable. |
-| 4 | The SEM | One SBU | The SEM corrects the bit and reports it. |
-| 5 | The SEM | `NUM_SEM_UPSETS` (1000) SBUs, one at a time: steps 2 to 4 for each SBU | The SEM corrects SBUs in its own logic until one breaks it. Then it stops answering, or it repeats a wrong correction (a correction loop). |
+The results are from runs with `SEED` 12, the default.
+
+| # | Target | Upsets | Result on the Basys 3 | Result on the TE0841 |
+| --- | --- | --- | --- | --- |
+| 1 | Anywhere | One single bit upset (SBU) | The SEM corrects the bit and reports it (`SED OK`, `COR`). | The SEM corrects the bit and reports it (`ECC`, `COR`). |
+| 2 | Anywhere | Two adjacent bits in one word of a frame | The SEM detects a double error (`DED`) and stops as uncorrectable. | The SEM corrects both bits and reports them. |
+| 3 | Anywhere | Three bits in one frame, in different words | The SEM cannot correct the frame. It corrects a wrong bit (word 89, bit 13), then reports `CRC` and stops as uncorrectable. | The SEM cannot correct the frame. It reports `COR` without corrected bits, then stops as uncorrectable. |
+| 4 | The SEM | One SBU | The SEM corrects the bit and reports it. | The SEM corrects the bit and reports it. |
+| 5 | The SEM | `NUM_SEM_UPSETS` (1000) SBUs, one at a time: steps 2 to 4 for each SBU | The SEM corrects 4 SBUs, then it stops answering (round 5: FAR `00400410`, word 40, bit 21). | The SEM corrects 6 SBUs, then it stops answering (round 7: FAR `00025907`, word 114, bit 16). |
 
 "Anywhere" is a random CRAM bit of the device, outside `pblock_sem` (`exclude_pblock` of `inject_random`). "The SEM" is a random essential bit inside `pblock_sem`. Experiments 2 and 3 add the other bits to the frame of the first bit with `inject_at`.
 
-Each experiment starts with a new programming of the FPGA, so that it starts from a clean CRAM. Experiment 5 stops when the SEM reports an uncorrectable error, does not answer `O`, or sends the same report `LOOP_LIMIT` times in one round. In our runs, the SEM failed after 1 to 9 corrected SBUs. Its status signals did not show the fatal state (all state bits set).
+Each experiment starts with a new programming of the FPGA, so that it starts from a clean CRAM. Experiment 5 stops when the SEM reports an uncorrectable error, does not answer `O`, or sends the same report `LOOP_LIMIT` times in one round. With the same seed, the script injects the same bits in every run: on the TE0841, two runs failed on the same bit. With other seeds, the SEM on the Basys 3 also failed after 9 corrected SBUs, or repeated a wrong correction without end (a correction loop). Its status signals did not show the fatal state (all state bits set).
 
 Other results of the tests:
 

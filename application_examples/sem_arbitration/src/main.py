@@ -274,11 +274,13 @@ EXPERIMENT_LIST = {
                                         exclude={SEM_PBLOCK})],
                   "The SEM corrects the bit and reports it."),
     2: Experiment("Two adjacent bits in one word", adjacent_bits,
-                  "The SEM detects a double error (DED) and stops as "
-                  "uncorrectable."),
+                  "7 series: the SEM detects a double error (DED) and "
+                  "stops as uncorrectable. UltraScale: the SEM corrects "
+                  "both bits and reports them."),
     3: Experiment("Three bits in one frame", three_bits,
-                  "The SEM cannot correct the frame (SED NG, or a wrong "
-                  "correction and then CRC) and stops as uncorrectable."),
+                  "The SEM cannot correct the frame and stops as "
+                  "uncorrectable (7 series: SED NG, or a wrong correction "
+                  "and then CRC)."),
     4: Experiment("One SBU in an essential bit of the SEM",
                   lambda dev: [pick_bit(dev, TargetMemory.ESSENTIAL_CRAM,
                                         SEM_PBLOCK)],
