@@ -232,6 +232,12 @@ class FpgaDesignFileResponse(_message.Message):
     sha256: str
     def __init__(self, stored_path: _Optional[str] = ..., bytes_written: _Optional[int] = ..., sha256: _Optional[str] = ...) -> None: ...
 
+class FpgaProgramRequest(_message.Message):
+    __slots__ = ("files",)
+    FILES_FIELD_NUMBER: _ClassVar[int]
+    files: _containers.RepeatedCompositeFieldContainer[FpgaDesignFileInfo]
+    def __init__(self, files: _Optional[_Iterable[_Union[FpgaDesignFileInfo, _Mapping]]] = ...) -> None: ...
+
 class FpgaBitCountRequest(_message.Message):
     __slots__ = ("category", "pblock_name")
     CATEGORY_FIELD_NUMBER: _ClassVar[int]
@@ -363,6 +369,14 @@ class FpgaReadbackDetail(_message.Message):
     FRAMES_FIELD_NUMBER: _ClassVar[int]
     frames: _containers.RepeatedCompositeFieldContainer[FpgaFrame]
     def __init__(self, frames: _Optional[_Iterable[_Union[FpgaFrame, _Mapping]]] = ...) -> None: ...
+
+class FpgaWriteFrameRequest(_message.Message):
+    __slots__ = ("frame", "restore")
+    FRAME_FIELD_NUMBER: _ClassVar[int]
+    RESTORE_FIELD_NUMBER: _ClassVar[int]
+    frame: FpgaFrame
+    restore: bool
+    def __init__(self, frame: _Optional[_Union[FpgaFrame, _Mapping]] = ..., restore: bool = ...) -> None: ...
 
 class FpgaBscanTarget(_message.Message):
     __slots__ = ("user_register_id", "value", "useful_bits")
