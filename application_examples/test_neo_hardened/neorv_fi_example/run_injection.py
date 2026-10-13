@@ -4,12 +4,18 @@
 """NEORV32 hardening example: fault-injection campaign.
 
 The script uploads the design to the SK-RAFT server and programs the FPGA.
-It does one golden run of CoreMark without a fault, then a campaign of
-runs. In each run, it resets the NEORV32, stops the clock at a random
-cycle, injects one random fault into the selected memory type (essential
-bits, BRAM, FF or LUT), finishes the benchmark and compares the CRCs and
-the UART message with the golden run. It writes the results to a CSV file
-and the UART data of each deviating run to a raw-data file.
+The design under test (DUT) is the NEORV32. The script does one golden
+run of CoreMark without a fault, then a campaign of runs. Each run does
+these steps:
+
+  1. Reset the DUT and stop its clock at a random cycle.
+  2. Inject one random fault into the selected memory type (essential
+     bits, BRAM, FF or LUT).
+  3. Finish the benchmark.
+  4. Compare the CRCs and the UART message with the golden run.
+
+The script writes the results to a CSV file. It writes the UART data of
+each run that has a different CRC to a raw-data file.
 """
 
 from __future__ import annotations
@@ -26,11 +32,11 @@ from skraft import Design, FpgaDevice, SkraftError, SkraftFpga
 import bscan_routine_helpers as bscan
 
 # --- User-specific settings: update these for your setup ---
-# address of the SK-RAFT server
+# The address of the SK-RAFT server.
 SK_RAFT_SERVER_IP = "127.0.0.1"
-# port of the SK-RAFT server
+# The port of the SK-RAFT server.
 SK_RAFT_SERVER_PORT = 50051
-# target board's serial number
+# The serial number of the target board.
 SERIAL_NUMBER = "210183BFD452A"
 # The design files (paths relative to this folder). The script uploads them
 # to the server. The Generate Bitstream run of the project from
@@ -45,23 +51,23 @@ TOP         = "neorv32_test_setup_bootloader"
 HARNESS_PBLOCK = "harness_pblock"
 # Campaign results, relative to this folder (created if missing)
 RESULTS_DIR = "injection_results"
-# serial port of the DUT's UART
+# The serial port of the UART of the DUT.
 UART_PORT = "COM5"
-# must match BAUD_RATE of the firmware (see README)
+# This value must be equal to BAUD_RATE of the firmware (see README).
 UART_BAUD = 500000
 # -------------------------------------------------------------
 
 # Cycle counts of the benchmark (clock cycles of the NEORV32)
-# cycles in which a fault is injected
+# The cycles in which the script injects a fault.
 BENCHMARK_CYCLES = 8_678_667
-# cycles of one campaign run
+# The cycles of one campaign run.
 CAMPAIGN_CYCLES = 2 * BENCHMARK_CYCLES
-# cycles of the golden run
+# The cycles of the golden run.
 GOLDEN_RUN_CYCLES = 13_000_000
-# largest step count of one U2 write
+# The largest step count of one U2 write.
 MAX_U32 = 0xFFFF_FFFF
 
-# start value of the CRC of the UART message
+# The start value of the CRC of the UART message.
 CRC_INIT = 0xE9F5
 
 # U2 values at the end of a run: count at zero, or UART drain sentinel
@@ -83,8 +89,8 @@ ALERT_MARK     = b"[ALERT]"
 
 
 def python_crcu8(data: int, crc: int) -> int:
-    """Add one byte to the CRC-16. The same algorithm as the hardware
-    implementation on the DUT."""
+    """Add one byte to the CRC-16. This function uses the same algorithm as
+    the CRC hardware on the DUT."""
     for _ in range(8):
         x16  = (data & 1) ^ (crc & 1)
         data >>= 1
@@ -168,7 +174,8 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
     """Upload and program the design, do the golden run, then the injection
     campaign."""
 
-    # Load design files (uploaded from this machine to the server)
+    # Give the paths of the design files. The next call uploads them from
+    # this computer to the server.
     design = Design(
         bit=f"{IMPL_DIR}/{TOP}.bit",
         ebd=f"{IMPL_DIR}/{TOP}.ebd",
@@ -183,7 +190,7 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
     dev.exclude_frames(harness_fars)
     print(f"Excluded {len(harness_fars)} frames of pblock '{HARNESS_PBLOCK}'.")
 
-    # Program the FPGA with the uploaded bitstream
+    # Program the FPGA with the uploaded bitstream.
     dev.programFPGA()
 
     # Markers used to extract the benchmark report from the UART stream
@@ -192,24 +199,25 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
 
     date = time.strftime("%Y%m%d-%H%M%S")
 
-    # Golden run: execute the benchmark without fault injection to capture
-    # the reference CRC values that correct operation should produce
+    # Golden run: run the benchmark without a fault. Its CRC values are
+    # the reference values for the campaign runs.
     print("GOLDEN RUN")
     calculated_crc = CRC_INIT
 
     steps = first_run_step_start()
 
-    # Flush the UART before the run
+    # Flush the UART before the run.
     flush_uart(dev, ser)
 
-    # Run the benchmark: reset the DUT and run the first step count,
-    # then run the remaining step counts to the end
+    # Run the benchmark: reset the DUT and run the first step count. Then
+    # run the remaining step counts to the end. One U2 write holds MAX_U32
+    # steps at most. Thus send the step counts one after the other.
     if bscan.start_clean_run(dev, steps[0]) == 0:
         for idx in range(len(steps) - 1):
             if bscan.send_steps(dev, steps[idx + 1]) == 0:
                 bscan.run_to_end(dev)
 
-    # Read the benchmark output from the UART, until it is quiet
+    # Read the benchmark output from the UART, until it is quiet.
     data = read_uart_until_quiet(ser)
     ser.reset_input_buffer()
 
@@ -253,7 +261,7 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
     raw_data_filename = (f"{RESULTS_DIR}/raw_data/raw_data_{injection_type}/"
                          f"injection_raw_data_{injection_type}_{date}.txt")
 
-    # Create the output directories if they don't exist yet
+    # Create the output directories if they do not exist.
     os.makedirs(os.path.dirname(csv_filename), exist_ok=True)
     os.makedirs(os.path.dirname(raw_data_filename), exist_ok=True)
 
@@ -275,15 +283,17 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
         for run in range(run_counts[target_idx]):
 
             calculated_crc = CRC_INIT
-            # Random split of the benchmark cycles: the fault is injected
-            # after steps[0] cycles
+            # Random split of the benchmark cycles. The script injects the
+            # fault after steps[0] cycles.
             steps = random_step_start()
 
-            # Inject fault: reset DUT, run to a random cycle, inject, then
-            # finish the benchmark
+            # Inject the fault: reset the DUT, run to a random cycle, inject,
+            # then finish the benchmark. If a step does not go correctly,
+            # program the FPGA again and do the run again. Thus each run has
+            # one fault.
             retry = True
             while retry:
-                # Flush the UART before each attempt
+                # Flush the UART before each attempt.
                 flush_uart(dev, ser)
                 flag, inject_report, bscan_counter = bscan.start_run_n_inject(
                     dev, steps[0], *category_list
@@ -296,7 +306,7 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
                     restarts += 1
                     continue
 
-                # Run the remaining step counts to the end of the benchmark
+                # Run the remaining step counts to the end of the benchmark.
                 for idx in range(len(steps) - 1):
                     if bscan.send_steps(dev, steps[idx + 1]) == 0:
                         bscan_counter = bscan.run_to_end(dev)
@@ -309,7 +319,9 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
                         restarts += 1
                         break
 
-                # Validate that the counter reached an expected sentinel value
+                # At the end of a correct run, the counter shows zero or the
+                # UART drain sentinel. Another value shows a failed run. Then
+                # program the FPGA and do the run again.
                 if bscan_counter not in (TX_DRAIN_SENTINEL, COUNT_ZERO):
                     print(f"[ERROR] r-{run+1}: unexpected counter "
                           f"{bscan_counter}, reprogramming.")
@@ -317,7 +329,8 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
                     retry = True
                     restarts += 1
 
-            # Drain any remaining UART bytes
+            # Read the UART bytes that remain, for 0.5 s at most. The
+            # classification below uses these bytes.
             start_time = time.time()
             while ser.in_waiting:
                 chunk = ser.read_all()
@@ -326,7 +339,9 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
                     break
             ser.reset_input_buffer()
 
-            # Reverse the injected fault by flipping the same bit back
+            # Inject a fault at the same bit again. This sets the bit to its
+            # correct value, so the next run starts with a correct
+            # configuration.
             dev.inject_at(inject_report.far, inject_report.word_index,
                           inject_report.bit_index, inject_report.target)
 
@@ -349,8 +364,7 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
                 calculated_crc = python_crcu8(byte, calculated_crc)
             hw_crc = bscan.read_crc(dev).hex()
 
-            # A leading "8" in hw_crc means the processor completed
-            # operation
+            # If hw_crc starts with "8", the DUT finished the benchmark.
             finished      = hw_crc[0] == "8"
             crc_deviated  = (msg_crc        != golden_msg_crc        and
                              hw_crc         != golden_hw_crc         and
@@ -388,7 +402,7 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
                 else:
                     reason = "message changed, crcfinal correct"
 
-            # An error where the processor did not finish is HUNG
+            # An error where the DUT did not finish is HUNG.
             status = (None if error_kind is None
                       else error_kind if finished else "HUNG")
 
@@ -424,10 +438,10 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
                     raw_data_file.write(data)
 
             # Count the runs with a correction message (BRAM and FF
-            # campaigns only), to show the ECC hardening in DMEM, the
-            # register file and the execute engine. Not subtracted from
-            # the AVF: a run with a correction is already not an error
-            # when its crcfinal is correct.
+            # campaigns only). This count shows the ECC hardening in DMEM,
+            # the register file and the execute engine. Do not subtract
+            # these runs from the AVF. A run with a correction and a correct
+            # crcfinal is not an error.
             if categories[target_idx] in ("BRAM", "FF"):
                 corrections += 1 if b"correction" in data else 0
 
@@ -444,9 +458,10 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
                     dev.programFPGA()
                     done += 1
             else:
-                # Clean run: track any minor comms discrepancies
-                # separately. A run where all three CRCs deviate but is
-                # not an error (see the classification) is not one.
+                # Run without an error: count the small differences of the
+                # hardware CRC and of the UART CRCs separately. Do not count
+                # them for a run where all three CRCs are different. The
+                # classification above examines that run.
                 if not crc_deviated:
                     if golden_hw_crc != hw_crc:
                         hw_error += 1
@@ -479,15 +494,15 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
 def main() -> None:
     """Connect to the server, attach the device, open the UART and run the
     campaign. The with statements close the UART port, release the device
-    and close the connection to the server, also if the script stops early
-    (error or Ctrl+C). Thus the server and the device stay usable for the
-    next run."""
+    and close the server connection. They also do this if an error or
+    Ctrl+C stops the script. Thus the server and the device stay usable
+    for the next run."""
     try:
         # SK-RAFT: open the connection. Then attach to the target device.
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
             with client.attach(SERIAL_NUMBER) as dev:
-                # Open the UART connection to the DUT
+                # Open the UART connection to the DUT.
                 with serial.Serial(port=UART_PORT, baudrate=UART_BAUD,
                                    bytesize=8, timeout=0.1) as ser:
                     run_campaign(dev, ser)

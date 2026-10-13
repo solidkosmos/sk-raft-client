@@ -20,7 +20,7 @@ from skraft import (
     TargetMemory,
 )
 
-# U2 reads 0 when the countdown has reached zero
+# U2 reads 0 when the countdown has reached zero.
 COUNT_ZERO = bytes(4)
 
 
@@ -28,7 +28,7 @@ def _build_area(ebits: bool, bram: bool, ff: bool, lut: bool) -> TargetMemory:
     """Map the target flags to a TargetMemory. Each campaign uses one flag, so
     each campaign injects into one memory type only."""
     area = TargetMemory(0)
-    # ebits: essential configuration bits (EBD)
+    # ebits: essential configuration bits (EBD).
     if ebits: area |= TargetMemory.ESSENTIAL_CRAM
     if bram:  area |= TargetMemory.BRAM
     if ff:    area |= TargetMemory.FF
@@ -42,11 +42,12 @@ def _build_area(ebits: bool, bram: bool, ff: bool, lut: bool) -> TargetMemory:
 # (harness and DUT). It is 0 after programming: write 1 before a run.
 
 def enable_root_clock(dev: FpgaDevice) -> None:
-    """Turn the root clock on (U3 = 1)."""
+    """Turn on the root clock (U3 = 1)."""
     dev.write_bscan(BscanPrimitive(3, 1), 0x1)
 
 def disable_root_clock(dev: FpgaDevice) -> None:
-    """Turn the root clock off (U3 = 0). No logic in the design toggles."""
+    """Turn off the root clock (U3 = 0). Thus no logic in the design
+    changes state."""
     dev.write_bscan(BscanPrimitive(3, 1), 0x0)
 
 def read_root_clock(dev: FpgaDevice) -> bool:
@@ -56,17 +57,18 @@ def read_root_clock(dev: FpgaDevice) -> bool:
 
 def _inject_gated(dev: FpgaDevice,
                   target: TargetMemory) -> FpgaRandomInjectionReport:
-    """Cut the root clock, inject a random fault, then turn the root clock
-    back on. Returns the injection report."""
-    # Root clock off (U3 = 0): no logic in the design toggles during the
-    # injection
+    """Turn off the root clock, inject a random fault, then turn on the root
+    clock again. Returns the injection report."""
+    # Turn off the root clock (U3 = 0). Thus no logic in the design changes
+    # state during the injection.
     disable_root_clock(dev)
     if read_root_clock(dev):
         print("[ROOT CLOCK] still on after the disable write")
     try:
         return dev.inject_random(target)
     finally:
-        # Root clock back on (U3 = 1), also if the injection raised an error
+        # Turn on the root clock again (U3 = 1), also if the injection causes
+        # an error.
         enable_root_clock(dev)
 
 
@@ -86,7 +88,7 @@ def release_reset(dev: FpgaDevice) -> None:
 # Read-back (U1 / U2)
 
 def read_cnt_reg(dev: FpgaDevice) -> bytes:
-    """Read the current step-counter value from U2."""
+    """Read the current value of the step counter from U2."""
     return dev.read_bscan(BscanPrimitive(2, 32))
 
 def read_crc(dev: FpgaDevice) -> bytes:
@@ -106,7 +108,7 @@ def load_steps(dev: FpgaDevice, steps: int) -> None:
     dev.write_bscan(BscanPrimitive(2, 32), steps)
 
 def start_run(dev: FpgaDevice) -> None:
-    """Send the start command (0x1) on U2 to begin the countdown."""
+    """Send the start command (0x1) on U2 to start the countdown."""
     dev.write_bscan(BscanPrimitive(2, 32), 0x1)
 
 def reset_count_register(dev: FpgaDevice) -> None:
@@ -123,32 +125,34 @@ def send_steps(dev: FpgaDevice, steps: int) -> int:
     """Load the step count into U2, read it back from U2, then start the
     countdown. Tries 5 times at most. Returns 0 on success, 1 on failure."""
     for attempt in range(5):
-        # Write the step count
+        # Write the step count.
         load_steps(dev, steps)
-        # Read the count back: the controller shows it while it waits for
-        # the start command
+        # Read the count back. The controller shows the count while it
+        # waits for the start command.
         if int.from_bytes(read_cnt_reg(dev), "big") == steps:
-            # Count is loaded: start the countdown
+            # The read-back count is correct. Start the countdown.
             start_run(dev)
             return 0
         print(f"Counter mismatch on attempt {attempt + 1}/5, retrying.")
-        # Mismatch: cancel, so that the controller is idle for the next attempt
+        # The count is wrong. Cancel, so that the controller is idle for the
+        # next attempt.
         reset_count_register(dev)
     print("Counter mismatch after 5 attempts.")
     return 1
 
 
 def start_clean_run(dev: FpgaDevice, steps: int) -> int:
-    """Reset the DUT, load the step count, and wait for countdown to reach
-    zero. Returns 0 on success, 1 on failure."""
-    # Reset pulse on U1
+    """Reset the DUT, load the step count, and wait until the countdown
+    reaches zero. Returns 0 on success, 1 on failure."""
+    # Give a reset pulse on U1. Thus the DUT starts the benchmark from the
+    # beginning.
     assert_reset(dev)
     release_reset(dev)
-    # Load the step count and start the countdown
+    # Load the step count and start the countdown.
     if send_steps(dev, steps):
         return 1
     while True:
-        # Poll for the end of the count
+        # Poll for the end of the count.
         if read_cnt_reg(dev) == COUNT_ZERO:
             return 0
 
@@ -158,34 +162,36 @@ def start_run_n_inject(
     steps: int,
     ebits: bool, bram: bool, ff: bool, lut: bool,
 ) -> tuple[int, FpgaRandomInjectionReport, bytes]:
-    """Reset the DUT, load the step count, wait for countdown to zero, then
-    inject a random fault. The root clock (U3) is off during the injection
-    and on again before this returns.
+    """Reset the DUT, load the step count, wait until the countdown reaches
+    zero, then inject a random fault. The root clock (U3) is off during the
+    injection and on again before this returns.
     Returns (flag, inject_report, counter):
-        flag 0 = injection at natural end of countdown
+        flag 0 = injection at the end of the countdown
         flag 1 = timeout or step-send failure (discard this run)"""
-    # Reset pulse on U1
+    # Give a reset pulse on U1. Thus the DUT starts the benchmark from the
+    # beginning.
     assert_reset(dev)
     release_reset(dev)
-    # Memory type to inject into
+    # The memory type to inject into.
     target  = _build_area(ebits, bram, ff, lut)
-    # Counter value before the run, returned if the step send fails
+    # The counter value before the run. The function returns it if the step
+    # send fails.
     counter = read_cnt_reg(dev)
 
     # Load the step count and start the countdown. On failure, discard the
-    # run (flag 1)
+    # run (flag 1).
     if send_steps(dev, steps):
         return 1, _inject_gated(dev, target), counter
 
     start_time = time.time()
     while True:
-        # Poll for the end of the count
+        # Poll for the end of the count.
         counter = read_cnt_reg(dev)
         if counter == COUNT_ZERO:
-            # Count reached zero: the DUT clock is stopped
-            # Inject with the root clock off
+            # The count is at zero. Thus the DUT clock is stopped. Inject the
+            # fault with the root clock off.
             return 0, _inject_gated(dev, target), counter
-        # Timeout after 1 s: inject, but the caller discards the run (flag 1)
+        # Timeout after 1 s. Inject, but the caller discards the run (flag 1).
         if time.time() - start_time > 1:
             last = int.from_bytes(counter, "big")
             print(f"Timeout: the count did not reach 0 within 1 s "
@@ -194,14 +200,14 @@ def start_run_n_inject(
 
 
 def run_to_end(dev: FpgaDevice) -> bytes:
-    """Poll the countdown register until it reaches zero, or until 5 s timeout.
+    """Poll the step counter until it reaches zero, for 5 s at most.
     Returns the last counter value read."""
     start_time = time.time()
     counter    = read_cnt_reg(dev)
     while counter != COUNT_ZERO:
-        # Poll for the end of the count
+        # Poll for the end of the count.
         counter = read_cnt_reg(dev)
-        # Timeout after 5 s: return the last value, the caller checks it
+        # Timeout after 5 s. Return the last value. The caller checks it.
         if time.time() - start_time >= 5:
             print(f"Benchmark timeout. Last counter: {counter}")
             return counter

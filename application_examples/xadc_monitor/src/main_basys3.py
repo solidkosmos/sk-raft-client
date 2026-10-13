@@ -106,18 +106,20 @@ def lines_up(n: int) -> str:
 
 
 def celsius(value: float) -> str:
-    # dev.xadc() gives C
+    # dev.xadc() gives the value in degrees Celsius.
     return f"{value:6.1f}C"
 
 
 def millivolts(value: float) -> str:
-    # dev.xadc() gives V
+    # dev.xadc() gives the value in volts. Thus multiply by 1000 to show
+    # millivolts.
     return f"{value * 1000:5.0f}mV"
 
 
 def sensor_lines(dev, voltages) -> list[str]:
     # SK-RAFT: each dev.xadc() call reads one XADC sensor. The script
-    # reads all the sensors first. Then it writes all the lines.
+    # reads all the sensors first. Then it writes all the lines. Thus the
+    # screen does not show old and new values together.
     lines = []
     for sensors, show in ((TEMPERATURES, celsius), (voltages, millivolts)):
         for label, current, highest, lowest in sensors:
@@ -142,12 +144,13 @@ def main() -> None:
                       "power-up or the last XADC reset.")
                 print("-" * 80)
                 watch_for_enter()
-                # the number of lines on the screen
+                # The number of lines on the screen.
                 written = 0
                 while True:
                     lines = sensor_lines(dev, voltages)
-                    # Go back to the first line. Then write all the lines
-                    # again.
+                    # Move the cursor to the first line. Then write all the
+                    # lines again. Thus the new values replace the old values
+                    # in place.
                     if written:
                         print(lines_up(written), end="")
                     for line in lines:
