@@ -22,7 +22,8 @@ use work.examples_utilities_pkg.all;
 
 entity harness_controller is
   Port (
-    -- Free-running clock. Do not connect the gated design clock here:
+    -- Clock that does not stop with the design clock (in tester: root_clk,
+    -- which USER3 can stop). Do not connect the gated design clock here:
     -- the CDC logic must keep running while the design clock is stopped.
     clk_i    : in  std_ulogic;
     -- 1-bit design reset, written via JTAG (USER1). Starts at 0, so the

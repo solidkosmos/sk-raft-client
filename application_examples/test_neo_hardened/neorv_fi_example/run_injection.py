@@ -106,9 +106,9 @@ def pblock_fars(dev: FpgaDevice, pblock_name: str) -> list[int]:
 
 
 def random_step_start() -> list[int]:
-    """Return a 2-element step list that sums to CAMPAIGN_CYCLES with a
-    random split. The split point determines when the fault is injected
-    during the benchmark."""
+    """Return the step counts of one campaign run, with a random split. The
+    sum is CAMPAIGN_CYCLES. The first step count sets the cycle of the
+    injection."""
     fs        = random.randint(0, min(BENCHMARK_CYCLES, MAX_U32))
     remaining = CAMPAIGN_CYCLES - fs
     if remaining > MAX_U32:
@@ -203,7 +203,8 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
     data = read_uart_until_quiet(ser)
     ser.reset_input_buffer()
 
-    # Extract the report body and compute all three CRC reference values
+    # Get the reference values from the report: the message CRC, the
+    # calculated CRC, the hardware CRC and crcfinal
     final_msg_bytes = b""
     if msg_start_marker in data and msg_end_marker in data:
         final_msg_bytes = (data.split(msg_start_marker)[1]

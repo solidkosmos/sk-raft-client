@@ -14,9 +14,9 @@
 
 /**********************************************************************//**
  * @file main.c
- * @brief NEORV32 hardening demo: runs CoreMark while custom fast-interrupt
- * handlers report any SECDED/parity correction triggered by the hardened
- * DMEM, register file, and CPU control/frontend logic.
+ * @brief NEORV32 hardening demo. It runs CoreMark. Fast-interrupt handlers
+ * report each SECDED correction and each parity or state error from the
+ * hardened DMEM, register file and CPU control/frontend logic.
  **************************************************************************/
 
 #include <neorv32.h>
@@ -80,7 +80,7 @@ void pc_ra_fe_irq(void) {
 
 /**********************************************************************//**
  * Main function: installs the hardening fast-interrupt handlers, then runs
- * CoreMark. Any SECDED/parity correction reported during the run -- or
+ * CoreMark. Each SECDED correction or parity/state error during the run -- or
  * while idle afterwards, since interrupts stay enabled -- is printed over
  * UART0.
  *
@@ -125,7 +125,7 @@ int main() {
   coremark_entry();
 
   // benchmark done -- stay in a low-power loop with interrupts still
-  // enabled, so any correction that fires afterwards is still reported
+  // enabled, so an alert that fires afterwards is still reported
   neorv32_uart0_printf("Sleeping...\n");
   while (1) {
     neorv32_cpu_sleep();

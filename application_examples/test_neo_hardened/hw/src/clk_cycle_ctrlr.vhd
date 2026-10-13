@@ -11,20 +11,17 @@
 --   let exactly that many clock cycles reach the design under test (NEORV32),
 --   then re-gates the clock off automatically.
 --
---   One safety extension sits on top of the raw countdown:
---
---     check_tx_i - if the UART is still shifting or has bytes queued when
---     the countdown would otherwise expire, the FSM parks in DRAIN_TX and
---     keeps the clock alive until the UART genuinely goes idle, so an
---     in-flight print is never cut off mid-transmission.
+--   check_tx_i: If the UART is busy, the FSM goes to DRAIN_TX and keeps
+--   the clock on until the UART is idle. Thus the clock does not stop in
+--   the middle of a UART message. The countdown continues in DRAIN_TX.
 --
 --   Step-count command word, written via JTAG onto bscan_din_i. The FSM
 --   only reads the word in the clk_i cycle where valid_i is 1:
---     0x00000000             - ignored, even with valid_i = 1
---     any other 32-bit value - load as the new cycle countdown value
---     CMD_START_C (0x1)      - release the countdown
---                              (WAIT_FOR_START -> COUNTING)
---     CMD_CANCEL_C (0x2)     - abort back to IDLE without running
+--     IDLE           : each non-zero value (also 0x1 and 0x2) loads the
+--                      countdown. 0x00000000 has no effect.
+--     WAIT_FOR_START : CMD_START_C (0x1) starts the countdown (COUNTING).
+--                      CMD_CANCEL_C (0x2) goes back to IDLE. Other values
+--                      have no effect.
 --
 --   step_cnt_out_o reports the live countdown value while COUNTING, and
 --   reports TX_DRAIN_SENTINEL_C while parked in DRAIN_TX, so the host tool
@@ -38,7 +35,8 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity clk_cycles_ctrlr is
   Port (
-    -- free-running source clock (ungated)
+    -- Source clock. It does not stop with the NEORV32 clock (in tester:
+    -- root_clk, which USER3 can stop).
     clk_i          : in  std_ulogic;
     -- async reset, active low
     rstn_i         : in  std_ulogic;

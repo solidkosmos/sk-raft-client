@@ -121,7 +121,7 @@ def reset_count_register(dev: FpgaDevice) -> None:
 
 def send_steps(dev: FpgaDevice, steps: int) -> int:
     """Load the step count into U2, read it back from U2, then start the
-    countdown. Retries up to 5 times. Returns 0 on success, 1 on failure."""
+    countdown. Tries 5 times at most. Returns 0 on success, 1 on failure."""
     for attempt in range(5):
         # Write the step count
         load_steps(dev, steps)

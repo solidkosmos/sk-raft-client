@@ -65,9 +65,11 @@ set_property BITSTREAM.READBACK.SECURITY NONE [current_design]
 set_property BITSTREAM.SEU.ESSENTIALBITS YES [current_design]
 set_property BITSTREAM.GENERAL.PERFRAMECRC YES [current_design]
 
-## Pblock: confine the clock/reset controller (keep the instance label
-## clk_cyc_ctrlr stable, see tester.vhd). EXCLUDE_PLACEMENT keeps all other
-## logic out of the region.
+## Pblock: keep the harness (instance clk_reset_ctrl, the tester) in its own
+## region. run_injection.py excludes harness_pblock, so SK-RAFT does not
+## inject into the harness. EXCLUDE_PLACEMENT keeps all other logic out of
+## the region. Do not rename clk_reset_ctrl, because this constraint uses
+## that name (see neorv32_test_setup_bootloader.vhd).
 create_pblock harness_pblock
 add_cells_to_pblock [get_pblocks harness_pblock] \
     [get_cells -quiet [list clk_reset_ctrl]]

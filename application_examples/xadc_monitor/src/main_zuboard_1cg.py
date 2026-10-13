@@ -6,14 +6,17 @@
 
 The script reads all the temperature and voltage sensors of the FPGA once
 per second, until you press Enter. The server reads the sensors from the
-XADC, through the JTAG interface. Each sensor has one line, with its
-current value and its highest and lowest values since power-up or the
-last XADC reset. The script writes the lines again after each read.
+system monitor (SYSMON), through the JTAG interface. Zynq UltraScale+ has
+a SYSMON, not an XADC. The API name dev.xadc() is the same for both. Each
+sensor has one line, with its current value and its highest and lowest
+values since power-up or the last SYSMON reset. The script writes the
+lines again after each read.
 
-The XADC does not need a design. If the design does not use the XADC, or
-the FPGA is not configured, the XADC monitors the on-chip sensors by
-itself. Thus, the script does not program the FPGA. Note: a design can
-disable the JTAG access to the XADC (BITSTREAM.GENERAL.JTAG_XADC).
+The SYSMON does not need a design. If the design does not use the
+SYSMON, or the FPGA is not configured, the SYSMON monitors the on-chip
+sensors by itself. Thus, the script does not program the FPGA. Note: a
+design can disable the JTAG access to the SYSMON
+(BITSTREAM.GENERAL.JTAG_SYSMON).
 
 dev.xadc() gives the values in SI units: degrees Celsius (C) for
 temperatures and volts (V) for voltages. The script shows the voltages in

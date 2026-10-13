@@ -29,7 +29,8 @@ entity secded_dec32b is
     data_o   : out std_ulogic_vector(31 downto 0); -- corrected data
     -- single-bit error found and corrected
     corr_o   : out std_ulogic;
-    -- double-bit error found, data_o not corrected
+    -- uncorrectable error found (two bits, or syndrome 39..63), data_o not
+    -- corrected
     uncorr_o : out std_ulogic
   );
 end entity secded_dec32b;

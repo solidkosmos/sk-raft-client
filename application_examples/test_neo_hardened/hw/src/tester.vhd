@@ -46,10 +46,11 @@ entity tester is
     clk_out     : out std_ulogic;
     rst_out     : out std_ulogic;
 
-    -- Debug signals to LEDs
+    -- Debug signal to an LED
     clk_en_out  : out std_ulogic;
-    crc_data    : in  std_ulogic_vector(31 downto 0);
 
+    -- Status inputs from NEORV32
+    crc_data    : in  std_ulogic_vector(31 downto 0);
     check_tx    : in  std_ulogic
   );
 end tester;
@@ -62,9 +63,9 @@ architecture Behavioral of tester is
     -- state.
     signal design_rstn : std_ulogic;
 
-    -- JTAG channel 2 (USER2) step-count write path. The word is already
-    -- synchronized to clk_i, and step_valid is high for one clk_i cycle
-    -- when it holds a new JTAG write.
+    -- JTAG channel 2 (USER2) step-count write path. harness_controller
+    -- synchronizes the word to root_clk (not clk_i). step_valid is high
+    -- for one root_clk cycle when the word is a new JTAG write.
     signal step_cmd   : std_ulogic_vector(31 downto 0);
     signal step_valid : std_ulogic;
 
@@ -89,9 +90,10 @@ architecture Behavioral of tester is
 begin
 
     -- Root clock enable -------------------------------------------------------
-    -- USER3 writes the enable bit. The register is not synchronized inside
-    -- bscan_interface (sync => false); the two flip-flops below synchronize it
-    -- to clk_i, as in the getting-started examples.
+    -- USER3 writes the enable bit. bscan_interface never synchronizes the
+    -- data path. sync => false because this instance does not use
+    -- avail/ack. The two flip-flops below synchronize the bit to clk_i, as
+    -- in the getting-started examples.
     bscan_u3_root_clk_en: entity work.bscan_interface
         generic map (
             jtag_chain => 3,

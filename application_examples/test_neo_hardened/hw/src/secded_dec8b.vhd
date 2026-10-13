@@ -81,7 +81,8 @@ begin
         begin
             vpar := '0';
             for i in 0 to (data_len + parities_len - 1) loop
-                -- Parity generation for double-error detection
+                -- Calculate the overall parity for double-error detection.
+                -- This example does not use par_check (uncorr_o is always 0).
                 vpar := vpar XOR wd_i(i);
             end loop;
 

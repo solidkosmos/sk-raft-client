@@ -5,8 +5,8 @@
 --
 -- Module Name: examples_utilities_pkg
 -- Description: Shared component declarations for the reusable blocks of
---              the getting-started examples (BSCAN interface and clock
---              generator).
+--              the SK-RAFT examples (getting-started and this hardening
+--              example): BSCAN interface and clock generator.
 --------------------------------------------------------------------------------
 
 library IEEE;
@@ -43,8 +43,9 @@ package examples_utilities_pkg is
       );
     end component;
 
-    -- Portable PLL passthrough wrapper that operates continuously. A generic
-    -- selects the family (7-series, UltraScale or UltraScale+).
+    -- Portable safe-startup PLL wrapper. It makes g_clkout_freq_mhz, or the
+    -- input frequency if g_clkout_freq_mhz = 0.0. A generic selects the
+    -- family (7-series, UltraScale or UltraScale+).
     component clk_gen_wrapper is
       Generic (
         -- "7SERIES", "ULTRASCALE", or "ULTRASCALEPLUS"
