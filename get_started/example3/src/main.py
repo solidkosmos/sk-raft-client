@@ -8,7 +8,7 @@ Refer to README.md for the register map. USER1 starts and stops the clock
 of the shift register and of the LUTRAM. USER3 and USER4 give access to
 the LUTRAM (address and data).
 
-Part 1 injects faults into the flip-flops in ``pblock_ff_sr_inst``, with
+Part 1 injects upsets into the flip-flops in ``pblock_ff_sr_inst``, with
 ``dev.inject_random(TargetMemory.FF, pblock=PBLOCK_SR)``. Before this, the
 script uses ``bit_count`` to make sure that the pblock contains
 flip-flops.
@@ -24,8 +24,8 @@ Part 2 limits the injection to a pblock in the same way, with
 script writes a known pattern into each word. Then the script reads back
 each word to make sure that the pattern is correct. Then the script
 injects LUTRAM upsets one at a time, with 0.5 s between them, until you
-press Enter. Only then does the script read back the full array and
-compare it with the pattern.
+press Enter. Then the script reads back the full array and compares it
+with the pattern.
 """
 
 from __future__ import annotations
@@ -71,7 +71,8 @@ design = Design(
 PBLOCK_SR = "pblock_ff_sr_inst"
 PBLOCK_LUTRAM = "pblock_LUTRAM"
 
-# The generics of the design.
+# The generics of the design. If you build the design again with
+# different values, set these constants to the same values.
 SR_LEN = 8
 # 6 address bits give 64 LUTRAM words.
 LUT_ADDR_BITS = 6
@@ -168,7 +169,7 @@ def main() -> None:
                     # is a readback-modify-writeback of full frames. These
                     # frames also hold adjacent logic. The server does
                     # not protect against user activity. Thus, stop the
-                    # clock and keep the target idle during the injection.
+                    # clock during the injection. This keeps the target idle.
                     # Then start the clock again.
                     enable_clock(dev, False)
                     before = read_sr(dev)
@@ -179,8 +180,9 @@ def main() -> None:
 
                     after = read_sr(dev)
                     # FAR/word/bit is the location of the flip-flop in the
-                    # LL file. This location is the net that the flip-flop
-                    # drives, that is, the value that the flip-flop holds.
+                    # LL file. This location is the bit of the net that the
+                    # flip-flop drives. This bit is the value that the
+                    # flip-flop holds.
                     # This script does not show how the server flips the bit.
                     # BEFORE/AFTER show which of the 8 flip-flops changed.
                     # The flip-flop holds the flipped value. When the clock
@@ -201,14 +203,15 @@ def main() -> None:
                 dev.programFPGA()
 
                 # Part 2: LUTRAM.
-                # When the FPGA is programmed again, USER1 resets. The
-                # LUTRAM writes must have the gated clock. Thus, start the
-                # clock before the fill.
+                # When the script programs the FPGA again, USER1 resets to
+                # 0. The LUTRAM writes operate only when the gated clock
+                # runs. Thus, start the clock before the fill.
                 enable_clock(dev, True)
                 # Fill the memory array with a known pattern.
                 for address in range(LUT_DEPTH):
                     # select() and write_word() are separate TAP scans.
-                    # The second scan cannot start before the first is done.
+                    # The second scan cannot start before the first scan is
+                    # done. Thus, no delay is necessary between them.
                     select(dev, address)
                     write_word(dev, (0xA5A5A5A5 ^ address) & LUT_DATA_MASK)
                 # Read back each word and make sure that the write was
@@ -238,7 +241,7 @@ def main() -> None:
                 print("     #  FAR       WORD  BIT")
                 watch_for_enter()
 
-                # Inject faults until you press Enter.
+                # Inject upsets until you press Enter.
                 n = 0
                 while True:
                     if stop.is_set():

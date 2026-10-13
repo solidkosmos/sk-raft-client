@@ -26,10 +26,10 @@ TargetMemory.BRAM). Then the script reads back the memory two times: one
 time with ECC correction off and one time with ECC correction on.
 
 Both parts inject upsets until you press Enter. Thus, the number of
-faults is different for each run. The upsets accumulate, and the script
-does not correct them. Stop Part 2 early to see SEC correct single flips.
-Or, let Part 2 continue to see bytes that collect more flips than SEC can
-correct.
+upsets is different for each run. The upsets accumulate, and the script
+does not correct them. Stop Part 2 early to see SEC correct single
+flipped bits. Or, let Part 2 continue to see bytes that collect more
+flipped bits than SEC can correct.
 """
 
 from __future__ import annotations
@@ -80,9 +80,9 @@ USER_ADDRESS = BscanPrimitive(2, 16)
 USER_DATA = BscanPrimitive(3, 24)
 USER_ECC_READ_EN = BscanPrimitive(4, 1)
 
-# The number of effective bits in the address select value.
+# The design uses only the 10 low bits of the 16-bit USER2 register.
 ADDRESS_BITS = 10
-# 1024 words.
+# The BRAM has 1024 words.
 DEPTH = 1 << ADDRESS_BITS
 
 DATA_MASK = (1 << USER_DATA.size_in_bits) - 1
@@ -114,8 +114,8 @@ def write_word(dev, value: int) -> None:
 
 
 # Read the data word from USER3. read_bscan leaves Shift-DR through
-# Exit1-DR -> Pause-DR and does not go through Update-DR. Thus, the bits
-# that the read shifts in are not written to the BRAM.
+# Exit1-DR -> Pause-DR and does not go through Update-DR. Thus, the
+# design does not write the bits that the read shifts in to the BRAM.
 def read_word(dev) -> int:
     data = dev.read_bscan(USER_DATA)
     return int.from_bytes(data, "big") & DATA_MASK
@@ -217,8 +217,8 @@ def main() -> None:
                       f"{bram_config_bits}")  
                 time.sleep(1)
 
-                # USER4 resets to 0 (correction off). The script writes
-                # USER4 anyway to make the value clear.
+                # USER4 resets to 0 (correction off). The script writes 0 to
+                # USER4 anyway, so that the code shows the state.
                 # Read the raw data (no correction) for the round-trip check.
                 ecc_read_en(dev, False)
                 # Fill the memory array with known words.
@@ -258,7 +258,7 @@ def main() -> None:
                     n += 1
 
                 print(f"Injected {n} Essential CRAM faults.")
-                # Scan the memory to count the corrupted words.
+                # Scan the memory to count the wrong words.
                 errors = len(check_bram(dev))
                 # A wrong read-back shows that an upset hit the BRAM or its
                 # access path. The read-back cannot show which of the two,
@@ -276,10 +276,10 @@ def main() -> None:
                 dev.programFPGA()
                 enable_clock(dev, True)
 
-                # When the FPGA is programmed again, USER4 resets to 0. Thus,
-                # the correction is off again. The script does not do the
-                # round-trip check again. The check in Part 1 showed that
-                # the BRAM write/read path is stable.
+                # When the script programs the FPGA again, USER4 resets to 0.
+                # Thus, the correction is off again. The script does not do the
+                # round-trip check again. The check in Part 1 showed that the
+                # BRAM write/read path is stable.
 
                 # BRAM content: fill the memory with known words.
                 print("Writing known words in the BRAM...")
@@ -328,18 +328,18 @@ def main() -> None:
                 ecc_read_en(dev, True)
                 print("Reading the whole memory again with ECC read "
                       "on.")
-                # Scan the memory to find the corrupted words.
+                # Scan the memory to find the wrong words.
                 corrupt_w_ecc = check_bram(dev)
                 print(f"ECC on: {len(corrupt_w_ecc)} of {DEPTH} addresses "
                       f"wrong.")
                 print_wrong_words(corrupt_w_ecc)
 
                 # The read path gives only the corrected data, with no error
-                # flag. With ECC off, flips in check bits do not show. With
-                # ECC on, a single flip in the check bits is masked. SEC
-                # cannot detect two or more flips in one byte. SEC can
-                # "correct" the wrong bit. This adds an error and does not
-                # remove one.
+                # flag. With ECC off, flipped check bits do not show. With
+                # ECC on, SEC masks a single flipped check bit. SEC cannot
+                # detect two or more flipped bits in one byte. Then SEC can
+                # change a bit that is correct. This adds an error and
+                # does not remove one.
                 wrong_ecc_off = {address for address, _, _ in err_words}
                 wrong_ecc_on = {address for address, _, _ in corrupt_w_ecc}
                 if not wrong_ecc_on:

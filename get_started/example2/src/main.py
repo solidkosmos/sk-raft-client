@@ -3,9 +3,10 @@
 
 """Example 2: single-bit upsets in a simplex adder and a TMR adder.
 
-The script programs a bitstream and prints the number of essential bits
-in each pblock. Then the script runs single-bit upset trials until you
-press Enter. Each trial injects one random essential bit into each pblock
+The script programs the FPGA with the bitstream and prints the number of
+essential bits in each pblock. Then the script runs single-bit upset
+trials until you press Enter. Each trial flips one random essential bit
+in each pblock
 (simplex and TMR). Then the trial applies 100 random operand pairs to
 both adders. This number of pairs is enough to test the circuit, but the
 test is not exhaustive. If one or more results of an adder are wrong, the
@@ -153,33 +154,37 @@ def main() -> None:
                         break
                     simplex_ok = True
                     tmr_ok = True
-                    # Inject one random fault into an essential bit of each
+                    # Inject one random upset into an essential bit of each
                     # adder.
                     report_sim = dev.inject_random(TargetMemory.ESSENTIAL_CRAM,
                                                    pblock=PBLOCK_SIMPLEX)
                     report_tmr = dev.inject_random(TargetMemory.ESSENTIAL_CRAM,
                                                    pblock=PBLOCK_TMR)
 
-                    # Apply 100 random inputs with the same upset in place.
-                    # This number is enough to test both circuits.
-                    # If one or more inputs give an error, add 1 to the
+                    # Apply 100 random operand pairs with the same upset in
+                    # place. This number is enough to test both circuits. If
+                    # one or more operand pairs give an error, add 1 to the
                     # error count of the adder that failed.
                     for _ in range(100):
                         a = random.randint(0, OP_MASK)
                         b = random.randint(0, OP_MASK)
                         # Calculate the expected result.
                         expected = (a + b) & RESULT_MASK
-                        # Write the operands to the BSCAN channel.
+                        # Write the operands to BSCAN register USER1.
                         set_operands(dev, a, b)
                         # Read the result of each adder.
                         simplex_result = read_simplex_result(dev)
                         tmr_result = read_tmr_result(dev)
-                        # Set the pass/fail status of each adder.
+                        # Set the pass/fail status of each adder. One wrong
+                        # result is sufficient to mark the adder as failed for
+                        # this trial.
                         if simplex_result != expected:
                             simplex_ok = False
                         if tmr_result != expected:
                             tmr_ok = False
-                    # Add 1 to the error count of each adder that failed.
+                    # Add 1 to the error count of each adder that failed. The
+                    # count grows by 1 for each trial at most. Thus, VF is a
+                    # fraction of trials, not of operand pairs.
                     if not simplex_ok:
                         simplex_error += 1
                     if not tmr_ok:
@@ -187,17 +192,18 @@ def main() -> None:
                     # Correct the upset in both adders. Essential bits are
                     # CRAM bits. Thus, use the plain CRAM target to flip
                     # them again.
-                    # Set to False to keep the injected faults
+                    # Set to False to keep the injected upsets
+                    # (accumulative fault injection).
                     if True:
-                              # (accumulative fault injection).
                         dev.inject_at(report_sim.far, report_sim.word_index,
                                     report_sim.bit_index, TargetMemory.CRAM)
                         dev.inject_at(report_tmr.far, report_tmr.word_index,
                                     report_tmr.bit_index, TargetMemory.CRAM)
                     n += 1
-                    # The script writes one status line again after each
-                    # trial. The line shows the result of each adder for
-                    # this trial (green/red) and the current VFs.
+                    # After each trial, the script writes the status line again
+                    # over the same line (\r). The line shows the result of
+                    # each adder for this trial (green/red) and the current
+                    # VFs.
                     print(f"\r# of trials = {n}  ||  "
                           f"Simplex {verdict(simplex_ok)} "
                           f"VF = {simplex_error}/{n} "
@@ -207,7 +213,7 @@ def main() -> None:
                           f"({tmr_error/n * 100:.2f}%)   ",
                           end="", flush=True)
 
-                # Enter was pressed before the first trial started.
+                # You pressed Enter before the first trial started.
                 if n == 0:
                     print("\nNo trials completed.")
                     return

@@ -95,7 +95,7 @@ def main() -> None:
                 print(f"frames read back: {len(frames)}")
                 time.sleep(1)
                 watch_for_enter()
-                # the number of injections in this step
+                # The number of injections in this step.
                 n = 0
                 while True:
                     if stop.is_set():
@@ -106,7 +106,7 @@ def main() -> None:
                     # The number of words in a frame depends on the
                     # architecture.
                     word_index = rng.randint(0, len(frame.words) - 1)
-                    # each word has 32 bits
+                    # A word has 32 bits, so the bit index is 0 to 31.
                     bit_index = rng.randint(0, 31)
                     report = dev.inject_at(frame.far, word_index, bit_index,
                                         TargetMemory.CRAM)
@@ -115,7 +115,7 @@ def main() -> None:
                         f"bit {report.bit_index:2d}")
                     n += 1
 
-                    # keep the upset for 100 ms
+                    # Keep the upset for 100 ms.
                     time.sleep(0.1)
 
                     # Flip the same bit again to correct the upset.
@@ -132,7 +132,7 @@ def main() -> None:
                 print(f"\nStep 2: essential bits only",
                       f"({dev.bit_count(TargetMemory.ESSENTIAL_CRAM)})",
                       f". Press Enter to move on.")
-                # program again for a clean start
+                # Program the FPGA again to remove the upsets of step 1.
                 dev.programFPGA()
 
                 watch_for_enter()
@@ -149,7 +149,7 @@ def main() -> None:
                         f"bit {report.bit_index:2d}")
                     n += 1
 
-                    # keep the upset for 100 ms
+                    # Keep the upset for 100 ms.
                     time.sleep(0.1)
                     dev.inject_at(report.far, report.word_index,
                                   report.bit_index, TargetMemory.CRAM)
@@ -157,14 +157,14 @@ def main() -> None:
                 # ----------------------------------------------------------- #
                 # Step 3: one pblock at a time.
                 #
-                # A pblock is a region of the chip that is reserved for one
+                # A pblock is a region of the device that contains only one
                 # part of the design. In this design, each pblock contains
                 # one of the two heartbeat counters. When you limit the
                 # injection to a pblock, you can test one part of the design
                 # alone.
                 # ----------------------------------------------------------- #
                 print("\nStep 3: one pblock at a time.")
-                # program again for a clean start
+                # Program the FPGA again to remove the upsets of step 2.
                 dev.programFPGA()
 
                 # The names of the two pblocks, as declared in the XDC file.
@@ -193,7 +193,7 @@ def main() -> None:
                             f"bit {report.bit_index:2d}")
                         n += 1
 
-                        # keep the upset for 100 ms
+                        # Keep the upset for 100 ms.
                         time.sleep(0.1)
                         dev.inject_at(report.far, report.word_index,
                                     report.bit_index, 
