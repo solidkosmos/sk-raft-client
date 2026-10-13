@@ -60,7 +60,8 @@ begin
     syndrome(3)<= ecc_pars_i(3) XOR data_i(4) XOR data_i(5) XOR data_i(6)
                   XOR data_i(7);
 
-    -- The syndrome selects the bit to correct
+    -- The syndrome selects the bit to correct. The syndrome is the 1-based
+    -- position of the wrong bit in wd_i. Flip that bit.
     corr_data <=
         wd_i XOR "000000000001" when (syndrome = "0001") else -- flip wd_i(0)
         wd_i XOR "000000000010" when (syndrome = "0010") else -- flip wd_i(1)
@@ -96,7 +97,9 @@ begin
 			 -- Corrected word
     dec_o <= corr_data(11) & corr_data(10) & corr_data(9) & corr_data(8) &
              corr_data(6) & corr_data(5) & corr_data(4) & corr_data(2);
-			--(others => '0')  -- gate trash data from getting passed downstream
+			-- Option: set the output to 0 on a double error. This stops wrong
+			-- data downstream.
+			--(others => '0')
              --when (syndrome /= "0000" and par_check = '0') else
              -- Corrected word
 

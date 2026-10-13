@@ -5,8 +5,8 @@
 --
 -- Module Name: ff_lut_top
 -- Description: An FF shift register that operates continuously (JTAG
---              controls its clock gate) and an address-mapped LUTRAM. Both
---              are driven over BSCAN.
+--              controls its clock gate) and an address-mapped LUTRAM. JTAG
+--              controls and reads both through BSCAN.
 --------------------------------------------------------------------------------
 
 library IEEE;
@@ -73,7 +73,7 @@ architecture Behavioral of ff_lut_top is
 	constant shift_period : integer := 2 * time_interval; 
 	signal counter        : integer range 0 to shift_period - 1 := 0;
     
-    -- LUT RAM 
+    -- LUTRAM
     constant lut_mem_depth : natural := 64;
     constant addr_width    : natural := clog2(lut_mem_depth);
     signal addr_sel : natural range 0 to lut_mem_depth - 1;
@@ -103,7 +103,8 @@ architecture Behavioral of ff_lut_top is
 		-- the same value, latched in the buf_safe_clk domain.
 		data_from_jtag, data_from_jtag_sync :
 			std_ulogic_vector(addr_width - 1 downto 0);
-		-- New address available. The signal goes to 1 when JTAG writes one.
+		-- New address available. The signal goes to 1 when JTAG writes a new
+		-- address.
 		avail          : std_ulogic;
 		avail_prev     : std_ulogic;
 	end record bscan_addr_interfacing;
@@ -126,8 +127,8 @@ architecture Behavioral of ff_lut_top is
     signal bscan_lut_data_user : bscan_lut_data_interfacing;
     
 
-    -- Each sr_module instance makes a shift register that operates
-    -- continuously and loops around.
+    -- Each sr_module instance makes a circular shift register that operates
+    -- continuously.
     component sr_module is
       Generic (
         mass_bit_count : integer range 0 to 512 := 8
@@ -198,7 +199,9 @@ begin
       
     clk_en <= bscan_clk_en_user.data_from_jtag(0);
      
-    -- Synchronize the clock-enable signal with two flip-flops
+    -- Synchronize the clock-enable signal with two flip-flops. clk_en comes
+    -- from the TCK domain. The two flip-flops synchronize it to safe_clk
+    -- to prevent metastability.
     sync_clk_en:process(safe_clk)
     begin
         if rising_edge(safe_clk) then
@@ -218,8 +221,8 @@ begin
       
     -- FF SHIFT REGISTER ------------------------------------------------------
     
-	-- Divider runs on the gated clock 
-	-- and freezes while JTAG has the clock off.
+	-- The divider uses the gated clock. Thus it stops when JTAG sets clk_en
+	-- to 0.
 	-- sr_ce is a registered one-cycle pulse every shift_period cycles.
 	div_proc : process(buf_safe_clk)
 	begin
@@ -234,8 +237,8 @@ begin
 		end if;
 	end process div_proc;
 
-	-- Shift clock: 
-	-- buf_safe_clk passes only when the divider fires and JTAG allows it.
+	-- Shift clock: buf_safe_clk goes through only when sr_ce is 1.
+	-- buf_safe_clk itself stops when clk_en is 0.
 	BUFGCE_sr : BUFGCE
 		Port map (
 		   O  => div_clk,
@@ -277,8 +280,8 @@ begin
      
  --------------------------------------------------------------------------
 
-    -- LUT RAM ---------------------------------------------------------------
-    -- BSCAN USER3 : ADDRESS SELECT FOR THE LUTRAMS
+    -- LUTRAM ----------------------------------------------------------------
+    -- BSCAN USER3 : ADDRESS SELECT FOR THE LUTRAM
 	bscan_u3_lut_ram_address:bscan_interface
 	  Generic map (
 		jtag_chain => 3,
@@ -303,7 +306,7 @@ begin
 	  );
 	  
 	  
-    -- BSCAN USER4 : READ/WRITE TO THE LUTRAMS
+    -- BSCAN USER4 : READ/WRITE TO THE LUTRAM
     bscan_u4_lut_ram_data:bscan_interface
       Generic map (
         jtag_chain => 4,
@@ -315,7 +318,7 @@ begin
       Port map ( 
       ----- CLK INPUT FOR CDC -----
         clk_i => buf_safe_clk,
-      ----- TCK OUTPUT FOR CDC -----
+      ----- TCK OUTPUT FOR CDC, LOGIC ISOLATION -----
         tck_o => open,
       ----- DRCK OUTPUT FOR CDC, LOGIC ISOLATION -----
         drck_o => open,
@@ -327,9 +330,9 @@ begin
         ux_ack_o    => open    
       );
 
-    -- Generate the CDC control for the address interface. The address is
-	-- latched in the buf_safe_clk domain on the rising edge of avail, so the
-	-- LUTRAM only sees a value that is stable.
+    -- Generate the CDC control for the address interface. This process
+	-- captures the address in the buf_safe_clk domain on the rising edge of
+	-- avail, so the LUTRAM only sees a value that is stable.
 	cdc_addr:process(buf_safe_clk)
 	begin
 		if rising_edge(buf_safe_clk) then
@@ -350,8 +353,8 @@ begin
     -- This logic uses the same gated clock as the FF shift register path.
     -- For fault injection, all downstream fabric logic stops when clk_en is
     -- 0, not only the main demo logic. Apply this clock gate to the
-    -- peripheral logic of every example, also if that example is safe
-    -- without it.
+    -- peripheral logic of every example. Do this even if the example is
+    -- safe without it.
     sample_avail:process(buf_safe_clk)
     begin
         if rising_edge(buf_safe_clk) then
@@ -359,7 +362,7 @@ begin
         end if;
     end process sample_avail;
 
-    -- Write-enable signal for the LUT memory array.
+    -- Write-enable signal for the LUTRAM.
     -- A single strobe in the buf_safe_clk domain (the gated safe_clk).
     wr_en <= '1' when bscan_lut_data_user.avail = '1'
                   and bscan_lut_data_user.avail_prev = '0' else

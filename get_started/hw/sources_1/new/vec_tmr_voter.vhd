@@ -21,9 +21,9 @@ entity vec_tmr_voter is
          din_1_i : in std_ulogic_vector(data_len-1 downto 0);
          din_2_i : in std_ulogic_vector(data_len-1 downto 0);
          dout_o  : out std_ulogic_vector(data_len-1 downto 0);
-         -- Control signals for recovery or total failure
+         -- Status flags for minority recovery and total failure
          min_vote_o : out std_ulogic_vector(2 downto 0);
-         total_fail_o : out std_ulogic -- Only available in the vector voter
+         total_fail_o : out std_ulogic -- 1 = all three inputs differ
   );
 end vec_tmr_voter;
 

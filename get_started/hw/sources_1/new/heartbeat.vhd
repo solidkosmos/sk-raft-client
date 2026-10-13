@@ -32,7 +32,9 @@ architecture Behavioral of heartbeat is
 
 begin
 
-    -- Count the clock cycles to the interval
+    -- Count the clock cycles to the interval. Toggle the output every
+    -- hb_interval cycles. Thus the period of heartbeat_o is
+    -- 2 x hb_interval cycles.
     heartbeat_proc:process(clk_i)
         begin
             if rising_edge(clk_i) then 

@@ -21,6 +21,8 @@ set_property BITSTREAM.READBACK.SECURITY NONE [current_design]
 
 ## Write the EBD file (the SK-RAFT examples that target essential bits use it)
 set_property BITSTREAM.SEU.ESSENTIALBITS YES [current_design]
+## Add a CRC to each configuration frame. The device then checks each
+## frame when it loads it.
 set_property BITSTREAM.GENERAL.PERFRAMECRC YES [current_design]
 
 ## Pblocks: isolate each heartbeat counter for pblock-confined fault injection

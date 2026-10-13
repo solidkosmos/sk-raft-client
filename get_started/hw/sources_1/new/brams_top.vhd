@@ -203,7 +203,9 @@ begin
 
     clk_en <= bscan_clk_en_user.data_from_jtag(0);
 
-    -- Synchronize the clock-enable signal with two flip-flops
+    -- Synchronize the clock-enable signal with two flip-flops. clk_en comes
+    -- from the TCK domain. The two flip-flops synchronize it to safe_clk
+    -- to prevent metastability.
     sync_clk_en:process(safe_clk)
     begin
         if rising_edge(safe_clk) then
@@ -216,8 +218,8 @@ begin
 
     -- For fault injection, all downstream fabric logic stops when clk_en
     -- is 0, not only the main demo logic of this example. Apply this clock
-    -- gate to the peripheral logic of every example, also if the behaviour
-    -- of that example is safe without it.
+    -- gate to the peripheral logic of every example. Do this even if the
+    -- example is safe without it.
     BUFGCE_inst : BUFGCE
         Port map (
            O => buf_safe_clk, -- 1-bit output: Clock output
@@ -272,7 +274,9 @@ begin
           ux_ack_o   => bscan_data_user.ack     
         );
 
-    -- Generate the CDC control for the address interface
+    -- Generate the CDC control for the address interface. Capture the
+    -- address only on the rising edge of avail. At that time, the value
+    -- from the TCK domain is stable.
     cdc_addr:process(buf_safe_clk)
         begin 
             if rising_edge(buf_safe_clk) then
@@ -310,7 +314,8 @@ begin
           ux_ack_o   => bscan_ecc_r_en.ack      
         );
     
-    -- Generate the CDC control for the ECC read-enable signal
+    -- Generate the CDC control for the ECC read-enable signal. Capture the
+    -- bit only on the rising edge of avail, when the value is stable.
     cdc_ecc_r:process(buf_safe_clk)
         begin 
             if rising_edge(buf_safe_clk) then
@@ -343,7 +348,9 @@ begin
           );
     end generate gen_byte_ecc_enc;
                                            
-    -- Generate the CDC control for the data input interface
+    -- Generate the CDC control for the data input interface. Capture the
+    -- data on the rising edge of avail and make a write pulse of one
+    -- cycle. Thus one JTAG write gives one BRAM write.
     cdc_data:process(buf_safe_clk)
         begin 
             if rising_edge(buf_safe_clk) then
@@ -374,15 +381,15 @@ begin
         -- 1024 words deep in the 36-bit wide configuration of this primitive
         wr_addr_i => bscan_addr_user.data_from_jtag_sync(9 downto 0),
         rd_addr_i => bscan_addr_user.data_from_jtag_sync(9 downto 0),
-        -- All 36 physical bits are used. The 4 parity bits store data like
-        -- the other bits, and this data goes to the decoders.
+        -- All 36 physical bits are used. The 4 parity pins (DIP/DOP) store
+        -- data like the other pins, and this data goes to the decoders.
         din_i     => data_to_bram,
         dout_o    => data_from_bram
       );
 
-    -- Connect the plain data bits
+    -- Connect the plain data bits (bits 23:0 of the BRAM word)
     stock_data <= data_from_bram(bram_data_len - 1 downto 0);
-    -- Connect the related ECC parity bits
+    -- Connect the related ECC parity bits (bits 35:24 of the BRAM word)
     ecc_pars <=
         data_from_bram((bram_data_len + (3 * 4)) - 1 downto bram_data_len);
                             

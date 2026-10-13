@@ -41,11 +41,13 @@ set_property BITSTREAM.READBACK.SECURITY NONE [current_design]
 
 ## Write the EBD file (the SK-RAFT examples that target essential bits use it)
 set_property BITSTREAM.SEU.ESSENTIALBITS YES [current_design]
+## Add a CRC to each configuration frame. The device then checks each
+## frame when it loads it.
 set_property BITSTREAM.GENERAL.PERFRAMECRC YES [current_design]
 
-## Note: The pblocks in the Basys 3 XDC files are specific to the placement
-## on that device and are NOT copied here. The pblocks below use ranges for
-## the ZedBoard device.
+## Note: This file does not use the Basys 3 pblocks, because their ranges
+## are specific to that device. The pblocks below use ranges for the
+## ZedBoard device.
 
 ## Pblocks: isolate the LUTRAM from the FF shift register for pblock-confined fault injection
 create_pblock pblock_LUTRAM

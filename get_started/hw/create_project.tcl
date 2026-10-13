@@ -19,13 +19,13 @@
 ####################################################################################
 
 # device -> {part, clk_freq (MHz)}. The script gets the family from the part
-# (see below). The family is not stored here.
+# (see below). This table does not store the family.
 array set device_info {
     basys3   {part xc7a35tcpg236-1 clk_freq 100}
     zedboard {part xc7z020clg484-1 clk_freq 100}
 }
-# Only basys3 (Basys 3) and zedboard (ZedBoard) are tested and supplied with
-# this suite. To add your own board:
+# This suite supplies and tests only basys3 (Basys 3) and zedboard
+# (ZedBoard). To add your own board:
 #   1. cp -r xdc/custom_template xdc/<your_board_name>
 #   2. Fill the PACKAGE_PIN/IOSTANDARD placeholders in each .xdc file in
 #      that folder (and the pblock SLICE/RAMB ranges, if you use pblocks).
@@ -40,7 +40,8 @@ set known_tops {
     brams_top
 }
 
-# Tops with g_family/clk_freq generics (bscan_adder_top has neither, only op_len)
+# These tops have the g_family and clk_freq generics. bscan_adder_top has
+# only the op_len generic.
 set tops_with_device_generics {
     targeted_top
     ff_lut_top
@@ -49,7 +50,8 @@ set tops_with_device_generics {
 
 # Optional -gui flag (at any position in tclargs): open the project in the
 # Vivado GUI at the end, and do not exit. You can then examine or change the
-# project. Remove the flag before the script parses the positional arguments.
+# project. The script removes the flag before it parses the positional
+# arguments.
 set gui_requested 0
 set filtered_argv {}
 foreach a $argv {
@@ -83,9 +85,9 @@ if { [llength $argv] < 2 } {
 
 set device    [lindex $argv 0]
 set top       [lindex $argv 1]
-# The default proj_name/proj_dir use device and top as keys. Thus two
-# different builds never share the same project directory (and never reuse
-# or corrupt it without a message). Give arguments 3 and 4 to override them.
+# The default proj_name and proj_dir include the device and top names.
+# Thus, two different builds never use the same project folder. Give
+# arguments 3 and 4 to override them.
 set proj_name "get_started_examples_${device}_${top}"
 set proj_dir  "./$proj_name"
 
@@ -259,8 +261,8 @@ if { ![file exists $bit_path] } {
 # The script copies the design files (bit/ebd/ll and board.xdc) to
 # design_examples/<device>/<top>/, next to this script. This is the same
 # layout as the prebuilt files in design_examples.zip. If the folder does not
-# exist (for example, for a new board), the script creates it. Files of a
-# previous build or of the ZIP in that folder are overwritten.
+# exist (for example, for a new board), the script creates it. The script
+# overwrites the files of a previous build or of the ZIP in that folder.
 array set top_to_example {
     targeted_top    1
     bscan_adder_top 2

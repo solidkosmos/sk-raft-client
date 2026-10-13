@@ -41,11 +41,13 @@ set_property BITSTREAM.READBACK.SECURITY NONE [current_design]
 
 ## Write the EBD file (the SK-RAFT examples that target essential bits use it)
 set_property BITSTREAM.SEU.ESSENTIALBITS YES [current_design]
+## Add a CRC to each configuration frame. The device then checks each
+## frame when it loads it.
 set_property BITSTREAM.GENERAL.PERFRAMECRC YES [current_design]
 
-## Note: The pblocks in the Basys 3 XDC files are specific to the placement
-## on that device and are NOT copied here. The pblocks below use ranges for
-## the ZedBoard device.
+## Note: This file does not use the Basys 3 pblocks, because their ranges
+## are specific to that device. The pblocks below use ranges for the
+## ZedBoard device.
 
 ## Pblock: isolate the stock BRAM for pblock-confined fault injection
 create_pblock pblock_stock_bram
@@ -55,5 +57,6 @@ resize_pblock [get_pblocks pblock_stock_bram] -add {RAMB18_X4Y30:RAMB18_X4Y31 \
 }
 set_property EXCLUDE_PLACEMENT 1 [get_pblocks pblock_stock_bram]
 
-## Keep BRAM enables ungated
+## Exclude the BRAMs from power optimization. Otherwise, Vivado adds
+## gating logic to the BRAM enables.
 set_power_opt -exclude_cells [get_cells -hier -filter {REF_NAME =~ RAMB*}]

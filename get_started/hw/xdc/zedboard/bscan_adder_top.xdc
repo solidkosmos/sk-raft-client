@@ -30,11 +30,14 @@ set_property BITSTREAM.READBACK.SECURITY NONE [current_design]
 
 ## Write the EBD file (the SK-RAFT examples that target essential bits use it)
 set_property BITSTREAM.SEU.ESSENTIALBITS YES [current_design]
+## Add a CRC to each configuration frame. The device then checks each
+## frame when it loads it.
 set_property BITSTREAM.GENERAL.PERFRAMECRC YES [current_design]
 
-## Note: The pblocks in the Basys 3 XDC files are specific to the placement
-## on that device and are NOT copied here. The pblocks below use ranges for
-## the ZedBoard device.
+## Note: This file does not use the Basys 3 pblocks, because their ranges
+## are specific to that device. The pblocks below isolate the simplex
+## adder from the TMR adder for pblock-confined fault injection. They use
+## ranges for the ZedBoard device.
 
 create_pblock pblock_sngl_add
 add_cells_to_pblock [get_pblocks pblock_sngl_add] [get_cells -quiet [list sngl_add]]

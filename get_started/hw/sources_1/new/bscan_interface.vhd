@@ -8,8 +8,9 @@
 --              Register IO instance to a BSCAN Primitive Wrapper. It gives
 --              the design a read/write data path (data_to_jtag_i/
 --              data_from_jtag_o) and avail/ack handshake signals. If sync
---              is true, two flip-flops synchronize avail/ack to clk_i. The
---              data path is not synchronized.
+--              is true, two flip-flops synchronize avail/ack to clk_i.
+--              This module does not synchronize the data path. Read
+--              data_from_jtag_o only after ux_avail_o goes to 1.
 --------------------------------------------------------------------------------
 
 
@@ -112,8 +113,9 @@ begin
         sync_proc:process(clk_i)
             begin
                 if rising_edge(clk_i) then
-                    -- DOUBLE FLOPPED CONTROL SIGNALS --
-                    -- FOR CLEANER CODE IN THE TOP --
+                    -- Two flip-flops synchronize avail and ack to clk_i
+                    -- to prevent metastability. Thus the top-level design
+                    -- needs no synchronizer for them.
                     avail_d0   <= ux_avail;
                     ack_d0     <= ux_ack ;
                     avail_sync <= avail_d0;

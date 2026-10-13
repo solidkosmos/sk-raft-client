@@ -4,8 +4,8 @@
 -- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
 -- Module Name: sr_module
--- Description: N-bit shift register that operates continuously and wraps
---              around. The initial value has a single '1' bit. The design
+-- Description: N-bit circular shift register that operates continuously.
+--              The initial value has a single '1' bit. The design
 --              uses the register as a mass shift-register target for fault
 --              injection and observation.
 --------------------------------------------------------------------------------
@@ -31,17 +31,19 @@ architecture Behavioral of sr_module is
         := (0 => '1', others => '0');
 
     -- Synthesis attribute: prevent the optimization of the shift register
-    -- signal --
+    -- signal. Keep each bit as a flip-flop. Fault injection targets these
+    -- flip-flops, and synthesis can otherwise put them in SRLs or remove
+    -- them.
     attribute dont_touch : string;
     attribute dont_touch of mass_s_reg : signal is "TRUE";
     
 begin
     
-    -- Shift register that operates continuously and loops around
+    -- Circular shift register that operates continuously
     mass_sr_proc:process(clk_i)
         begin
             if rising_edge(clk_i) then
-                mass_s_reg(0) <= mass_s_reg(mass_bit_count - 1); -- wrap
+                mass_s_reg(0) <= mass_s_reg(mass_bit_count - 1); -- MSB to LSB
                 for i in 0 to mass_bit_count - 2 loop
                     mass_s_reg(i + 1) <= mass_s_reg(i);
                 end loop;

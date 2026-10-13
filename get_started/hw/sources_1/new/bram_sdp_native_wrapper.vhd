@@ -17,9 +17,9 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
--- This wrapper uses a DIRECT primitive instantiation
--- (RAMB36E1 on 7-series, RAMB36E2 on UltraScale/UltraScale+) and not
--- inferred VHDL.
+-- This wrapper instantiates the primitive directly (RAMB36E1 on 7-series,
+-- RAMB36E2 on UltraScale/UltraScale+), not through inference. Thus the
+-- primitive type and the 36-bit layout are fixed for fault injection.
 
 entity bram_sdp_native_wrapper is
   Generic (
@@ -147,8 +147,8 @@ architecture Structure of bram_sdp_native_wrapper is
     --
     -- Address mapping: this mapping agrees with UG473 Table 1-12 (Port
     -- Aspect Ratio for RAMB36E1 in SDP Mode). The x36 row gives a depth of
-    -- 1,024 with 10 significant address bits at ADDR[14:5]. ADDR[4:0] are
-    -- not used and are tied low.
+    -- 1,024 with 10 significant address bits at ADDR[14:5]. The code ties
+    -- the unused ADDR[4:0] bits to 0.
 
 
     signal addr_a_full, addr_b_full : std_ulogic_vector(15 downto 0);

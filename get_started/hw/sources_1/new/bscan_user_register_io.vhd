@@ -35,7 +35,8 @@ entity bscan_user_register_io is
     -- Control signals (available, acknowledge) --
     -- avail_o: set at the update of a write, cleared when the next shift starts
     avail_o : out std_ulogic := '0';
-    -- ack_o: strobe of one cycle at capture (data_to_jtag_i is latched)
+    -- ack_o: strobe of one cycle at capture (the register captures
+    -- data_to_jtag_i)
     ack_o   : out std_ulogic := '0';
 
     -- Data --
@@ -59,7 +60,7 @@ architecture Behavioral of bscan_user_register_io is
     -- Shift-DR:
     --   Shift-DR --TMS=1--> Exit1-DR --TMS=1--> Update-DR : write
     --   Shift-DR --TMS=1--> Exit1-DR --TMS=0--> Pause-DR  : read
-    --   (write is not allowed)
+    --   (no write occurs)
     type state is (IDLE, DECIDE, HOLD);
     signal check_rw : state := IDLE;
 
@@ -76,11 +77,12 @@ begin
             -- Default values --
             ack_o <= '0';
 
-            -- If the SEL flag is asserted, JTAG targets this register.
+            -- sel_i is 1 only when the JTAG USER instruction selects this
+            -- register.
             if sel_i = '1' then
 
-                -- Read/write branch decision. The decision is fully
-                -- registered and uses a case on the current state.
+                -- Read/write branch decision. This clocked case statement
+                -- makes the decision from the current state.
                 case check_rw is
                     when IDLE =>
                         rw <= '0'; -- read is the default
@@ -105,8 +107,11 @@ begin
 
                 --------------------- INPUT FROM JTAG ---------------------
                 if shift_i = '1' then
-                    avail_o <= '0'; -- clear
-                    -- Shift the user register.
+                    -- A new shift starts. Thus the last write data is not new
+                    -- now.
+                    avail_o <= '0';
+                    -- Shift the user register. JTAG shifts the LSB first, so
+                    -- TDI goes into the MSB.
                     for i in (data_from_jtag_len - 2) downto 0 loop
                         -- shift chain
                         data_user_reg_data_in(i) <= data_user_reg_data_in(i+1);
@@ -117,15 +122,16 @@ begin
                 -- At update, commit the data only if the branch decision
                 -- is a write.
                 if update_i = '1' and rw = '1' then
-                    avail_o <= '1'; -- set
-                    -- Latch the data for the user logic.
+                    -- Tell the user logic that new data is available.
+                    avail_o <= '1';
+                    -- Capture the data for the user logic.
                     updated_data_user_reg <= data_user_reg_data_in;
                 end if;
 
                 --------------------- OUTPUT TO JTAG ---------------------
                 if capture_i = '1' then
                     -- Parallel load.
-                    -- Latch the data for JTAG.
+                    -- Capture the data for JTAG.
                     data_user_reg_data_out <= data_to_jtag_i;
                     ack_o <= '1'; -- acknowledge strobe of one cycle
                 end if;

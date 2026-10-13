@@ -40,8 +40,8 @@ architecture Structure of clk_gen_wrapper is
     -- PLL limits for each family, used to select CLKFBOUT_MULT.
     --
     -- The VCO ranges are GENERAL values. The real limits depend on the speed
-    -- grade of your exact part (and on the family), so these numbers can be
-    -- changed for each device. Check the "PLL Switching Characteristics"
+    -- grade of your exact part (and on the family), so you can change these
+    -- numbers for each device. Check the "PLL Switching Characteristics"
     -- table in the data sheet of your target part, and edit the values in
     -- f_pll_mult if your part needs a narrower or wider range.
     -- Sources for the starting values: DS189 Spartan-7/Artix-7 Table 38 (also
@@ -89,8 +89,8 @@ architecture Structure of clk_gen_wrapper is
     signal pll_clk_o, clkfbout, locked_sig : std_ulogic;
 
     -- A shift register delays the propagation of the locked signal by
-    -- 8 clock cycles. Together with the STARTUP_WAIT => FALSE declaration,
-    -- the shift register gives the same behaviour as the SAFE_STARTUP
+    -- 8 clock cycles. Together with the STARTUP_WAIT => "FALSE" setting,
+    -- the shift register gives the same behavior as the SAFE_STARTUP
     -- setting of the Clocking Wizard MMCM/PLL IP.
     signal seq_reg : std_ulogic_vector(7 downto 0) := (others => '0');
 
@@ -149,7 +149,9 @@ begin
             end if;
     end process safe_startup_sr_reg;
 
-    locked_o <= seq_reg(7); -- Send the delayed locked signal to the output
+    -- Send the delayed locked signal to the output. locked_o goes to 1 in
+    -- the same cycle that the BUFGCE starts clk_o.
+    locked_o <= seq_reg(7);
 
     -- Gate the clock until the locked signal passes through the 8-stage
     -- delay shift register

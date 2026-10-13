@@ -43,9 +43,8 @@ architecture Structure of bscan_adder_top is
     end record;
     signal bscan_adders_ops : bscan_ops_interface;
     
-    -- As the XAPP1086 Isolation Design Flow specifies,
-    -- the packed operands must go through two separate
-    -- buffers before they connect to the adders.
+    -- The XAPP1086 Isolation Design Flow specifies that the packed
+    -- operands go through two separate buffers before the adders.
     -- Thus the two adders share no connections.
     signal sim_ops_buf, tmr_ops_buf :
         std_ulogic_vector(op_len * 2 - 1 downto 0);
@@ -75,7 +74,9 @@ begin
         jtag_chain => 1,          --USER1
         data_len_r => 1, 
         data_len_w => op_len * 2,   
-        sync       => false       -- CDC is not necessary
+        -- No CDC is necessary. The adders are combinational, and only TCK
+        -- clocks the BSCAN registers.
+        sync       => false
       )
       Port map (
       ----- CLK INPUT FOR CDC (not used in this example) -----
@@ -136,7 +137,9 @@ begin
         jtag_chain => 2,          --USER2
         data_len_r => op_len + 1, 
         data_len_w => 1,   
-        sync       => false       -- CDC is not necessary
+        -- No CDC is necessary. The adders are combinational, and only TCK
+        -- clocks the BSCAN registers.
+        sync       => false
       )
       Port map (
       ----- CLK INPUT FOR CDC (not used in this example) -----
@@ -158,7 +161,9 @@ begin
         jtag_chain => 3,          --USER3
         data_len_r => op_len + 1, 
         data_len_w => 1,   
-        sync       => false       -- CDC is not necessary
+        -- No CDC is necessary. The adders are combinational, and only TCK
+        -- clocks the BSCAN registers.
+        sync       => false
       )
       Port map (
       ----- CLK INPUT FOR CDC (not used in this example) -----

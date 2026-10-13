@@ -41,7 +41,9 @@ begin
     lut_mem_access:process(clk_i)
         begin
            if rising_edge(clk_i) then
-                if wr_en_i = '1' then -- NEW WORD AVAILABLE, WRITE 
+                -- New word available: write it. wr_en_i is a pulse of one
+                -- cycle. Thus one JTAG write gives one memory write.
+                if wr_en_i = '1' then
                     lut_mem(addr_i) <= din_i;
                 end if;
            end if;
