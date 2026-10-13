@@ -178,10 +178,8 @@ def watch_for_enter() -> None:
 
 
 # The script prints one line for each injected bit. The line shows the
-# location of the bit (FAR, word, bit). Then the line shows the decoded FAR:
-#   block type (0 = configuration, 1 = BRAM content)
-#   top/bottom half (for 7 Series devices)
-#   row, column and minor frame.
+# location of the bit (FAR, word, bit). Then the line shows the block type
+# from the decoded FAR (0 = configuration, 1 = BRAM content).
 HIT_HEADER = "     #  FAR       WORD  BIT  BLK_TYPE"
 
 

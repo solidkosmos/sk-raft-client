@@ -24,8 +24,9 @@ create_clock -add -name bscan_clk_u2 -period 66.667 -waveform {0 33.333} \
 create_clock -add -name bscan_clk_u3 -period 66.667 -waveform {0 33.333} \
   [get_pins -of_objects [get_cells bscan_u3*/tck_BUFG_inst] -filter {REF_PIN_NAME==O}]
 
-## Configuration options for 7-series parts. On UltraScale/UltraScale+ parts,
-## delete CONFIG_VOLTAGE/CFGBVS (not valid there). Keep the other options.
+## Configuration options. Set CONFIG_VOLTAGE, CFGBVS, CONFIG_MODE and
+## CONFIGRATE for your board. On UltraScale/UltraScale+ parts, delete
+## CONFIG_VOLTAGE and CFGBVS (not valid there).
 set_property CONFIG_VOLTAGE 3.3 [current_design]
 set_property CFGBVS VCCO [current_design]
 set_property BITSTREAM.GENERAL.COMPRESS FALSE [current_design]

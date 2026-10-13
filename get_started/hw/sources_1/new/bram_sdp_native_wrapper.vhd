@@ -140,11 +140,10 @@ architecture Structure of bram_sdp_native_wrapper is
     --
     -- The full 36-bit width is ONE flat data bus: (31 downto 0) on the
     -- "main" data pins (DIBDI/DOADO) and (35 downto 32) on the "parity" pins
-    -- (DIPBDIP/DOPADOP, only 2 bits wide, see the x36 row of UG473 Table
-    -- 1-13: DIP[3:2] = DIPBDIP[1:0] on write, DOP[3:2] = DOPADOP[1:0] on
-    -- read). This wrapper has no ECC logic. din_i/dout_o(35 downto 0) is
-    -- only raw storage. The caller packs 3 bytes as 3 x (8 data + 4 Hamming
-    -- SEC ECC bits) into this 36-bit field.
+    -- (DIPBDIP/DOPADOP, 4 bits each: din_i(35 downto 32) = DIPBDIP(3:0),
+    -- dout_o(35 downto 32) = DOPADOP(3:0)). This wrapper has no ECC logic.
+    -- din_i/dout_o(35 downto 0) is only raw storage. The caller packs 3 bytes
+    -- as 3 x (8 data + 4 Hamming SEC ECC bits) into this 36-bit field.
     --
     -- Address mapping: this mapping agrees with UG473 Table 1-12 (Port
     -- Aspect Ratio for RAMB36E1 in SDP Mode). The x36 row gives a depth of

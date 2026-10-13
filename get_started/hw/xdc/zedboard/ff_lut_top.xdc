@@ -11,7 +11,7 @@
 set_property -dict { PACKAGE_PIN Y9 IOSTANDARD LVCMOS33 } [get_ports clk_i]
 create_clock -add -name sys_clk_pin -period 10.00 -waveform {0 5.00} [get_ports clk_i]
 
-## LEDs: 4 of the 8 FF shift-register bits
+## LEDs: bits 3:0 of the FF shift register (sr_len is 8 by default)
 set_property -dict {PACKAGE_PIN T22 IOSTANDARD LVCMOS33} [get_ports {data_o[0]}]
 set_property -dict {PACKAGE_PIN T21 IOSTANDARD LVCMOS33} [get_ports {data_o[1]}]
 set_property -dict {PACKAGE_PIN U22 IOSTANDARD LVCMOS33} [get_ports {data_o[2]}]

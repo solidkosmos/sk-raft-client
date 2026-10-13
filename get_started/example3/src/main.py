@@ -9,8 +9,9 @@ of the shift register and of the LUTRAM. USER3 and USER4 give access to
 the LUTRAM (address and data).
 
 Part 1 injects faults into the flip-flops in ``pblock_ff_sr_inst``, with
-``dev.inject_random(TargetMemory.FF, pblock=PBLOCK_SR)``. Before this,
-``bit_count`` makes sure that the pblock contains flip-flops.
+``dev.inject_random(TargetMemory.FF, pblock=PBLOCK_SR)``. Before this, the
+script uses ``bit_count`` to make sure that the pblock contains
+flip-flops.
 
 Each trial runs the clock for 2 s and then stops the clock. The script
 reads the shift register before and after the upset. Then the script

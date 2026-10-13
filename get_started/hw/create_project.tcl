@@ -12,8 +12,8 @@
 #
 # The script finds the part and clk_freq of <device> and the file
 # xdc/<device>/<top>.xdc. It creates the project and sets <top> as the
-# synthesis top. It gets g_family directly from the ARCHITECTURE property of
-# the part in Vivado (you supply only the part and clk_freq). Then it builds
+# synthesis top. It maps the ARCHITECTURE property of the part to g_family.
+# The device_info table gives only the part and clk_freq. Then it builds
 # the project to a bitstream and copies the design files to
 # design_examples/<device>/<top>/ (see the end of this script).
 ####################################################################################
@@ -100,9 +100,9 @@ if { ![info exists device_info($device)] } {
 set part_name        [dict get $device_info($device) part]
 set device_clk_freq  [dict get $device_info($device) clk_freq]
 
-# Get g_family directly from the part database of Vivado. The user does not
-# supply it. get_parts/get_property operate without a project, so a project
-# is not necessary yet.
+# Get the ARCHITECTURE of the part from the Vivado part database, then map
+# it to g_family. The user does not supply g_family. get_parts/get_property
+# operate without a project, so a project is not necessary yet.
 set part_obj [get_parts -quiet $part_name]
 if { $part_obj eq "" } {
     puts "ERROR: unknown/invalid part '$part_name' for device '$device' --"

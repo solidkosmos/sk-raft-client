@@ -36,7 +36,7 @@ entity ff_lut_top is
   );
   Port (
     clk_i  : in std_ulogic;
-    -- 4 of the 8 FF shift-register bits
+    -- Bits 3:0 of the FF shift register (sr_len is 8 by default)
     data_o : out std_ulogic_vector(3 downto 0)
   );
 end ff_lut_top;
@@ -284,7 +284,7 @@ begin
 		jtag_chain => 3,
 		data_len_r => addr_width,
 		data_len_w => addr_width,
-		-- Synchronize the control signals to clk_i (two flip-flops)
+		-- Synchronize avail and ack to buf_safe_clk with two flip-flops
 		sync       => true
 	  )
 	  Port map (
@@ -309,7 +309,7 @@ begin
         jtag_chain => 4,
         data_len_r => lut_data_len,
         data_len_w => lut_data_len, -- lut_data_len bits for the data
-        -- Synchronize the control signals to clk_i (two flip-flops)
+        -- Synchronize avail and ack to buf_safe_clk with two flip-flops
         sync       => true
       )
       Port map ( 

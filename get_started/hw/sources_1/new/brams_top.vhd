@@ -44,10 +44,10 @@ architecture Behavioral of brams_top is
     constant bram_data_len : integer := 24; -- 3 bytes of data
     -- Bits 14:5 of the primitive address (the 10 address bits of this
     -- register) are the effective address bits, because the BRAM is 36 bits
-    -- wide. The address has more than 8 bits, so the register is padded to
-    -- a multiple of 8 bits.
+    -- wide. The address has more than 8 bits, so the register has 16 bits
+    -- (a multiple of 8).
     -- CAUTION: Keep the address value in the correct range (MAX
-    -- 2**10 - 1). The wrapper ignores the higher bits, so a larger value
+    -- 2**10 - 1). This design uses only bits 9:0, so a larger value
     -- accesses a lower address. All 10 bits are necessary to access the
     -- full memory array.
     constant bram_addr_len : integer := 16;
@@ -102,7 +102,7 @@ architecture Behavioral of brams_top is
     -- BRAM CONTROL/DATA SIGNALS --
     signal we   : std_ulogic := '0'; -- write enable
     
-    -- 3 bytes with 4 parity bits for each byte
+    -- 4 ECC parity bits for each of the 3 bytes (12 bits)
     signal bytes_ecc_gen_pars, ecc_pars :
         std_ulogic_vector((3 * 4) - 1  downto 0);
     -- The 3 bytes with their ECC parity bits (3 * 4)
@@ -111,7 +111,8 @@ architecture Behavioral of brams_top is
     signal corr_data : std_ulogic_vector(bram_data_len - 1 downto 0);
     signal stock_data : std_ulogic_vector(bram_data_len - 1 downto 0);
     
-    signal corr_bytes : std_ulogic_vector(2 downto 0); -- Corrected byte signal
+    -- One correction flag for each byte (1 = the decoder corrected a bit)
+    signal corr_bytes : std_ulogic_vector(2 downto 0);
 
     -- The examples_utilities_pkg package declares clk_gen_wrapper and
     -- bscan_interface (see the use clause above).
