@@ -11,8 +11,8 @@ count, root clock, CRC read).
   statements that release the device and close the connection
 - **Design** — `Design` (`.bit`, `.ebd`, `.ll`, `.xdc`) and
   `dev.uploadDesignToServer()`, `dev.programFPGA()`
-- **Frame exclusion** — `dev.pblocks()`, `dev.pblock_by_clause()` and
-  `dev.exclude_frames()`: no injection into the harness pblock
+- **Pblock exclusion** — `exclude_pblock` of `dev.inject_random()`: no
+  injection into the harness pblock
 - **BSCAN** — `BscanPrimitive`, `dev.write_bscan()`, `dev.read_bscan()`
 - **Fault injection** — `TargetMemory` (essential bits, BRAM, FF, LUTRAM),
   `dev.inject_random()`, and `dev.inject_at()` to flip the bit back after

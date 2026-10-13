@@ -12,6 +12,7 @@ U3 : root clock enable (write) / synchronized root clock enable (read)
 from __future__ import annotations
 
 import time
+from collections.abc import Iterable
 
 from skraft import (
     BscanPrimitive,
@@ -55,17 +56,19 @@ def read_root_clock(dev: FpgaDevice) -> bool:
     return dev.read_bscan(BscanPrimitive(3, 1)) != bytes([0])
 
 
-def _inject_gated(dev: FpgaDevice,
-                  target: TargetMemory) -> FpgaRandomInjectionReport:
+def _inject_gated(dev: FpgaDevice, target: TargetMemory,
+                  exclude_pblock: Iterable[str] | None = None,
+                  ) -> FpgaRandomInjectionReport:
     """Turn off the root clock, inject a random fault, then turn on the root
-    clock again. Returns the injection report."""
+    clock again. The fault is not injected into the pblocks in
+    exclude_pblock. Returns the injection report."""
     # Turn off the root clock (U3 = 0). Thus no logic in the design changes
     # state during the injection.
     disable_root_clock(dev)
     if read_root_clock(dev):
         print("[ROOT CLOCK] still on after the disable write")
     try:
-        return dev.inject_random(target)
+        return dev.inject_random(target, exclude_pblock=exclude_pblock)
     finally:
         # Turn on the root clock again (U3 = 1), also if the injection causes
         # an error.
@@ -161,9 +164,11 @@ def start_run_n_inject(
     dev: FpgaDevice,
     steps: int,
     ebits: bool, bram: bool, ff: bool, lut: bool,
+    exclude_pblock: Iterable[str] | None = None,
 ) -> tuple[int, FpgaRandomInjectionReport, bytes]:
     """Reset the DUT, load the step count, wait until the countdown reaches
-    zero, then inject a random fault. The root clock (U3) is off during the
+    zero, then inject a random fault. The fault is not injected into the
+    pblocks in exclude_pblock. The root clock (U3) is off during the
     injection and on again before this returns.
     Returns (flag, inject_report, counter):
         flag 0 = injection at the end of the countdown
@@ -181,7 +186,7 @@ def start_run_n_inject(
     # Load the step count and start the countdown. On failure, discard the
     # run (flag 1).
     if send_steps(dev, steps):
-        return 1, _inject_gated(dev, target), counter
+        return 1, _inject_gated(dev, target, exclude_pblock), counter
 
     start_time = time.time()
     while True:
@@ -190,13 +195,13 @@ def start_run_n_inject(
         if counter == COUNT_ZERO:
             # The count is at zero. Thus the DUT clock is stopped. Inject the
             # fault with the root clock off.
-            return 0, _inject_gated(dev, target), counter
+            return 0, _inject_gated(dev, target, exclude_pblock), counter
         # Timeout after 1 s. Inject, but the caller discards the run (flag 1).
         if time.time() - start_time > 1:
             last = int.from_bytes(counter, "big")
             print(f"Timeout: the count did not reach 0 within 1 s "
                   f"(step count {steps}, last counter 0x{last:08x})")
-            return 1, _inject_gated(dev, target), counter
+            return 1, _inject_gated(dev, target, exclude_pblock), counter
 
 
 def run_to_end(dev: FpgaDevice) -> bytes:

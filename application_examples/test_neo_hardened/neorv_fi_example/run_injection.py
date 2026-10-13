@@ -47,7 +47,8 @@ IMPL_DIR    = "../test_neo/test_neo.runs/impl_1"
 XDC_FILE    = "../hw/xdc/basys3.xdc"
 # File names of the design files: <TOP>.bit/.ebd/.ll
 TOP         = "neorv32_test_setup_bootloader"
-# Pblock of the test harness in the XDC; the campaign never injects into it
+# Pblock of the test harness in the XDC. Each injection excludes it
+# (exclude_pblock of inject_random), so the campaign never injects into it.
 HARNESS_PBLOCK = "harness_pblock"
 # Campaign results, relative to this folder (created if missing)
 RESULTS_DIR = "injection_results"
@@ -106,19 +107,6 @@ def crcfinal_of(data: bytes) -> bytes | None:
     None if there is none."""
     match = CRCFINAL_RE.search(data)
     return match.group(1) if match else None
-
-
-def pblock_fars(dev: FpgaDevice, pblock_name: str) -> list[int]:
-    """Return the frame addresses (FARs) that the named pblock of the XDC
-    covers."""
-    pblocks = {pblock.name: pblock for pblock in dev.pblocks()}
-    if pblock_name not in pblocks:
-        raise SystemExit(f"Pblock '{pblock_name}' is not in the XDC. "
-                         f"Pblocks found: {sorted(pblocks) or 'none'}")
-    fars = set()
-    for clause in pblocks[pblock_name].clauses:
-        fars.update(entry.far for entry in dev.pblock_by_clause(clause))
-    return sorted(fars)
 
 
 def random_step_start() -> list[int]:
@@ -183,12 +171,6 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
         xdc=XDC_FILE,
     )
     dev.uploadDesignToServer(design)
-
-    # Exclude the frames of the harness pblock (taken from the XDC), so that
-    # faults injected there do not disturb the clock-cycle controller
-    harness_fars = pblock_fars(dev, HARNESS_PBLOCK)
-    dev.exclude_frames(harness_fars)
-    print(f"Excluded {len(harness_fars)} frames of pblock '{HARNESS_PBLOCK}'.")
 
     # Program the FPGA with the uploaded bitstream.
     dev.programFPGA()
@@ -295,8 +277,11 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
             while retry:
                 # Flush the UART before each attempt.
                 flush_uart(dev, ser)
+                # Do not inject into the harness pblock: a fault there
+                # disturbs the clock-cycle controller.
                 flag, inject_report, bscan_counter = bscan.start_run_n_inject(
-                    dev, steps[0], *category_list
+                    dev, steps[0], *category_list,
+                    exclude_pblock={HARNESS_PBLOCK},
                 )
 
                 if flag != 0:
