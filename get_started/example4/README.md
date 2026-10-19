@@ -35,7 +35,7 @@ When SK-RAFT reads or writes BRAM content frames (part 2 injects into them), the
 
 - Python 3.9 or a later version, with the `skraft` package installed.
 - An SK-RAFT server in operation, with the target board connected through USB.
-- The bitstream, the EBD file, the LL file and the XDC file that declares `pblock_stock_bram`. The script uploads these files to the server. Build them with `hw/create_project.tcl`, which includes the BRAM hold register pass (the prebuilt files in `design_examples.zip` do not have it).
+- The bitstream, the EBD file, the LL file and the XDC file that declares `pblock_stock_bram`. The script uploads these files to the server. Use the prebuilt files in `design_examples.zip`, or build them with `hw/create_project.tcl`. Both include the BRAM hold register pass.
 
 ## Configuration
 

@@ -88,7 +88,7 @@ An SK-RAFT access to BRAM content frames (readback, inject, revert) overwrites t
 
 The build prints the report of the pass, and also writes it to `bram_hold_pass.rpt` in the `impl_1` run directory. For `brams_top`, the report shows the read port of `stock_bram` as held. The other tops have no block RAM, so the build does not run the pass for them.
 
-The prebuilt files in `design_examples.zip` were built without the pass. Build `brams_top` with `create_project.tcl` to get the protected design.
+The prebuilt `brams_top` files in `design_examples.zip` were built with the pass.
 
 ## Run an example
 

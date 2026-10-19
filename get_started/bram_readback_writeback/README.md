@@ -42,14 +42,12 @@ Two consequences for SK-RAFT campaigns:
 
 - Python 3.9 or a later version, with the `skraft` package installed.
 - An SK-RAFT server in operation, with the target board connected through USB.
-- The bitstream and the LL file of `bram_readback_writeback_top`. The prebuilt files in `design_examples.zip` do not include this design. Build it:
+- The bitstream and the LL file of `bram_readback_writeback_top` in `hw/design_examples/<board>/bram_readback_writeback_top/`. Extract them from `design_examples.zip` (refer to [Prebuilt design files](../README.md#prebuilt-design-files)), or build them:
 
 ```bash
 cd ../hw
 vivado -mode batch -source create_project.tcl -tclargs basys3 bram_readback_writeback_top
 ```
-
-The build copies the files to `hw/design_examples/<board>/bram_readback_writeback_top/`.
 
 ## Run the example
 

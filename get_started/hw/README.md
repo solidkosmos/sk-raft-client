@@ -8,13 +8,13 @@ This folder contains the Vivado build script, the VHDL sources and the constrain
 - `bscan_adder_top`: two adders that BSCAN controls. One BSCAN write register (USER1) supplies the operands to a simplex adder and to a TMR adder. The script reads the result of the simplex adder through USER2 and the result of the TMR adder through USER3.
 - `ff_lut_top`: a flip-flop shift register that operates continuously, and a LUTRAM with an address map. The JTAG interface controls the clock of the shift register. BSCAN controls the two elements.
 - `brams_top`: one block RAM with a Hamming SEC code for each byte. Independent JTAG/BSCAN registers supply the address and the data.
-- `bram_readback_writeback_top`: one block RAM with the built-in ECC and no output register, for the `bram_readback_writeback` example. The read port is always enabled, and JTAG/BSCAN reads the BRAM outputs directly. `design_examples.zip` does not include this design.
+- `bram_readback_writeback_top`: one block RAM with the built-in ECC and no output register, for the `bram_readback_writeback` example. The read port is always enabled, and JTAG/BSCAN reads the BRAM outputs directly.
 
 Each design is a full top-level design. The project has no default synthesis top.
 
 ## Prebuilt designs
 
-`design_examples/design_examples.zip` contains the prebuilt design files of the four designs for the Basys 3 (`basys3`) and the ZedBoard (`zedboard`). To extract them, run the script for your operating system:
+`design_examples/design_examples.zip` contains the prebuilt design files of the five designs for the Basys 3 (`basys3`) and the ZedBoard (`zedboard`). To extract them, run the script for your operating system:
 
 ```
 cd design_examples
