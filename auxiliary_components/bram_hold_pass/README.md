@@ -44,18 +44,30 @@ source needs no change.
 ## Requirements on the design
 
 1. **The clock must stop after the edge of the hold register.** Between the
-   last read edge and the freeze there must be an edge of the hold register. For a BRAM on the
-   rising edge, gate the clock with a buffer that stops **low** (BUFGCE,
-   or BUFGCTRL with `INIT_OUT = 0`), never BUFGCE_1. For a BRAM with an
-   inverted clock (`IS_CLK*_INVERTED = 1`), the opposite. The pass warns
-   when it sees a gating buffer that stops on the wrong level.
+   last read edge and the freeze there must be an edge of the hold
+   register. For a BRAM on the rising edge, gate the clock with a buffer
+   that stops **low** (BUFGCE, or BUFGCTRL with `INIT_OUT = 0`), never
+   BUFGCE_1. For a BRAM with an inverted clock (`IS_CLK*_INVERTED = 1`),
+   the opposite. The pass warns when it sees a gating buffer that stops on
+   the wrong level.
 2. **Timing of the half-cycle paths is yours.** BRAM clock-to-out to the
-   hold register, and the hold register to its loads, each get half a clock period. The pass
-   adds no constraints; Vivado times these paths normally. If they fail,
-   lower the clock or use `DO_REG = 1` on that port.
-3. **Injections happen with the clock stopped.** The hold register protects the
-   word read before the freeze. It does not make access to a running BRAM
-   safe.
+   hold register, and the hold register to its loads, each get half a clock
+   period. The pass adds no constraints; Vivado times these paths normally.
+   If they fail, lower the clock or use `DO_REG = 1` on that port.
+3. **Injections happen with the clock stopped.** The hold register protects
+   the word read before the freeze. It does not make access to a running
+   BRAM safe.
+4. **Exclude the BRAMs from power optimization.** Add this line to the XDC:
+
+   ```tcl
+   set_power_opt -exclude_cells [get_cells -hier -filter {REF_NAME =~ RAMB*}]
+   ```
+
+   This way the tool does not optimize the way the BRAMs perform reads.
+   Without it, the power optimization of `opt_design` (after the pass) can
+   add gating logic to a read enable, for example one that is tied on.
+   Then the BRAM reads less often than the pass assumed. The examples of
+   this repository have this line in their XDC files.
 
 ## What the pass does
 
@@ -87,7 +99,7 @@ UltraScale RAMB18E2, RAMB36E2, FIFO18E2, FIFO36E2):
 
   With the port enable tied on, opposite-edge loads stay on `DO` (the port
   reads every cycle, so a fresh word replaces the overwritten one before
-  they sample).
+  they sample; this needs requirement 4).
 - Only output pins with loads get a hold flip-flop.
 - Hold register CE = OR of the port enable and the output latch reset
   (RAMB18E1/RAMB36E1), registered on the BRAM edge. One enable flip-flop
