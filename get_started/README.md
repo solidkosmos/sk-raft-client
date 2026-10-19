@@ -5,6 +5,7 @@
 ```
 get_started/
 ├── example1/ .. example4/             SK-RAFT client examples (src/main.py)
+├── bram_readback_writeback/           BRAM with built-in ECC under injection (src/main.py)
 └── hw/                                 Vivado project (create_project.tcl)
     ├── design_examples/                 design files: design_examples.zip and build output
     ├── sources_1/new/                   VHDL sources
@@ -19,6 +20,7 @@ get_started/
 | 2 | [example2](example2/README.md) | [`bscan_adder_top`](hw/sources_1/new/bscan_adder_top.vhd) (simplex adder and TMR adder, each in its own pblock. Input and output are provided via BSCAN) | Showing how to evaluate and compare the soft-error vulnerability of two circuits. |
 | 3 | [example3](example3/README.md) | [`ff_lut_top`](hw/sources_1/new/ff_lut_top.vhd) (flip-flop shift register and LUTRAM) | Showing how to inject faults into the ARAM plane, e.g., flip-flop and LUTRAM contents. |
 | 4 | [example4](example4/README.md) | [`brams_top`](hw/sources_1/new/brams_top.vhd) (one BRAM with a Hamming SEC code for each byte) | Showing how to inject faults into the BRAMs: You corrupt CRAM bits and content data (ARAM). |
+| - | [bram_readback_writeback](bram_readback_writeback/README.md) | [`bram_readback_writeback_top`](hw/sources_1/new/bram_readback_writeback_top.vhd) (one BRAM with the built-in ECC, no output register) | Showing what the BRAM outputs during and after an injection into its content: a wrong word while the clock is stopped, then the flipped bit with no ECC error. |
 
 Each example operates with one design. The README of each example shows how to create the files that the SK-RAFT client script uploads to the SK-RAFT server for testing. These files are the bitstream and the EBD, LL and XDC files where necessary. Vivado builds these files from the `sources_1/new/*.vhd` files of that design in [`hw`](hw/).
 
@@ -61,6 +63,7 @@ vivado -mode batch -source create_project.tcl -tclargs <device> <top>
 | `bscan_adder_top` | example2 |
 | `ff_lut_top` | example3 |
 | `brams_top` | example4 |
+| `bram_readback_writeback_top` | bram_readback_writeback |
 
 SolidKosmos tested and supplies only `basys3` and `zedboard` as `<device>`. To add your own board, refer to "Build a bitstream" in [`hw/README.md`](hw/README.md#build-a-bitstream). That section tells you how to:
 
@@ -76,6 +79,16 @@ vivado -mode batch -source create_project.tcl -tclargs zedboard brams_top -gui
 ```
 
 After a successful build, the script copies the bitstream, the EBD file, the LL file and `board.xdc` into `hw/design_examples/<device>/<top>/`. If this folder does not exist (for example, for your own board), the script creates it. You do not have to copy files manually.
+
+### BRAM shadow register pass (`brams_top`)
+
+For `brams_top`, the build runs the BRAM shadow register pass before `opt_design`. The pass is in [`auxiliary_components/bram_shadow_pass`](../auxiliary_components/bram_shadow_pass/README.md).
+
+An SK-RAFT access to BRAM content frames (readback, inject, revert) overwrites the output latch of the block RAMs without an output register. The stored content does not change, but the design would read the overwritten value after the clock resumes. The pass adds a shadow register (a flip-flop on the opposite clock edge) behind each BRAM output in use, so the design keeps the word it read before the freeze.
+
+The build prints the report of the pass, and also writes it to `bram_shadow_pass.rpt` in the `impl_1` run directory. For `brams_top`, the report shows the read port of `stock_bram` as shadowed. The other tops have no block RAM, so the build does not run the pass for them.
+
+The prebuilt files in `design_examples.zip` were built without the pass. Build `brams_top` with `create_project.tcl` to get the protected design.
 
 ## Run an example
 

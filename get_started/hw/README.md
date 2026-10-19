@@ -8,6 +8,7 @@ This folder contains the Vivado build script, the VHDL sources and the constrain
 - `bscan_adder_top`: two adders that BSCAN controls. One BSCAN write register (USER1) supplies the operands to a simplex adder and to a TMR adder. The script reads the result of the simplex adder through USER2 and the result of the TMR adder through USER3.
 - `ff_lut_top`: a flip-flop shift register that operates continuously, and a LUTRAM with an address map. The JTAG interface controls the clock of the shift register. BSCAN controls the two elements.
 - `brams_top`: one block RAM with a Hamming SEC code for each byte. Independent JTAG/BSCAN registers supply the address and the data.
+- `bram_readback_writeback_top`: one block RAM with the built-in ECC and no output register, for the `bram_readback_writeback` example. The read port is always enabled, and JTAG/BSCAN reads the BRAM outputs directly. `design_examples.zip` does not include this design.
 
 Each design is a full top-level design. The project has no default synthesis top.
 
@@ -39,13 +40,15 @@ vivado -mode batch -source create_project.tcl -tclargs basys3 brams_top
 
 To open the project in the Vivado GUI after the build, add `-gui` at any position in the arguments. Vivado then stays open, and you can examine or change the project.
 
-The script writes the bitstream to `<project_dir>/<project_name>.runs/impl_1/<top>.bit`. For `targeted_top`, `bscan_adder_top`, `ff_lut_top` and `brams_top`, the script also copies these files into `design_examples/<device>/<top>/`:
+The script writes the bitstream to `<project_dir>/<project_name>.runs/impl_1/<top>.bit`. For `targeted_top`, `bscan_adder_top`, `ff_lut_top`, `brams_top` and `bram_readback_writeback_top`, the script also copies these files into `design_examples/<device>/<top>/`:
 
 - The bitstream.
 - The EBD and LL files, if Vivado makes them.
 - The XDC file, with the name `board.xdc`.
 
 If this folder does not exist (for example, for your own board), the script creates it. Files from `design_examples.zip` in that folder are overwritten. Thus you can run the related example immediately after the build. Set `BOARD` in its `main.py` to the name of the board.
+
+For `brams_top`, the script sets the BRAM shadow register pass as the hook before `opt_design` (`STEPS.OPT_DESIGN.TCL.PRE` of `impl_1`). The pass is `auxiliary_components/bram_shadow_pass/bram_shadow_hook.tcl` at the root of the repository; the list `tops_with_bram_shadow` in the script selects the tops. The pass writes `bram_shadow_pass.rpt` in the `impl_1` run directory, and the script prints it after the build. Refer to the [pass README](../../auxiliary_components/bram_shadow_pass/README.md) for what it changes and why.
 
 The known devices are `basys3` (Digilent Basys 3, `xc7a35tcpg236-1`) and `zedboard` (ZedBoard, `xc7z020clg484-1`). SolidKosmos tested and supplies only these two boards.
 

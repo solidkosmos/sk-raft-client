@@ -38,6 +38,16 @@ set known_tops {
     bscan_adder_top
     ff_lut_top
     brams_top
+    bram_readback_writeback_top
+}
+
+# These tops have block RAMs without an output register. Their build runs
+# the BRAM shadow register pass before opt_design (see
+# auxiliary_components/bram_shadow_pass/README.md at the root of the
+# repository). The pass protects the words the design read from its BRAMs
+# against the SK-RAFT accesses to BRAM content frames.
+set tops_with_bram_shadow {
+    brams_top
 }
 
 # These tops have the g_family and clk_freq generics. bscan_adder_top has
@@ -162,6 +172,7 @@ set vhdl_files {
     bscan_adder_top.vhd
     ff_lut_top.vhd
     brams_top.vhd
+    bram_readback_writeback_top.vhd
     examples_utilities_pkg.vhd
     heartbeat.vhd
     lut_memory_array.vhd
@@ -238,6 +249,20 @@ if { [get_property PROGRESS [get_runs synth_1]] != "100%" } {
 # bscan_adder_top). The other tops must have it (ff_lut_top, brams_top).
 set_property STEPS.WRITE_BITSTREAM.ARGS.LOGIC_LOCATION_FILE true [get_runs impl_1]
 
+# The BRAM shadow register pass, as the hook before opt_design. It writes
+# bram_shadow_pass.rpt in the impl_1 run directory.
+set shadow_hook [file normalize \
+    "$script_dir/../../auxiliary_components/bram_shadow_pass/bram_shadow_hook.tcl"]
+set use_shadow [expr {[lsearch -exact $tops_with_bram_shadow $top] >= 0}]
+if { $use_shadow } {
+    if { ![file exists $shadow_hook] } {
+        puts "ERROR: BRAM shadow pass not found: $shadow_hook"
+        finish 1
+        return
+    }
+    set_property STEPS.OPT_DESIGN.TCL.PRE $shadow_hook [get_runs impl_1]
+}
+
 launch_runs impl_1 -to_step write_bitstream -jobs 4
 wait_on_run impl_1
 if { [get_property PROGRESS [get_runs impl_1]] != "100%" } {
@@ -247,6 +272,11 @@ if { [get_property PROGRESS [get_runs impl_1]] != "100%" } {
 }
 
 set impl_dir  "$proj_dir/$proj_name.runs/impl_1"
+if { $use_shadow && [file exists "$impl_dir/bram_shadow_pass.rpt"] } {
+    set f [open "$impl_dir/bram_shadow_pass.rpt"]
+    puts [read $f]
+    close $f
+}
 set bit_path  "$impl_dir/$top.bit"
 set ebd_path  "$impl_dir/$top.ebd"
 set ll_path   "$impl_dir/$top.ll"
@@ -257,7 +287,7 @@ if { ![file exists $bit_path] } {
     return
 }
 
-# top -> the example number N that uses this design.
+# top -> the example that uses this design (its number, or its folder name).
 # The script copies the design files (bit/ebd/ll and board.xdc) to
 # design_examples/<device>/<top>/, next to this script. This is the same
 # layout as the prebuilt files in design_examples.zip. If the folder does not
@@ -268,6 +298,7 @@ array set top_to_example {
     bscan_adder_top 2
     ff_lut_top      3
     brams_top       4
+    bram_readback_writeback_top bram_readback_writeback
 }
 
 if { [info exists top_to_example($top)] } {
