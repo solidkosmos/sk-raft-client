@@ -406,6 +406,9 @@ def main() -> None:
         with SkraftFpga.connect(
             ip=SK_RAFT_SERVER_IP, port=SK_RAFT_SERVER_PORT
         ) as client, client.attach(BOARD.serial_number) as dev:
+            # Setup the SEED for deterministic behaviour. 
+            dev.configure_seed(0)
+
             sem = SemUart(BOARD.uart_port, QUIET_S)
             dev.uploadDesignToServer(design)
             for number in EXPERIMENTS:

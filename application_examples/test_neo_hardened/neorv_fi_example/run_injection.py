@@ -487,6 +487,9 @@ def main() -> None:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
             with client.attach(SERIAL_NUMBER) as dev:
+                # Setup the SEED for deterministic behaviour. 
+                dev.configure_seed(0)
+
                 # Open the UART connection to the DUT.
                 with serial.Serial(port=UART_PORT, baudrate=UART_BAUD,
                                    bytesize=8, timeout=0.1) as ser:

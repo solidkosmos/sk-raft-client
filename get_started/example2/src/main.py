@@ -129,6 +129,9 @@ def main() -> None:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
             with client.attach(SERIAL_NUMBER) as dev:
+                # Setup the SEED for deterministic behaviour. 
+                dev.configure_seed(0)
+
                 # SK-RAFT: upload the bitstream, EBD file and XDC file.
                 # Then program the FPGA.
                 dev.uploadDesignToServer(design)
