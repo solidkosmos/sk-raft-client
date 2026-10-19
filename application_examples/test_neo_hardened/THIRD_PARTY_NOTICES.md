@@ -38,7 +38,7 @@ noted change is original NEORV32 code and remains under NEORV32's copyright.
 | `hw/neorv32/core/neorv32_uart.vhd` | Added a `check_tx` output used by the external clock controller to detect an in-flight/queued transmission. |
 | `hw/neorv32/core/neorv32_prim.vhd` | The `neorv32_prim_sdpram` entity only: added soft SECDED in fabric logic (`secded_enc32b` on the write data, one `secded_dec32b` on each read port) around the inferred block RAM, and an `irq_ecc_o` output that flags a corrected read, gated behind `HARDEN_EN` (falls back to the original inferred-BRAM behavioral description when disabled). Other primitives in this file are unmodified. |
 | `hw/neorv32/neorv32_test_setup_bootloader.vhd` | The top-level entity of this project. Instantiates the safe-startup PLL (`clk_gen_wrapper`) and the fault-injection test harness (`tester`), runs the NEORV32 on the gated clock of the harness, sends the GPIO output to the harness (CRC word) and the LEDs, and adds the `HARDEN_EN` and clock-frequency generics. |
-| `sw/hardening_coremark/main.c` | Adapted from NEORV32's `sw/example/hello_world/main.c`. Installs the custom fast-interrupt handlers for the hardening IRQs (see [README.md](README.md#5-firmware)) before handing off to CoreMark. |
+| `sw/hardening_coremark/main.c` | Adapted from NEORV32's `sw/example/hello_world/main.c`. Installs the custom fast-interrupt handlers for the hardening IRQs (see [README.md](README.md#6-firmware)) before handing off to CoreMark. |
 
 ### The `HARDEN_EN` generic
 
@@ -114,5 +114,5 @@ not redistribution of the code). CoreMark itself, and the NEORV32 platform
 port layer it runs on (`core_portme.c`/`.h`), are **not** included in this
 repository -- build against NEORV32's own
 [`sw/example/coremark/`](https://github.com/stnolting/neorv32/tree/main/sw/example/coremark)
-instead, per [README.md](README.md#5-firmware), which also lists the
+instead, per [README.md](README.md#6-firmware), which also lists the
 specific `core_portme.c`/`.h` changes needed to reproduce this build.

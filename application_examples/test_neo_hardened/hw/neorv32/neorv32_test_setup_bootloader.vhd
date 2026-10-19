@@ -36,7 +36,7 @@ entity neorv32_test_setup_bootloader is
     -- frequency of the board clock clk_i in Hz
     CLK_IN_FREQUENCY : natural := 100000000;
     -- core clock in Hz, made from clk_i by clk_gen_wrapper
-    INTERNAL_CLOCK_FREQUENCY  : natural := 70000000;
+    INTERNAL_CLOCK_FREQUENCY  : natural := 40000000;
     -- size of processor-internal instruction memory in bytes
     IMEM_SIZE       : natural := 64*1024;
     -- size of processor-internal data memory in bytes

@@ -28,7 +28,9 @@ firmware and no upload is necessary.
    The script creates `test_neo/test_neo.xpr` from `hw/` and opens it in the
    GUI. Optional arguments: `-tclargs [project_name] [project_dir]`.
 2. Run **Generate Bitstream**. The `.bit`, `.ebd` and `.ll` files go to
-   `test_neo/test_neo.runs/impl_1/`.
+   `test_neo/test_neo.runs/impl_1/`. The implementation run also executes
+   the BRAM shadow register pass (see section 5) and writes its report,
+   `bram_shadow_pass.rpt`, to the same folder.
 3. Run the campaign with `neorv_fi_example/run_injection.py` (see its
    [README](neorv_fi_example/README.md)). The script programs the FPGA and
    reads the UART at 500000 baud.
@@ -69,7 +71,28 @@ keeps the clock on until the UART is idle (`check_tx`). The root clock feeds
 the NEORV32, the harness and the cycle controller. It is off after
 programming, and `run_injection.py` turns it off during each injection.
 
-## 5. Firmware
+## 5. BRAM Output Latch Protection
+
+Vivado builds the NEORV32 IMEM and DMEM from block RAMs. An SK-RAFT
+access to BRAM content frames (readback, inject, revert) overwrites the
+output latch of each block RAM port without an output register; the stored
+content does not change. Without protection, the core can take that wrong
+value instead of the word it read before the freeze.
+
+`create_project.tcl` sets the BRAM shadow register pass
+([`auxiliary_components/bram_shadow_pass`](../../auxiliary_components/bram_shadow_pass/README.md))
+as the hook before `opt_design`. The pass adds a register on the opposite
+clock edge behind each BRAM output in use, which keeps the word read before
+the freeze. Check `bram_shadow_pass.rpt` after the build: it lists each
+block RAM and what the pass did. The clock gates of the harness are
+BUFGCEs, which stop low, as the pass requires.
+
+The paths from a shadow register to the logic on the BRAM clock edge have
+half a clock period. The paths from the register file BRAM through the
+ECC decoder and the ALU do not meet 70 MHz with half a period, so the
+default core clock is 40 MHz.
+
+## 6. Firmware
 
 `sw/hardening_coremark/main.c` is the design-specific part of the firmware.
 It installs the fast-interrupt handlers of the hardening (DMEM and register
@@ -88,30 +111,30 @@ with these changes in `core_portme.c`/`.h`:
 To change the firmware, build it in NEORV32 and replace
 `hw/neorv32/neorv32_application_image.vhd` with the generated image.
 
-## 6. Porting to a Different Board
+## 7. Porting to a Different Board
 
 1. Change `part_name` in `create_project.tcl`.
 2. Replace `hw/xdc/basys3.xdc` with constraints for the board (clock, UART,
    GPIO/LED pins).
 3. For a different input clock, set `CLK_IN_FREQUENCY` and the `clk_i`
-   period in the XDC. `INTERNAL_CLOCK_FREQUENCY` (default 70 MHz) is the
+   period in the XDC. `INTERNAL_CLOCK_FREQUENCY` (default 40 MHz, see section 5) is the
    core clock that `clk_gen_wrapper` makes from `clk_i`.
 4. Redraw `harness_pblock` in the XDC: its slice range is for the
    xc7a35t.
 
-## 7. Directory Layout
+## 8. Directory Layout
 
 Path | Contents
 ---- | --------
 `hw/neorv32/` | NEORV32 files: `core/`, the top (`neorv32_test_setup_bootloader.vhd`) and the application image. Modified files are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 `hw/src/` | SolidKosmos sources: test harness, `clk_gen_wrapper`, parity/SECDED blocks.
 `hw/xdc/` | Basys 3 constraints (`basys3.xdc`).
-`create_project.tcl` | Creates the Vivado project.
+`create_project.tcl` | Creates the Vivado project (with the BRAM shadow register pass from `../../auxiliary_components/bram_shadow_pass/`).
 `neorv_fi_example/` | The SK-RAFT fault-injection campaign.
 `sw/hardening_coremark/` | The design-specific firmware source.
 `images/` | The block diagram.
 
-## 8. Known Limitations
+## 9. Known Limitations
 
 - The DMEM decoder (`secded_dec8b`) corrects from the syndrome only and does
   not check the overall parity: a double-bit error can be miscorrected.
@@ -121,7 +144,7 @@ Path | Contents
 - `HARDEN_EN => false` does not remove the CPU control/frontend hardening
   logic (see section 3).
 
-## 9. License
+## 10. License
 
 SolidKosmos S.A. code (test harness, hardening blocks, Tcl, XDC, Python) is
 licensed under Apache-2.0, see [LICENSE.md](../../LICENSE.md). The NEORV32
@@ -129,7 +152,7 @@ files and the firmware adapted from NEORV32 stay under the NEORV32
 BSD-3-Clause license, see [LICENSE-NEORV32](LICENSE-NEORV32). The per-file
 list is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-## 10. References
+## 11. References
 
 - [NEORV32 RISC-V Processor](https://github.com/stnolting/neorv32) and its
   [data sheet](https://stnolting.github.io/neorv32)

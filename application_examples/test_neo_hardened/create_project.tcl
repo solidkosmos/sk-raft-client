@@ -26,6 +26,11 @@
 #   3. The top has a HARDEN_EN generic (default true). It switches the
 #      SolidKosmos hardening of the NEORV32 core. See the comment near the end
 #      of this script for the unhardened baseline.
+#   4. The implementation run executes the BRAM shadow register pass before
+#      opt_design (auxiliary_components/bram_shadow_pass at the root of the
+#      repository). It protects the words the NEORV32 read from its block
+#      RAMs (IMEM, DMEM) against the SK-RAFT accesses to BRAM content
+#      frames. Its report is bram_shadow_pass.rpt in the impl_1 directory.
 ################################################################################
 
 # Target part and top. To use another board, change the part and the XDC file
@@ -221,7 +226,18 @@ puts "----------------------------------------------------------------------"
 set_property STEPS.WRITE_BITSTREAM.ARGS.LOGIC_LOCATION_FILE true \
     [get_runs impl_1]
 
-puts "Run Generate Bitstream in the GUI. The .bit, .ebd and .ll files go to"
+# The BRAM shadow register pass, as the hook before opt_design. It writes
+# bram_shadow_pass.rpt in the impl_1 run directory.
+set shadow_hook [file normalize \
+    "$script_dir/../../auxiliary_components/bram_shadow_pass/bram_shadow_hook.tcl"]
+if { ![file exists $shadow_hook] } {
+    puts "ERROR: BRAM shadow pass not found: $shadow_hook"
+    exit 1
+}
+set_property STEPS.OPT_DESIGN.TCL.PRE $shadow_hook [get_runs impl_1]
+
+puts "Run Generate Bitstream in the GUI. The .bit, .ebd, .ll and"
+puts "bram_shadow_pass.rpt files go to"
 puts "  $proj_dir/$proj_name.runs/impl_1/"
 
 finish 0
