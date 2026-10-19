@@ -99,9 +99,9 @@ python main.py
 
 The examples do not use command-line options. To configure an example, change the constants at the top of its `main.py`: `SK_RAFT_SERVER_IP`, `SERIAL_NUMBER`, `BOARD` and the other constants of that example. Then run the script.
 
-Each example injects faults until you press Enter. Then the example continues to its next step, or it stops.
+Examples 1 to 4 inject faults until you press Enter. Then the example continues to its next step, or it stops. `bram_readback_writeback` injects one fault and runs without input.
 
-Examples 1 and 2 correct each upset. Examples 3 and 4 program the FPGA again at the end.
+Examples 1 and 2 correct each upset. Examples 3 and 4 and `bram_readback_writeback` program the FPGA again at the end.
 
 Each example programs the FPGA at the start. Thus you can run the examples in any order, also after you stop one with Ctrl+C. If you write your own script, program the FPGA first.
 
