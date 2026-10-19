@@ -80,13 +80,13 @@ vivado -mode batch -source create_project.tcl -tclargs zedboard brams_top -gui
 
 After a successful build, the script copies the bitstream, the EBD file, the LL file and `board.xdc` into `hw/design_examples/<device>/<top>/`. If this folder does not exist (for example, for your own board), the script creates it. You do not have to copy files manually.
 
-### BRAM shadow register pass (`brams_top`)
+### BRAM hold register pass (`brams_top`)
 
-For `brams_top`, the build runs the BRAM shadow register pass before `opt_design`. The pass is in [`auxiliary_components/bram_shadow_pass`](../auxiliary_components/bram_shadow_pass/README.md).
+For `brams_top`, the build runs the BRAM hold register pass before `opt_design`. The pass is in [`auxiliary_components/bram_hold_pass`](../auxiliary_components/bram_hold_pass/README.md).
 
-An SK-RAFT access to BRAM content frames (readback, inject, revert) overwrites the output latch of the block RAMs without an output register. The stored content does not change, but the design would read the overwritten value after the clock resumes. The pass adds a shadow register (a flip-flop on the opposite clock edge) behind each BRAM output in use, so the design keeps the word it read before the freeze.
+An SK-RAFT access to BRAM content frames (readback, inject, revert) overwrites the output latch of the block RAMs without an output register. The stored content does not change, but the design would read the overwritten value after the clock resumes. The pass adds a hold register (a flip-flop on the opposite clock edge) behind each BRAM output in use, so the design keeps the word it read before the freeze.
 
-The build prints the report of the pass, and also writes it to `bram_shadow_pass.rpt` in the `impl_1` run directory. For `brams_top`, the report shows the read port of `stock_bram` as shadowed. The other tops have no block RAM, so the build does not run the pass for them.
+The build prints the report of the pass, and also writes it to `bram_hold_pass.rpt` in the `impl_1` run directory. For `brams_top`, the report shows the read port of `stock_bram` as held. The other tops have no block RAM, so the build does not run the pass for them.
 
 The prebuilt files in `design_examples.zip` were built without the pass. Build `brams_top` with `create_project.tcl` to get the protected design.
 

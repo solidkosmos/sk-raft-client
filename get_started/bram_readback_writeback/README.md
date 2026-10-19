@@ -35,7 +35,7 @@ The script writes word k as `NOT k` in bits 63:32 and `k` in bits 31:0. Word 0 i
 
 Two consequences for SK-RAFT campaigns:
 
-- A design that reads a BRAM with `DO_REG = 0` can take the wrong word of stage 3 after a freeze. The BRAM shadow register pass ([`auxiliary_components/bram_shadow_pass`](../../auxiliary_components/bram_shadow_pass/README.md)) protects against this. This example builds without the pass to show the effect.
+- A design that reads a BRAM with `DO_REG = 0` can take the wrong word of stage 3 after a freeze. The BRAM hold register pass ([`auxiliary_components/bram_hold_pass`](../../auxiliary_components/bram_hold_pass/README.md)) protects against this. This example builds without the pass to show the effect.
 - `TargetMemory.BRAM` injection into a BRAM with `EN_ECC_WRITE = TRUE` does not test the built-in ECC. It gives a valid word with wrong data.
 
 ## Requirements

@@ -29,8 +29,8 @@ firmware and no upload is necessary.
    GUI. Optional arguments: `-tclargs [project_name] [project_dir]`.
 2. Run **Generate Bitstream**. The `.bit`, `.ebd` and `.ll` files go to
    `test_neo/test_neo.runs/impl_1/`. The implementation run also executes
-   the BRAM shadow register pass (see section 5) and writes its report,
-   `bram_shadow_pass.rpt`, to the same folder.
+   the BRAM hold register pass (see section 5) and writes its report,
+   `bram_hold_pass.rpt`, to the same folder.
 3. Run the campaign with `neorv_fi_example/run_injection.py` (see its
    [README](neorv_fi_example/README.md)). The script programs the FPGA and
    reads the UART at 500000 baud.
@@ -79,15 +79,15 @@ output latch of each block RAM port without an output register; the stored
 content does not change. Without protection, the core can take that wrong
 value instead of the word it read before the freeze.
 
-`create_project.tcl` sets the BRAM shadow register pass
-([`auxiliary_components/bram_shadow_pass`](../../auxiliary_components/bram_shadow_pass/README.md))
+`create_project.tcl` sets the BRAM hold register pass
+([`auxiliary_components/bram_hold_pass`](../../auxiliary_components/bram_hold_pass/README.md))
 as the hook before `opt_design`. The pass adds a register on the opposite
 clock edge behind each BRAM output in use, which keeps the word read before
-the freeze. Check `bram_shadow_pass.rpt` after the build: it lists each
+the freeze. Check `bram_hold_pass.rpt` after the build: it lists each
 block RAM and what the pass did. The clock gates of the harness are
 BUFGCEs, which stop low, as the pass requires.
 
-The paths from a shadow register to the logic on the BRAM clock edge have
+The paths from a hold register to the logic on the BRAM clock edge have
 half a clock period. The paths from the register file BRAM through the
 ECC decoder and the ALU do not meet 70 MHz with half a period, so the
 default core clock is 40 MHz.
@@ -129,7 +129,7 @@ Path | Contents
 `hw/neorv32/` | NEORV32 files: `core/`, the top (`neorv32_test_setup_bootloader.vhd`) and the application image. Modified files are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 `hw/src/` | SolidKosmos sources: test harness, `clk_gen_wrapper`, parity/SECDED blocks.
 `hw/xdc/` | Basys 3 constraints (`basys3.xdc`).
-`create_project.tcl` | Creates the Vivado project (with the BRAM shadow register pass from `../../auxiliary_components/bram_shadow_pass/`).
+`create_project.tcl` | Creates the Vivado project (with the BRAM hold register pass from `../../auxiliary_components/bram_hold_pass/`).
 `neorv_fi_example/` | The SK-RAFT fault-injection campaign.
 `sw/hardening_coremark/` | The design-specific firmware source.
 `images/` | The block diagram.

@@ -1,24 +1,24 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (C) 2026 SOLIDKOSMOS S.A.
 #
-# BRAM shadow register netlist pass (7-series and UltraScale).
+# BRAM hold register netlist pass (7-series and UltraScale).
 #
 # A configuration access to BRAM content frames (SK-RAFT readback, inject,
 # revert) overwrites the BRAM output latch when the port has no output
-# register (DO_REG = 0). This pass puts a shadow register behind every
+# register (DO_REG = 0). This pass puts a hold register behind every
 # such output: a flip-flop on the opposite clock edge of the BRAM read
 # clock that copies the output in the half cycle after each read. The
-# loads of the output are moved to the shadow register.
+# loads of the output are moved to the hold register.
 #
 # Per BRAM port:
 #   - skipped when the output register is on (DOA_REG/DOB_REG/DO_REG = 1)
 #   - skipped when no output pin of the port has a load
-#   - skipped when every load of an output pin is already a shadow in the
+#   - skipped when every load of an output pin is already a hold in the
 #     source: a flip-flop on the opposite edge of the same clock whose CE
 #     is the port enable registered on the BRAM edge (CE tied on when the
 #     enable is tied on). An opposite-edge flip-flop with any other CE
-#     (for example CE = 1, loading every cycle) is not a shadow: after a
-#     freeze it loads the overwritten output, so a shadow is inserted in
+#     (for example CE = 1, loading every cycle) is not a hold: after a
+#     freeze it loads the overwritten output, so a hold is inserted in
 #     front of it. -trust_existing accepts any opposite-edge flip-flop.
 #   - skipped when the cell matches an -exclude pattern
 #   - skipped when the port is never enabled (enable tied off)
@@ -27,39 +27,39 @@
 #     UNREGISTERED. RAMB*E2 cascades (CASCADE_ORDER), FWFT FIFOs without
 #     the output register and URAM are reported, not changed
 # Cascaded RAMB36E1 (64K x 1, RAM_EXTENSION = UPPER/LOWER): the output of
-# the pair is the UPPER output, which gets the shadow; its enable covers
+# the pair is the UPPER output, which gets the hold; its enable covers
 # both halves. The LOWER outputs have no loads and are skipped.
-# Shadow clock enable: the OR of the port enables and output latch resets
+# Hold clock enable: the OR of the port enables and output latch resets
 # (RAMB18E1/RAMB36E1; both halves of a cascade), registered on the BRAM
 # clock edge. One enable flip-flop is shared by every port with the same
 # clock and terms.
-# With the enable tied on, the shadow loads every cycle (no enable FF).
+# With the enable tied on, the hold loads every cycle (no enable FF).
 # Inverted BRAM pins (IS_*_INVERTED) are followed.
 # Loads that sample on the BRAM edge (directly, or through logic) move to
-# the shadow output: it holds the word half a cycle before they sample, so
+# the hold output: it holds the word half a cycle before they sample, so
 # their timing does not change. Loads that sample on the opposite edge get
-# a LUT3 mux, registered enable ? DO : shadow, per bit: they take DO in the
-# half cycle after a read, as before (the shadow would be one cycle late
-# for them, since it loads on that same edge), and the shadow otherwise.
+# a LUT3 mux, registered enable ? DO : hold, per bit: they take DO in the
+# half cycle after a read, as before (the hold would be one cycle late
+# for them, since it loads on that same edge), and the hold otherwise.
 # A load whose logic reaches registers on both edges gets the mux and a
 # warning.
 #
-# The clock of a shadowed BRAM must stop so that the BRAM read edge is
-# followed by the shadow edge before the freeze (a BUFGCE, which stops
+# The clock of a held BRAM must stop so that the BRAM read edge is
+# followed by the hold edge before the freeze (a BUFGCE, which stops
 # low, for a non-inverted BRAM clock). The pass warns when the BRAM clock
 # comes from a buffer that stops on the wrong level.
 #
 # Usage, on a synthesized netlist (before opt_design):
-#   source bram_shadow_pass.tcl
-#   bram_shadow::run                    ;# change the netlist
-#   bram_shadow::run -dry_run           ;# only report
-#   bram_shadow::run -report file.rpt   ;# report file name
-#   bram_shadow::run -exclude {u_a/* u_b}  ;# leave these BRAM cells alone
-#   bram_shadow::run -trust_existing    ;# any opposite-edge FF is a shadow
-# In a project, bram_shadow_hook.tcl is the STEPS.OPT_DESIGN.TCL.PRE hook.
+#   source bram_hold_pass.tcl
+#   bram_hold::run                    ;# change the netlist
+#   bram_hold::run -dry_run           ;# only report
+#   bram_hold::run -report file.rpt   ;# report file name
+#   bram_hold::run -exclude {u_a/* u_b}  ;# leave these BRAM cells alone
+#   bram_hold::run -trust_existing    ;# any opposite-edge FF is a hold
+# In a project, bram_hold_hook.tcl is the STEPS.OPT_DESIGN.TCL.PRE hook.
 # See README.md for the rules and how to read the report.
 
-namespace eval bram_shadow {
+namespace eval bram_hold {
     variable uid 0
     variable consts
     variable enables
@@ -70,18 +70,18 @@ namespace eval bram_shadow {
 
 # ---------------------------------------------------------------- helpers
 
-proc bram_shadow::next_id {} {
+proc bram_hold::next_id {} {
     variable uid
     return [incr uid]
 }
 
-proc bram_shadow::name_in {parent base} {
+proc bram_hold::name_in {parent base} {
     if {$parent eq ""} { return $base }
     return "$parent/$base"
 }
 
 # Property value, or default when the property is missing or empty
-proc bram_shadow::prop {obj name {default ""}} {
+proc bram_hold::prop {obj name {default ""}} {
     if {[catch {get_property -quiet $name $obj} value] || $value eq ""} {
         return $default
     }
@@ -89,17 +89,17 @@ proc bram_shadow::prop {obj name {default ""}} {
 }
 
 # 1 for 1'b1, 1 or TRUE
-proc bram_shadow::is_one {value} {
+proc bram_hold::is_one {value} {
     return [expr {[string match "*1" $value] ||
                   [string equal -nocase $value TRUE]}]
 }
 
-proc bram_shadow::pin_net {pin} {
+proc bram_hold::pin_net {pin} {
     if {$pin eq ""} { return "" }
     return [get_nets -quiet -of_objects $pin]
 }
 
-proc bram_shadow::driver_pin {net} {
+proc bram_hold::driver_pin {net} {
     if {$net eq ""} { return "" }
     return [get_pins -quiet -leaf -of_objects $net -filter {DIRECTION == OUT}]
 }
@@ -107,20 +107,20 @@ proc bram_shadow::driver_pin {net} {
 # What drives net, for comparing nets: the leaf driver pin, or the
 # top-level port when the net comes straight from a port (out-of-context
 # netlists have no input buffers)
-proc bram_shadow::driver_id {net} {
+proc bram_hold::driver_id {net} {
     set d [driver_pin $net]
     if {$d ne ""} { return $d }
     if {$net eq ""} { return "" }
     return [get_ports -quiet -of_objects $net]
 }
 
-proc bram_shadow::loads {net} {
+proc bram_hold::loads {net} {
     if {$net eq ""} { return {} }
     return [get_pins -quiet -leaf -of_objects $net -filter {DIRECTION == IN}]
 }
 
 # 0 or 1 for a constant net (no net = 0), "" for a signal
-proc bram_shadow::const_value {net} {
+proc bram_hold::const_value {net} {
     if {$net eq ""} { return 0 }
     set type [prop $net TYPE]
     if {$type in {GND GROUND}} { return 0 }
@@ -135,7 +135,7 @@ proc bram_shadow::const_value {net} {
 }
 
 # Output pins of a cell by bus or pin name
-proc bram_shadow::pins_of {cell names} {
+proc bram_hold::pins_of {cell names} {
     set result {}
     set cname [get_property NAME $cell]
     foreach name $names {
@@ -153,14 +153,14 @@ proc bram_shadow::pins_of {cell names} {
 }
 
 # A GND or VCC net in the hierarchy level parent (one per level)
-proc bram_shadow::const_net {parent value} {
+proc bram_hold::const_net {parent value} {
     variable consts
     set key "$parent|$value"
     if {[info exists consts($key)]} { return $consts($key) }
     set id [next_id]
     if {$value} { set ref VCC; set out P } else { set ref GND; set out G }
-    set cname [name_in $parent "bram_shadow_${ref}_$id"]
-    set nname [name_in $parent "bram_shadow_${ref}_net_$id"]
+    set cname [name_in $parent "bram_hold_${ref}_$id"]
+    set nname [name_in $parent "bram_hold_${ref}_net_$id"]
     create_cell -reference $ref $cname
     create_net $nname
     set net [get_nets $nname]
@@ -170,9 +170,9 @@ proc bram_shadow::const_net {parent value} {
 }
 
 # 1 when the BRAM clock, as seen by the BRAM, stops high after a freeze:
-# the gating buffer stops on the level that leaves no shadow edge after
+# the gating buffer stops on the level that leaves no hold edge after
 # the last BRAM edge
-proc bram_shadow::stops_wrong {clk_drv clk_inv} {
+proc bram_hold::stops_wrong {clk_drv clk_inv} {
     if {$clk_drv eq ""} { return 0 }
     set c [get_cells -quiet -of_objects $clk_drv]
     if {$c eq ""} { return 0 }
@@ -187,10 +187,10 @@ proc bram_shadow::stops_wrong {clk_drv clk_inv} {
     return [expr {$high != $clk_inv}]
 }
 
-# 1 when ff's CE makes it a shadow: CE driven by a flip-flop on the BRAM
+# 1 when ff's CE makes it a hold: CE driven by a flip-flop on the BRAM
 # edge (same clock) whose D is the port enable (en_drv: the driver of the
 # enable net), or CE tied on when the port enable is tied on (en_always)
-proc bram_shadow::is_shadow_ce {ff clk_drv clk_inv en_drv en_always} {
+proc bram_hold::is_hold_ce {ff clk_drv clk_inv en_drv en_always} {
     set ce_net [pin_net [get_pins -quiet -of_objects $ff \
                              -filter {REF_PIN_NAME == CE}]]
     set c [const_value $ce_net]
@@ -211,14 +211,14 @@ proc bram_shadow::is_shadow_ce {ff clk_drv clk_inv en_drv en_always} {
 }
 
 # What the loads of net are:
-#   shadow    every load is a shadow flip-flop (opposite edge, shadow CE)
+#   hold    every load is a hold flip-flop (opposite edge, hold CE)
 #   opposite  every load is an opposite-edge flip-flop, but at least one
-#             has another CE (not a shadow)
+#             has another CE (not a hold)
 #   other     anything else
-proc bram_shadow::load_kind {net clk_drv clk_inv en_drv en_always} {
+proc bram_hold::load_kind {net clk_drv clk_inv en_drv en_always} {
     set lds [loads $net]
     if {![llength $lds]} { return other }
-    set kind shadow
+    set kind hold
     foreach p $lds {
         if {[get_property REF_PIN_NAME $p] ne "D"} { return other }
         set c [get_cells -of_objects $p]
@@ -228,7 +228,7 @@ proc bram_shadow::load_kind {net clk_drv clk_inv en_drv en_always} {
         set cpin [get_pins -quiet -of_objects $c -filter {REF_PIN_NAME == C}]
         if {[driver_id [pin_net $cpin]] ne $clk_drv} { return other }
         if {[is_one [prop $c IS_C_INVERTED 0]] == $clk_inv} { return other }
-        if {![is_shadow_ce $c $clk_drv $clk_inv $en_drv $en_always]} {
+        if {![is_hold_ce $c $clk_drv $clk_inv $en_drv $en_always]} {
             set kind opposite
         }
     }
@@ -238,13 +238,13 @@ proc bram_shadow::load_kind {net clk_drv clk_inv en_drv en_always} {
 # ------------------------------------------------------------ load edges
 
 # 1 for a cell with a clock pin (a register, a BRAM, ...)
-proc bram_shadow::is_sequential {cell} {
+proc bram_hold::is_sequential {cell} {
     return [llength [get_pins -quiet -of_objects $cell -filter {IS_CLOCK}]]
 }
 
 # Edge on which a sequential cell samples, relative to the BRAM clock:
 # same, opposite, mixed, or none (not clocked by the BRAM clock)
-proc bram_shadow::cell_edge {cell clk_drv clk_inv} {
+proc bram_hold::cell_edge {cell clk_drv clk_inv} {
     set result none
     foreach cp [get_pins -quiet -of_objects $cell -filter {IS_CLOCK}] {
         if {[driver_id [pin_net $cp]] ne $clk_drv} { continue }
@@ -263,7 +263,7 @@ proc bram_shadow::cell_edge {cell clk_drv clk_inv} {
 # Edge on which a load of a BRAM output samples the word: the load's own
 # edge for a sequential cell, else the edges of the registers its logic
 # reaches (all_fanout endpoints). same, opposite, mixed or none.
-proc bram_shadow::load_edge {pin clk_drv clk_inv} {
+proc bram_hold::load_edge {pin clk_drv clk_inv} {
     set cell [get_cells -of_objects $pin]
     if {[is_sequential $cell]} { return [cell_edge $cell $clk_drv $clk_inv] }
     if {[catch {all_fanout -quiet -from $pin -endpoints_only -flat} ends]} {
@@ -286,9 +286,9 @@ proc bram_shadow::load_edge {pin clk_drv clk_inv} {
 
 # ---------------------------------------------------------------- enables
 
-# Read terms of a port: list of {net inverted}. The shadow loads when any
+# Read terms of a port: list of {net inverted}. The hold loads when any
 # term is active.
-proc bram_shadow::terms_of {spec} {
+proc bram_hold::terms_of {spec} {
     set terms {}
     foreach t $spec {
         lassign $t cell pin invprop
@@ -299,7 +299,7 @@ proc bram_shadow::terms_of {spec} {
 }
 
 # always, never, or the list of distinct signal terms
-proc bram_shadow::terms_state {terms} {
+proc bram_hold::terms_state {terms} {
     set sig {}
     foreach t $terms {
         lassign $t net inv
@@ -316,9 +316,9 @@ proc bram_shadow::terms_state {terms} {
 
 # ------------------------------------------------------- netlist changes
 
-# Net for the shadow CE: VCC net, or an enable FF output (the OR of the
+# Net for the hold CE: VCC net, or an enable FF output (the OR of the
 # signal terms, registered on the BRAM clock edge)
-proc bram_shadow::shadow_ce {parent clk_net clk_inv sig} {
+proc bram_hold::hold_ce {parent clk_net clk_inv sig} {
     variable enables
     variable counts
     if {$sig eq "always"} { return [const_net $parent 1] }
@@ -331,8 +331,8 @@ proc bram_shadow::shadow_ce {parent clk_net clk_inv sig} {
         set d_net [lindex $sig 0 0]
     } else {
         if {$n > 6} { error "more than 6 enable terms" }
-        set lname [name_in $parent "bram_shadow_en_lut_$id"]
-        set d_name [name_in $parent "bram_shadow_en_d_$id"]
+        set lname [name_in $parent "bram_hold_en_lut_$id"]
+        set d_name [name_in $parent "bram_hold_en_d_$id"]
         create_cell -reference "LUT$n" $lname
         set init 0
         for {set idx 0} {$idx < (1 << $n)} {incr idx} {
@@ -353,8 +353,8 @@ proc bram_shadow::shadow_ce {parent clk_net clk_inv sig} {
         dict incr counts luts
     }
 
-    set fname [name_in $parent "bram_shadow_en_reg_$id"]
-    set qname [name_in $parent "bram_shadow_en_$id"]
+    set fname [name_in $parent "bram_hold_en_reg_$id"]
+    set qname [name_in $parent "bram_hold_en_$id"]
     create_cell -reference FDRE $fname
     set ff [get_cells $fname]
     set_property INIT "1'b0" $ff
@@ -372,17 +372,17 @@ proc bram_shadow::shadow_ce {parent clk_net clk_inv sig} {
     return $q_net
 }
 
-# Shadow one BRAM output pin. The loads on the BRAM edge move to the
-# shadow output. The loads in mux_loads (opposite edge) get
-# sel ? DO : shadow, so they take the BRAM output directly in the half
-# cycle after a read, as before, and the shadow at other times. With sel
+# Hold one BRAM output pin. The loads on the BRAM edge move to the
+# hold output. The loads in mux_loads (opposite edge) get
+# sel ? DO : hold, so they take the BRAM output directly in the half
+# cycle after a read, as before, and the hold at other times. With sel
 # "" (port always enabled) they stay on DO.
-proc bram_shadow::shadow_pin {parent pin clk_net clk_inv ce_net mux_loads sel} {
+proc bram_hold::hold_pin {parent pin clk_net clk_inv ce_net mux_loads sel} {
     variable counts
     set net [pin_net $pin]
     set id [next_id]
-    set fname [name_in $parent "bram_shadow_reg_$id"]
-    set rname [name_in $parent "bram_shadow_raw_$id"]
+    set fname [name_in $parent "bram_hold_reg_$id"]
+    set rname [name_in $parent "bram_hold_raw_$id"]
     create_cell -reference FDRE $fname
     set ff [get_cells $fname]
     set_property INIT "1'b0" $ff
@@ -396,17 +396,17 @@ proc bram_shadow::shadow_pin {parent pin clk_net clk_inv ce_net mux_loads sel} {
     connect_net -net $ce_net -objects [get_pins "$fname/CE"]
     connect_net -net [const_net $parent 0] -objects [get_pins "$fname/R"]
     set_property DONT_TOUCH true $ff
-    dict incr counts shadow_ffs
+    dict incr counts hold_ffs
 
     if {![llength $mux_loads]} { return }
     if {$sel eq ""} {
         set m_net $raw
     } else {
-        set lname [name_in $parent "bram_shadow_mux_$id"]
-        set mname [name_in $parent "bram_shadow_mux_net_$id"]
+        set lname [name_in $parent "bram_hold_mux_$id"]
+        set mname [name_in $parent "bram_hold_mux_net_$id"]
         create_cell -reference LUT3 $lname
         set lut [get_cells $lname]
-        # O = I2 ? I0 : I1 (I0 = DO, I1 = shadow, I2 = registered enable)
+        # O = I2 ? I0 : I1 (I0 = DO, I1 = hold, I2 = registered enable)
         set_property INIT "8'hAC" $lut
         connect_net -net $raw -objects [get_pins "$lname/I0"]
         connect_net -net $net -objects [get_pins "$lname/I1"]
@@ -426,7 +426,7 @@ proc bram_shadow::shadow_pin {parent pin clk_net clk_inv ce_net mux_loads sel} {
 # One BRAM read port. spec: list of {cell pin inverted-property}, the
 # enables (and output latch resets) that can change the output.
 # Returns a report line.
-proc bram_shadow::port {cell label outs clk inv_clk spec} {
+proc bram_hold::port {cell label outs clk inv_clk spec} {
     variable dry_run
     variable trust_existing
     variable counts
@@ -451,7 +451,7 @@ proc bram_shadow::port {cell label outs clk inv_clk spec} {
     set clk_inv [is_one [prop $cell $inv_clk 0]]
     set clk_drv [driver_id $clk_net]
 
-    # A source shadow is recognised only for a single, non-inverted enable
+    # A source hold is recognised only for a single, non-inverted enable
     # term, or an enable tied on
     set en_always [expr {$sig eq "always"}]
     set en_drv ""
@@ -460,35 +460,35 @@ proc bram_shadow::port {cell label outs clk inv_clk spec} {
     }
 
     set todo {}
-    set not_shadow 0
+    set not_hold 0
     foreach p $used {
         set kind [load_kind [pin_net $p] $clk_drv $clk_inv $en_drv $en_always]
-        if {$kind eq "shadow" || ($kind eq "opposite" && $trust_existing)} {
+        if {$kind eq "hold" || ($kind eq "opposite" && $trust_existing)} {
             continue
         }
-        if {$kind eq "opposite"} { incr not_shadow }
+        if {$kind eq "opposite"} { incr not_hold }
         lappend todo $p
     }
     if {![llength $todo]} {
-        dict incr counts skipped_shadowed
-        return "$label: already shadowed ([llength $used] pins)"
+        dict incr counts skipped_held
+        return "$label: already held ([llength $used] pins)"
     }
 
     set note ""
-    if {$not_shadow} {
-        set note " ($not_shadow of these pins feed only opposite-edge flip-flops\
-                  that are not shadows: CE is not the registered enable)"
-        dict incr counts not_shadow_pins $not_shadow
+    if {$not_hold} {
+        set note " ($not_hold of these pins feed only opposite-edge flip-flops\
+                  that are not hold registers: CE is not the registered enable)"
+        dict incr counts not_hold_pins $not_hold
     }
     set warn ""
     if {[stops_wrong $clk_drv $clk_inv]} {
         set warn " WARNING: clock buffer [get_cells -of_objects $clk_drv]\
-                  stops on the wrong level for the shadow"
+                  stops on the wrong level for the hold"
         dict incr counts warnings
     }
 
     # Loads on the opposite edge (or reaching both edges) keep taking DO
-    # right after a read: they get the DO/shadow mux
+    # right after a read: they get the DO/hold mux
     set plan {}
     set n_mux 0
     set n_mixed 0
@@ -507,13 +507,13 @@ proc bram_shadow::port {cell label outs clk inv_clk spec} {
                          reads every cycle)"
         } else {
             append note " ($n_mux opposite-edge loads get DO in the half\
-                         cycle after a read, the shadow otherwise)"
+                         cycle after a read, the hold otherwise)"
         }
         dict incr counts mux_loads $n_mux
     }
     if {$n_mixed} {
         append warn " WARNING: $n_mixed loads reach registers on both clock\
-                     edges; they get the DO/shadow mux, so a register on the\
+                     edges; they get the DO/hold mux, so a register on the\
                      BRAM edge behind them is not protected when a read is\
                      on the last edge before a freeze (fix by hand)"
         dict incr counts warnings
@@ -521,21 +521,21 @@ proc bram_shadow::port {cell label outs clk inv_clk spec} {
 
     set n [llength $todo]
     if {$dry_run} {
-        dict incr counts shadow_ffs $n
-        return "$label: would shadow $n pins$note$warn"
+        dict incr counts hold_ffs $n
+        return "$label: would hold $n pins$note$warn"
     }
-    set ce [shadow_ce $parent $clk_net $clk_inv $sig]
+    set ce [hold_ce $parent $clk_net $clk_inv $sig]
     set sel [expr {$en_always ? "" : $ce}]
     foreach item $plan {
         lassign $item p ml
-        shadow_pin $parent $p $clk_net $clk_inv $ce $ml $sel
+        hold_pin $parent $p $clk_net $clk_inv $ce $ml $sel
     }
-    dict incr counts shadowed_ports
-    return "$label: shadowed $n pins$note$warn"
+    dict incr counts held_ports
+    return "$label: held $n pins$note$warn"
 }
 
 # The LOWER RAMB36E1 of a cascade: the driver of CASCADEIN<port>
-proc bram_shadow::cascade_lower {cell port} {
+proc bram_hold::cascade_lower {cell port} {
     set pin [lindex [pins_of $cell "CASCADEIN$port"] 0]
     set drv [driver_pin [pin_net $pin]]
     if {[llength $drv] != 1} { error "no LOWER driving CASCADEIN$port" }
@@ -543,7 +543,7 @@ proc bram_shadow::cascade_lower {cell port} {
 }
 
 # One TDP port of a RAMB18E1/RAMB36E1
-proc bram_shadow::tdp_port {cell port {e2 0}} {
+proc bram_hold::tdp_port {cell port {e2 0}} {
     variable counts
     if {$port eq "A"} {
         set outs [expr {$e2 ? {DOUTADOUT DOUTPADOUTP} : {DOADO DOPADOP}}]
@@ -561,7 +561,7 @@ proc bram_shadow::tdp_port {cell port {e2 0}} {
     set ext [prop $cell RAM_EXTENSION_$port NONE]
     set label "port $port"
     if {$ext eq "UPPER"} {
-        # The output mixes both latches of the cascade: the shadow loads
+        # The output mixes both latches of the cascade: the hold loads
         # when either half is enabled or reset
         set lower [cascade_lower $cell $port]
         lappend spec [list $lower $en IS_${en}_INVERTED] \
@@ -575,7 +575,7 @@ proc bram_shadow::tdp_port {cell port {e2 0}} {
 
 # ------------------------------------------------------------------ pass
 
-proc bram_shadow::run {args} {
+proc bram_hold::run {args} {
     variable uid 0
     variable consts
     variable enables
@@ -584,13 +584,13 @@ proc bram_shadow::run {args} {
     variable counts
     array unset consts
     array unset enables
-    set counts [dict create shadowed_ports 0 shadow_ffs 0 enable_ffs 0 \
+    set counts [dict create held_ports 0 hold_ffs 0 enable_ffs 0 \
                     luts 0 skipped_doreg 0 skipped_unused 0 \
-                    skipped_shadowed 0 skipped_disabled 0 \
-                    skipped_other 0 excluded 0 not_shadow_pins 0 \
+                    skipped_held 0 skipped_disabled 0 \
+                    skipped_other 0 excluded 0 not_hold_pins 0 \
                     mux_loads 0 mux_luts 0 \
                     warnings 0 errors 0]
-    set report_file bram_shadow_pass.rpt
+    set report_file bram_hold_pass.rpt
     set exclude {}
     for {set i 0} {$i < [llength $args]} {incr i} {
         switch -- [lindex $args $i] {
@@ -598,7 +598,7 @@ proc bram_shadow::run {args} {
             -trust_existing { set trust_existing 1 }
             -report         { set report_file [lindex $args [incr i]] }
             -exclude        { set exclude [lindex $args [incr i]] }
-            default  { error "bram_shadow::run: unknown option\
+            default  { error "bram_hold::run: unknown option\
                               [lindex $args $i]" }
         }
     }
@@ -713,21 +713,21 @@ proc bram_shadow::run {args} {
 
     set mode [expr {$dry_run ? { (dry run)} : {}}]
     if {$trust_existing} { append mode " (trust existing)" }
-    set head [list "BRAM shadow pass$mode" \
+    set head [list "BRAM hold pass$mode" \
         "  block RAM cells:          [llength $cells]" \
-        "  ports shadowed:           [dict get $counts shadowed_ports]" \
-        "  shadow FFs:               [dict get $counts shadow_ffs]" \
+        "  ports held:               [dict get $counts held_ports]" \
+        "  hold FFs:                 [dict get $counts hold_ffs]" \
         "  enable FFs / LUTs:        [dict get $counts enable_ffs] /\
                                      [dict get $counts luts]" \
         "  ports skipped, DO_REG = 1: [dict get $counts skipped_doreg]" \
         "  ports skipped, no loads:  [dict get $counts skipped_unused]" \
-        "  ports skipped, shadowed:  [dict get $counts skipped_shadowed]" \
+        "  ports skipped, held:      [dict get $counts skipped_held]" \
         "  ports skipped, disabled:  [dict get $counts skipped_disabled]" \
         "  cells not changed:        [dict get $counts skipped_other]" \
         "  cells excluded:           [dict get $counts excluded]" \
-        "  pins on non-shadow opposite-edge FFs (protected):\
-                                     [dict get $counts not_shadow_pins]" \
-        "  opposite-edge loads / DO-shadow mux LUTs:\
+        "  pins on non-hold opposite-edge FFs (protected):\
+                                     [dict get $counts not_hold_pins]" \
+        "  opposite-edge loads / DO-hold mux LUTs:\
                                      [dict get $counts mux_loads] /\
                                      [dict get $counts mux_luts]" \
         "  clock level warnings:     [dict get $counts warnings]" \

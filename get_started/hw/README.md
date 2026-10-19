@@ -48,7 +48,7 @@ The script writes the bitstream to `<project_dir>/<project_name>.runs/impl_1/<to
 
 If this folder does not exist (for example, for your own board), the script creates it. Files from `design_examples.zip` in that folder are overwritten. Thus you can run the related example immediately after the build. Set `BOARD` in its `main.py` to the name of the board.
 
-For `brams_top`, the script sets the BRAM shadow register pass as the hook before `opt_design` (`STEPS.OPT_DESIGN.TCL.PRE` of `impl_1`). The pass is `auxiliary_components/bram_shadow_pass/bram_shadow_hook.tcl` at the root of the repository; the list `tops_with_bram_shadow` in the script selects the tops. The pass writes `bram_shadow_pass.rpt` in the `impl_1` run directory, and the script prints it after the build. Refer to the [pass README](../../auxiliary_components/bram_shadow_pass/README.md) for what it changes and why.
+For `brams_top`, the script sets the BRAM hold register pass as the hook before `opt_design` (`STEPS.OPT_DESIGN.TCL.PRE` of `impl_1`). The pass is `auxiliary_components/bram_hold_pass/bram_hold_hook.tcl` at the root of the repository; the list `tops_with_bram_hold` in the script selects the tops. The pass writes `bram_hold_pass.rpt` in the `impl_1` run directory, and the script prints it after the build. Refer to the [pass README](../../auxiliary_components/bram_hold_pass/README.md) for what it changes and why.
 
 The known devices are `basys3` (Digilent Basys 3, `xc7a35tcpg236-1`) and `zedboard` (ZedBoard, `xc7z020clg484-1`). SolidKosmos tested and supplies only these two boards.
 

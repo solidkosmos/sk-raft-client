@@ -114,7 +114,7 @@ clk_gate : BUFGCE                      -- stops its output low
 
 Clock all logic you want to freeze from `gated_clk`. Use a BUFGCE (stops
 low), not a BUFGCE_1, when the design has block RAMs protected by
-[`bram_shadow_pass`](../bram_shadow_pass/README.md).
+[`bram_hold_pass`](../bram_hold_pass/README.md).
 
 ## XDC: the TCK clock
 

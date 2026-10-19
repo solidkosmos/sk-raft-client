@@ -42,11 +42,11 @@ set known_tops {
 }
 
 # These tops have block RAMs without an output register. Their build runs
-# the BRAM shadow register pass before opt_design (see
-# auxiliary_components/bram_shadow_pass/README.md at the root of the
+# the BRAM hold register pass before opt_design (see
+# auxiliary_components/bram_hold_pass/README.md at the root of the
 # repository). The pass protects the words the design read from its BRAMs
 # against the SK-RAFT accesses to BRAM content frames.
-set tops_with_bram_shadow {
+set tops_with_bram_hold {
     brams_top
 }
 
@@ -249,18 +249,18 @@ if { [get_property PROGRESS [get_runs synth_1]] != "100%" } {
 # bscan_adder_top). The other tops must have it (ff_lut_top, brams_top).
 set_property STEPS.WRITE_BITSTREAM.ARGS.LOGIC_LOCATION_FILE true [get_runs impl_1]
 
-# The BRAM shadow register pass, as the hook before opt_design. It writes
-# bram_shadow_pass.rpt in the impl_1 run directory.
-set shadow_hook [file normalize \
-    "$script_dir/../../auxiliary_components/bram_shadow_pass/bram_shadow_hook.tcl"]
-set use_shadow [expr {[lsearch -exact $tops_with_bram_shadow $top] >= 0}]
-if { $use_shadow } {
-    if { ![file exists $shadow_hook] } {
-        puts "ERROR: BRAM shadow pass not found: $shadow_hook"
+# The BRAM hold register pass, as the hook before opt_design. It writes
+# bram_hold_pass.rpt in the impl_1 run directory.
+set hold_hook [file normalize \
+    "$script_dir/../../auxiliary_components/bram_hold_pass/bram_hold_hook.tcl"]
+set use_hold [expr {[lsearch -exact $tops_with_bram_hold $top] >= 0}]
+if { $use_hold } {
+    if { ![file exists $hold_hook] } {
+        puts "ERROR: BRAM hold pass not found: $hold_hook"
         finish 1
         return
     }
-    set_property STEPS.OPT_DESIGN.TCL.PRE $shadow_hook [get_runs impl_1]
+    set_property STEPS.OPT_DESIGN.TCL.PRE $hold_hook [get_runs impl_1]
 }
 
 launch_runs impl_1 -to_step write_bitstream -jobs 4
@@ -272,8 +272,8 @@ if { [get_property PROGRESS [get_runs impl_1]] != "100%" } {
 }
 
 set impl_dir  "$proj_dir/$proj_name.runs/impl_1"
-if { $use_shadow && [file exists "$impl_dir/bram_shadow_pass.rpt"] } {
-    set f [open "$impl_dir/bram_shadow_pass.rpt"]
+if { $use_hold && [file exists "$impl_dir/bram_hold_pass.rpt"] } {
+    set f [open "$impl_dir/bram_hold_pass.rpt"]
     puts [read $f]
     close $f
 }

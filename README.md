@@ -62,7 +62,7 @@ with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
 sk-raft-client/
 ├── api/python/                           Python client (skraft package)
 ├── application_examples/                 Example designs and scripts for specific use cases
-├── auxiliary_components/                 Reusable BSCAN registers, safe clock, BRAM shadow pass
+├── auxiliary_components/                 Reusable BSCAN registers, safe clock, BRAM hold pass
 ├── docs/                                 Concepts and reference documents
 └── get_started/                          Example designs and scripts
 ```
