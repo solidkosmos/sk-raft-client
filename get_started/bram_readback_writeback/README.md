@@ -20,7 +20,7 @@ The XDC excludes the BRAM from power optimization (`set_power_opt -exclude_cells
 
 ## Stages
 
-The script writes word k as `NOT k` in bits 63:32 and `k` in bits 31:0. Word 0 is `0xffffffff00000000`. The script reads word 0 after each stage.
+The script writes the address as the word: word 0 holds 0, word 1 holds 1, and so on. The script reads word 0 after each stage.
 
 | Stage | Action | Result |
 | --- | --- | --- |
@@ -61,4 +61,4 @@ cd src
 python main.py
 ```
 
-The script prints the data, the ECC parity, `SBITERR` and the data bits that differ from the written word for each stage. At the end, it programs the FPGA again to clear the upset.
+The script prints a table with one row for each stage: the data, the ECC parity, `SBITERR` and the data bits that differ from the written word 0. At the end, it programs the FPGA again to clear the upset.

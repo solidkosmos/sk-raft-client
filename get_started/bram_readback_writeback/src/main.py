@@ -53,10 +53,10 @@ USER_DATA = BscanPrimitive(3, 80)
 DEPTH = 512
 
 
-# The word that the script writes at each address: NOT address in bits
-# 63:32, address in bits 31:0. Word 0 is 0xffffffff00000000.
+# The word that the script writes at each address is the address: word 0
+# holds 0, word 1 holds 1, and so on.
 def pattern(address: int) -> int:
-    return ((~address & 0xFFFFFFFF) << 32) | address
+    return address
 
 
 # Find the location of a BRAM content bit in the LL file, for example
@@ -72,17 +72,27 @@ def ll_bit(name: str) -> tuple[int, int, int]:
     raise ValueError(f"Ram=B:{name} is not in {LL_FILE}")
 
 
-# Read the BRAM outputs through USER3 and print the data, the ECC parity,
-# SBITERR and the data bits that differ from the written word 0.
+# The table header and the format of each row.
+ROW = "{:<34} {:<18}  {:<6}  {:<7}  {}"
+
+
+def print_header() -> None:
+    print(ROW.format("Stage", "Data", "Parity", "SBITERR",
+                     "Data bits that differ from word 0"))
+
+
+# Read the BRAM outputs through USER3 and print one row: the data, the
+# ECC parity, SBITERR and the data bits that differ from the written word
+# 0.
 def read_word_0(dev, label: str) -> None:
     value = int.from_bytes(dev.read_bscan(USER_DATA), "big")
     data = value & (2**64 - 1)
     parity = (value >> 64) & 0xFF
     sbiterr = (value >> 72) & 1
     diff = [i for i in range(64) if ((data ^ pattern(0)) >> i) & 1]
-    print(f"{label}")
-    print(f"  data {data:#018x}  parity {parity:#04x}  sbiterr {sbiterr}"
-          f"  bits different from the written word: {diff}")
+    bits = ", ".join(str(i) for i in diff) if diff else "none"
+    print(ROW.format(label, f"{data:#018x}", f"{parity:#04x}", sbiterr,
+                     bits))
 
 
 def main() -> None:
@@ -94,8 +104,9 @@ def main() -> None:
                 dev.uploadDesignToServer(design)
                 dev.programFPGA()
                 print(f"Programmed {SERIAL_NUMBER}")
-                print(f"Written word 0: {pattern(0):#018x}")
+                print(f"Word 0 is written as {pattern(0):#018x}.")
                 print()
+                print_header()
 
                 # Stage 1: start the clock, fill the BRAM, select word 0
                 dev.write_bscan(USER_CLK_EN, 1)
@@ -103,21 +114,20 @@ def main() -> None:
                     dev.write_bscan(USER_ADDRESS, address)
                     dev.write_bscan(USER_DATA, pattern(address))
                 dev.write_bscan(USER_ADDRESS, 0)
-                read_word_0(dev, "Stage 1: clock on, BRAM filled")
+                read_word_0(dev, "1  clock on, BRAM filled")
 
                 # Stage 2: stop the clock
                 dev.write_bscan(USER_CLK_EN, 0)
-                read_word_0(dev, "Stage 2: clock stopped")
+                read_word_0(dev, "2  clock stopped")
 
                 # Stage 3: inject into word 0, bit 0. SK-RAFT reads the
                 # content frame, flips the bit and writes the frame back.
                 dev.inject_at(far, word, bit, TargetMemory.BRAM)
-                read_word_0(dev, "Stage 3: injected word 0 bit 0, "
-                                 "clock stopped")
+                read_word_0(dev, "3  bit 0 injected, clock stopped")
 
                 # Stage 4: start the clock. The BRAM reads word 0 again.
                 dev.write_bscan(USER_CLK_EN, 1)
-                read_word_0(dev, "Stage 4: clock on")
+                read_word_0(dev, "4  clock on")
 
                 # Program the FPGA again to clear the upset.
                 dev.programFPGA()
