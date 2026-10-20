@@ -1,30 +1,14 @@
-#   Copyright(C) 2024 SOLIDKOSMOS S.A.
-#   All rights reserved.
-#
-#   This software ("Software") is supplied by SOLIDKOSMOS S.A. ("SolidKosmos").
-#   SolidKosmos grants you a personal, non-exclusive, non-transferable, revocable,
-#   non-sub-licensable right and license to use the Software. You may make copies of
-#   this Software, provided this copyright notice and disclaimer ("Notice") is included
-#   in all such copies. SolidKosmos reserves the right to change or discontinue the
-#   Software at any time without notice.
-#
-#   THE SOFTWARE IS PROVIDED "AS IS". SOLIDKOSMOS DISCLAIMS ALL WARRANTIES OF ANY KIND,
-#   WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-#   OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. TO THE
-#   MAXIMUM EXTENT PERMITTED UNDER LAW, IN NO EVENT SHALL SOLIDKOSMOS BE LIABLE FOR ANY DIRECT,
-#   INDIRECT, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING FROM, OUT OF OR IN
-#   CONNECTION WITH THE SOFTWARE, EVEN IF SOLIDKOSMOS HAS BEEN ADVISED OF THE POSSIBILITY OF
-#   SUCH DAMAGES. USE OF THIS SOFTWARE MAY BE SUBJECT TO TERMS AND CONDITIONS CONTAINED IN
-#   AN ADDITIONAL AGREEMENT BETWEEN YOU AND SOLIDKOSMOS. IN CASE OF CONFLICT BETWEEN THE TERMS
-#   OF THIS NOTICE AND ANY SUCH ADDITIONAL LICENSE AGREEMENT, THE TERMS OF THE AGREEMENT
-#   SHALL TAKE PRECEDENCE. BY CONTINUING TO USE THIS SOFTWARE, YOU AGREE TO THE TERMS OF
-#   THIS NOTICE. IF YOU DO NOT AGREE TO THESE TERMS, YOU ARE NOT PERMITTED TO USE THIS
-#   SOFTWARE
+"""
+Data types used by the SK-RAFT client.
+
+Holds the options, design file settings and result types that the client
+sends to and receives from the SK-RAFT server.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, IntFlag, auto
-from pathlib import PurePosixPath
 from typing import Optional
 
 from . import skraft_client_pb2
@@ -35,20 +19,24 @@ from .exceptions import DesignFileError
 # Injection selection
 # --------------------------------------------------------------------------- #
 class TargetMemory(IntFlag):
-    """Memories that can be selected for fault injection.
+    """
+    The memories that can be selected for fault injection.
 
-    Modelled as an ``IntFlag`` so memories can be combined, e.g.::
+    The members are flags and can be combined. Random and exhaustive
+    injection accept combined memories. An injection at one specific
+    location accepts at most one storage element type (FF, LUTRAM or BRAM).
 
-        target = TargetMemory.FF | TargetMemory.BRAM
-
-    The wire protocol supports this for *random* and *exhaustive* injection:
-    ``FpgaInjectionOptions`` carries independent ``essentials`` /
-    ``include_flip_flops`` / ``include_lutrams`` / ``include_brams``
-    booleans. ``CRAM`` is the absence of any narrowing flag (whole CRAM).
-
-    A *specific* injection (``FpgaInjectionTarget``) carries a single
-    ``FpgaTargetKind`` enum, so only one storage-element flag may be set
-    there.
+    Attributes:
+        CRAM (TargetMemory): The whole configuration memory, with no
+            further limit.
+        ESSENTIAL_CRAM (TargetMemory): Only the essential configuration
+            bits. Needs the essential bits (EBD) file.
+        FF (TargetMemory): Flip-flop bits. Needs the logic location (LL)
+            file.
+        LUTRAM (TargetMemory): LUTRAM bits. Needs the logic location (LL)
+            file.
+        BRAM (TargetMemory): Block RAM bits. Needs the logic location (LL)
+            file.
     """
 
     CRAM = 1 << 0
@@ -59,7 +47,13 @@ class TargetMemory(IntFlag):
 
     @property
     def required_design_files(self) -> tuple[str, ...]:
-        """The :class:`Design` fields this target depends on."""
+        """
+        The design files that this selection depends on.
+
+        Returns:
+            tuple[str, ...]: The names of the Design fields that must be
+                set. Empty if no design file is needed.
+        """
         files: list[str] = []
         if self & TargetMemory.ESSENTIAL_CRAM:
             files.append("ebd")
@@ -68,61 +62,126 @@ class TargetMemory(IntFlag):
         return tuple(files)
 
 class ReadbackOption(int, Enum):
-    """Readkback options."""
+    """
+    The ways a full readback can be done.
+
+    Attributes:
+        READBACK (ReadbackOption): A plain readback of the configuration
+            memory.
+        READBACK_CAPTURE (ReadbackOption): A readback that first captures
+            the current state of all changeable elements of the device.
+    """
     READBACK = 0
     READBACK_CAPTURE = 1
 
 class ScrubbingType(int, Enum):
-    """Scrubbing mode."""
+    """
+    The scrubbing mode.
+
+    Attributes:
+        READBACK (ScrubbingType): Standard scrubbing, without the essential
+            bits information.
+        ESSENTIAL (ScrubbingType): Scrubbing that also uses the essential
+            bits (EBD) file to tell essential upsets from non-essential
+            ones.
+    """
 
     READBACK = 0
     ESSENTIAL = 1
 
 
 class FaultType(int, Enum):
-    """Fault model used by a fault-injection campaign.
+    """
+    The fault model of a fault injection campaign.
 
-    Mirrors the wire ``FpgaFaultType`` enum, which replaced the opaque
-    ``uint32 type`` field (and the former ``InjectionType`` on the Python
-    side).
+    The values match the fault types that the server understands.
+
+    Attributes:
+        RANDOM (FaultType): Faults are injected at random locations.
+        EXHAUSTIVE (FaultType): Faults are injected at every location in
+            turn.
     """
     RANDOM = skraft_client_pb2.FPGA_FAULT_TYPE_RANDOM
     EXHAUSTIVE = skraft_client_pb2.FPGA_FAULT_TYPE_EXHAUSTIVE
 
-# --------------------------------------------------------------------------- #
-# Design-file configuration
-# --------------------------------------------------------------------------- #
-class ServerPath(str):
-    """A filesystem path resolved on the SK-RAFT *server*, not the client.
+class RegisterAddress(int, Enum):
+    """
+    The addresses of the configuration registers of the device, for
+    FpgaDevice.read_register and FpgaDevice.write_register.
 
-    Subclasses ``str`` so it stays wire-compatible while making the
-    server-relative semantics explicit at call sites.
+    They are copies of the register addresses of the SK-RAFT server: the
+    ID of each register, shifted into the register address field (bit 13)
+    of a type 1 packet header.
+
+    Attributes:
+        FAR (RegisterAddress): The frame address register.
+        CRC (RegisterAddress): The cyclic redundancy check register.
+        STATUS (RegisterAddress): The status register.
+        CTRL0 (RegisterAddress): The control register 0.
+        MASK (RegisterAddress): The masking register for CTRL0 and CTRL1.
+        CMD (RegisterAddress): The command register.
+        IDCODE (RegisterAddress): The device ID register.
+        FDRI (RegisterAddress): The frame data register input, which
+            takes the configuration data.
+        FDRO (RegisterAddress): The frame data register output, which
+            gives the readback data.
+        CTRL1 (RegisterAddress): The control register 1.
+        COR0 (RegisterAddress): The configuration option register 0.
+        COR1 (RegisterAddress): The configuration option register 1.
     """
 
-    __slots__ = ()
-
-    def __new__(cls, path: str) -> "ServerPath":
-        return super().__new__(cls, str(PurePosixPath(path)))
+    FAR = 0x01 << 13
+    CRC = 0x00 << 13
+    STATUS = 0x07 << 13
+    CTRL0 = 0x05 << 13
+    MASK = 0x06 << 13
+    CMD = 0x04 << 13
+    IDCODE = 0x0C << 13
+    FDRI = 0x02 << 13
+    FDRO = 0x03 << 13
+    CTRL1 = 0x18 << 13
+    COR0 = 0x09 << 13
+    COR1 = 0x0E << 13
 
 
 @dataclass(frozen=True)
 class Design:
-    """The files of a design, as paths on the *client* machine.
+    """
+    The files of a design, as paths on the client computer.
 
-    :meth:`FpgaDevice.uploadDesignToServer` uploads every file given. Every
-    field is optional; an operation that needs a missing file raises
-    :class:`DesignFileError` naming the field.
+    FpgaDevice.uploadDesignToServer uploads every file that is set. All
+    files are optional. An operation that needs a file that is not set
+    raises an error that names the missing file.
+
+    Attributes:
+        bit (Optional[str]): The bitstream, used to program the device.
+        ebd (Optional[str]): The essential bits file.
+        ll (Optional[str]): The logic location file, which locates the
+            flip-flop, LUTRAM and BRAM bits.
+        xdc (Optional[str]): The constraints file, which declares the
+            pblocks.
+        rbd (Optional[str]): The readback data file, used for self-test.
+        msd (Optional[str]): The readback mask file, used for self-test.
     """
 
-    bit: Optional[str] = None   # bitstream, for programming
-    ebd: Optional[str] = None   # essential bits
-    ll: Optional[str] = None    # logic location (flip-flop, LUTRAM, BRAM bits)
-    xdc: Optional[str] = None   # constraints (pblocks)
-    rbd: Optional[str] = None   # readback data (self-test)
-    msd: Optional[str] = None   # readback mask (self-test)
+    bit: Optional[str] = None
+    ebd: Optional[str] = None
+    ll: Optional[str] = None
+    xdc: Optional[str] = None
+    rbd: Optional[str] = None
+    msd: Optional[str] = None
 
     def require(self, *fields: str) -> None:
-        """Raise :class:`DesignFileError` if any named field is unset."""
+        """
+        Check that the named design files are set.
+
+        Parameters:
+            *fields (str): The names of the design files to check.
+
+        Raises:
+            DesignFileError: If one or more of the named files are not set.
+                The error message names the missing files.
+        """
         missing = [f for f in fields if getattr(self, f) is None]
         if missing:
             raise DesignFileError(
@@ -130,177 +189,332 @@ class Design:
             )
 
 
+
 class FpgaFar:
-    def __init__(self, raw: int, blocktype: int, topbottom: int,
+    """
+    A frame address split into its individual fields.
+
+    This is the common base for the layouts of each device family.
+
+    Attributes:
+        raw (int): The original frame address.
+        blocktype (int): The block type field.
+        row_address (int): The row address field.
+        column_address (int): The column address field.
+        minor_address (int): The minor address field.
+    """
+
+    def __init__(self, raw: int, blocktype: int,
                  row_address: int, column_address: int, 
                  minor_address: int) -> None:
+        """
+        Create a decoded frame address.
+
+        Parameters:
+            raw (int): The original frame address.
+            blocktype (int): The block type field.
+            row_address (int): The row address field.
+            column_address (int): The column address field.
+            minor_address (int): The minor address field.
+        """
         self.__raw = raw
         self.__blocktype      = blocktype
-        self.__topbottom      = topbottom
         self.__row_address    = row_address
         self.__column_address = column_address
         self.__minor_address  = minor_address
 
     @property
     def raw(self) -> int:
+        """The original frame address."""
         return self.__raw
-    
+
     @property
     def blocktype(self) -> int:
+        """The block type field."""
         return self.__blocktype
-    
-    @property
-    def topbottom(self) -> int:
-        return self.__topbottom
 
     @property
     def row_address(self) -> int:
+        """The row address field."""
         return self.__row_address
 
     @property
     def column_address(self) -> int:
+        """The column address field."""
         return self.__column_address
 
     @property
     def minor_address(self) -> int:
+        """The minor address field."""
         return self.__minor_address
 
+class FpgaFar7series(FpgaFar):
+    """
+    A frame address in the 7 series layout.
 
-# --------------------------------------------------------------------------- #
-# Pblocks
-# --------------------------------------------------------------------------- #
+    Has all the fields of FpgaFar, plus the top or bottom half field.
+
+    Attributes:
+        topbottom (int): Whether the frame is in the top or the bottom half
+            of the device.
+    """
+
+    def __init__(self, raw: int, blocktype: int, topbottom: int, row_address: int, column_address: int, minor_address: int) -> None:
+        """
+        Create a decoded 7 series frame address.
+
+        Parameters:
+            raw (int): The original frame address.
+            blocktype (int): The block type field.
+            topbottom (int): The top or bottom half field.
+            row_address (int): The row address field.
+            column_address (int): The column address field.
+            minor_address (int): The minor address field.
+        """
+        self.__topbottom = topbottom
+
+        super().__init__(raw, blocktype, row_address, column_address, minor_address)
+
+    @property
+    def topbottom(self) -> int:
+        """Whether the frame is in the top or the bottom half of the device."""
+        return self.__topbottom
+
+class FpgaFarUltraScale(FpgaFar):
+    """
+    A frame address in the UltraScale layout.
+
+    Has the same fields as FpgaFar.
+    """
+
+    def __init__(self, raw: int, blocktype: int, row_address: int, column_address: int, minor_address: int) -> None:
+        """
+        Create a decoded UltraScale frame address.
+
+        Parameters:
+            raw (int): The original frame address.
+            blocktype (int): The block type field.
+            row_address (int): The row address field.
+            column_address (int): The column address field.
+            minor_address (int): The minor address field.
+        """
+        super().__init__(raw, blocktype, row_address, column_address, minor_address)
+
 class FpgaPblockRange:
-    """An inclusive ``from``..``to`` index range (wire ``FpgaPblockRange``).
+    """
+    An inclusive range of indexes.
+
+    Attributes:
+        start (int): The first index of the range.
+        end (int): The last index of the range. This index is included.
     """
 
     def __init__(self, start: int, end: int) -> None:
+        """
+        Create a range.
+
+        Parameters:
+            start (int): The first index of the range.
+            end (int): The last index of the range.
+        """
         self.__start = start
         self.__end = end
 
     @property
     def start(self) -> int:
-        """First index of the range."""
+        """The first index of the range."""
         return self.__start
 
     @property
     def end(self) -> int:
-        """Last index of the range."""
+        """The last index of the range."""
         return self.__end
 
-
 class FpgaPblockAreaRange:
+    """
+    An area of a frame that a pblock occupies.
+
+    Attributes:
+        bit_range (FpgaPblockRange): The bit indexes that the area occupies
+            in each of its words.
+        word_range (FpgaPblockRange): The word indexes that the area
+            occupies in the frame.
+    """
+
     def __init__(self, bit_range: FpgaPblockRange,
                  word_range: FpgaPblockRange) -> None:
+        """
+        Create an area.
+
+        Parameters:
+            bit_range (FpgaPblockRange): The bit indexes inside each word.
+            word_range (FpgaPblockRange): The word indexes inside the frame.
+        """
         self.__bit_range = bit_range
         self.__word_range = word_range
 
     @property
     def bit_range(self) -> FpgaPblockRange:
-        """Bit indexes occupied inside each word of :attr:`word_range`."""
+        """The bit indexes that the area occupies in each of its words."""
         return self.__bit_range
 
     @property
     def word_range(self) -> FpgaPblockRange:
-        """Word indexes occupied inside the frame."""
+        """The word indexes that the area occupies in the frame."""
         return self.__word_range
 
-
 class FpgaPblockFar:
-    """One Frame Address covered by a pblock.
+    """
+    One frame address that a pblock covers.
+
+    Attributes:
+        far (int): The frame address.
+        occupied_area (list[FpgaPblockAreaRange]): The areas of this frame
+            that the pblock occupies.
     """
 
     def __init__(self, far: int,
                  occupied_area: list[FpgaPblockAreaRange]) -> None:
+        """
+        Create a covered frame entry.
+
+        Parameters:
+            far (int): The frame address.
+            occupied_area (list[FpgaPblockAreaRange]): The areas of the
+                frame that the pblock occupies.
+        """
         self.__far = far
         self.__occupied_area = occupied_area
 
     @property
     def far(self) -> int:
-        """The Frame Address (FAR)."""
+        """The frame address."""
         return self.__far
 
     @property
     def occupied_area(self) -> list[FpgaPblockAreaRange]:
-        """The areas of this frame occupied by the pblock."""
+        """The areas of this frame that the pblock occupies."""
         return self.__occupied_area
 
-
 class FpgaPblock:
-    """A pblock declared in the constraints file (wire ``FpgaPblock``).
+    """
+    A pblock declared in the constraints (XDC) file.
 
-    ``clauses`` are the range expressions attached to the pblock, e.g.
-    ``"SLICE_X0Y0:SLICE_X7Y49"``. They are carried on the wire as
-    ``FpgaPblockClause`` messages and unwrapped to plain strings here, so a
-    clause can be passed straight to :meth:`FpgaDevice.pblock_by_clause`.
+    Each clause is kept as a plain string, so it can be passed directly to
+    FpgaDevice.pblock_by_clause.
+
+    Attributes:
+        name (str): The name of the pblock, as written in the constraints.
+        clauses (list[str]): The range clauses of the pblock.
     """
 
     def __init__(self, name: str, clauses: list[str]) -> None:
+        """
+        Create a pblock.
+
+        Parameters:
+            name (str): The name of the pblock.
+            clauses (list[str]): The range clauses of the pblock.
+        """
         self.__name = name
         self.__clauses = clauses
 
     @property
     def name(self) -> str:
-        """The pblock name as written in the constraints."""
+        """The name of the pblock, as written in the constraints."""
         return self.__name
 
     @property
     def clauses(self) -> list[str]:
-        """The range expressions belonging to the pblock."""
+        """The range clauses of the pblock."""
         return self.__clauses
 
-
-# --------------------------------------------------------------------------- #
-# Configuration-memory primitives
-# --------------------------------------------------------------------------- #
 class FpgaWord:
-    """An FPGA word: a single 32-bit value.
+    """
+    A single 32-bit word of configuration data.
 
-    Note: the wire format no longer has an ``FpgaWord`` message (frames carry
-    a flat ``repeated uint32``); this class is kept as a client-side
-    convenience wrapper.
+    The server sends words as plain numbers. This class wraps them for
+    convenience.
+
+    Attributes:
+        value (int): The value of the word.
     """
 
     def __init__(self, value: int):
+        """
+        Create a word.
+
+        Parameters:
+            value (int): The 32-bit value of the word.
+        """
         self.__value = value
 
     @property
     def value(self) -> int:
-        """The 32-bit value of the word."""
+        """The value of the word."""
         return self.__value
 
-
 class FpgaFrame:
-    """An FPGA frame: a Frame Address (FAR) and a list of words."""
+    """
+    A configuration frame.
+
+    Attributes:
+        far (int): The frame address of the frame.
+        words (list[FpgaWord]): The words of the frame. The number of words
+            depends on the device family.
+    """
 
     def __init__(self, far: int, words: list[FpgaWord]):
+        """
+        Create a frame.
+
+        Parameters:
+            far (int): The frame address of the frame.
+            words (list[FpgaWord]): The words of the frame.
+        """
         self.__far = far
         self.__words = words
 
     @property
     def far(self) -> int:
-        """The Frame Address (FAR) of the frame."""
+        """The frame address of the frame."""
         return self.__far
 
     @property
     def words(self) -> list[FpgaWord]:
-        """The words of the frame; length is family-dependent."""
+        """The words of the frame."""
         return self.__words
 
-
-# --------------------------------------------------------------------------- #
-# Boundary scan
-# --------------------------------------------------------------------------- #
 class BscanPrimitive:
-    """A BSCAN USER register (``USER N``, with ``1 <= N <= 4``).
+    """
+    A BSCAN USER register.
 
-    The range is validated in the constructor; an out-of-range id raises
-    ``ValueError`` rather than failing deep inside a write.
+    The register number is checked when the object is created, so an
+    invalid number is reported straight away rather than during a later
+    read or write.
+
+    Attributes:
+        MIN_REGISTER (int): The lowest valid USER register number.
+        MAX_REGISTER (int): The highest valid USER register number.
+        user_register_id (int): The USER register number.
+        size_in_bits (int): The width of the register, in bits.
     """
 
     MIN_REGISTER = 1
     MAX_REGISTER = 4
 
     def __init__(self, user_register_id: int, size_in_bits: int):
+        """
+        Create a USER register.
+
+        Parameters:
+            user_register_id (int): The USER register number. It must be
+                between MIN_REGISTER and MAX_REGISTER.
+            size_in_bits (int): The width of the register, in bits.
+
+        Raises:
+            ValueError: If the register number is outside the valid range.
+        """
         if not (self.MIN_REGISTER <= user_register_id <= self.MAX_REGISTER):
             raise ValueError(
                 f"user_register_id must be in "
@@ -312,18 +526,35 @@ class BscanPrimitive:
 
     @property
     def user_register_id(self) -> int:
+        """The USER register number."""
         return self.__user_register_id
 
     @property
     def size_in_bits(self) -> int:
+        """The width of the register, in bits."""
         return self.__size_in_bits
 
     def shift_in(self, grpc_client, value: bytes,
                  readonly: bool = False) -> bytes:
-        """Shift ``value`` through the register and return what comes out.
+        """
+        Shift a value through the register and return what comes out.
 
-        Uses ``FpgaReadBscan`` when ``readonly`` is set (leaving the register
-        contents untouched) and ``FpgaWriteBscan`` otherwise.
+        In read-only mode the register contents stay unchanged and the
+        FpgaReadBscan RPC is used. Otherwise the value is written into the
+        register through the FpgaWriteBscan RPC.
+
+        Parameters:
+            grpc_client (skraft_client_pb2_grpc.SKRaftFpgaStub): The gRPC
+                stub of the server connection.
+            value (bytes): The data to shift into the register.
+            readonly (bool): If True, read the register without changing
+                it.
+
+        Returns:
+            bytes: The data shifted out of the register.
+
+        Raises:
+            grpc.RpcError: If the server call fails.
         """
         request = skraft_client_pb2.FpgaBscanTarget(
             user_register_id=self.__user_register_id,
@@ -336,48 +567,96 @@ class BscanPrimitive:
             reply = grpc_client.FpgaWriteBscan(request)
         return bytes(reply.value)
 
-
 class Bscan:
-    """A BSCAN USER register of an attached device, read and written as an
-    integer::
+    """
+    A BSCAN USER register that is read and written as an integer.
 
-        data = Bscan(dev, 4, 32)   # USER4, 32 bits wide
-        data.write(0xA5A5A5A5)
-        value = data.read()
+    Attributes:
+        primitive (BscanPrimitive): The USER register that this object uses.
     """
 
     def __init__(self, dev, user_register_id: int, size_in_bits: int):
+        """
+        Create a register handle for an attached device.
+
+        Parameters:
+            dev (FpgaDevice): The attached device that holds the register.
+            user_register_id (int): The USER register number.
+            size_in_bits (int): The width of the register, in bits.
+
+        Raises:
+            ValueError: If the register number is outside the valid range.
+        """
         self.__dev = dev
         self.__primitive = BscanPrimitive(user_register_id, size_in_bits)
 
     @property
     def primitive(self) -> BscanPrimitive:
-        """The underlying USER register."""
+        """The USER register that this object uses."""
         return self.__primitive
 
     def write(self, value: int) -> None:
-        """Shift ``value`` into the register."""
+        """
+        Write a value into the register.
+
+        Parameters:
+            value (int): The value to write. It must not be negative and
+                must fit in the register.
+
+        Raises:
+            OverflowError: If the value is negative or too large for the
+                register.
+            BscanError: If the register could not be written.
+        """
         self.__dev.write_bscan(self.__primitive, value)
 
     def read(self) -> int:
-        """Read the register value, masked to the register size."""
+        """
+        Read the current value of the register.
+
+        Any bits above the width of the register are cleared.
+
+        Returns:
+            int: The value of the register.
+
+        Raises:
+            BscanError: If the register could not be read.
+        """
         data = self.__dev.read_bscan(self.__primitive)
         mask = (1 << self.__primitive.size_in_bits) - 1
         return int.from_bytes(data, "big") & mask
 
-
-# --------------------------------------------------------------------------- #
-# Injection reports
-# --------------------------------------------------------------------------- #
 class FpgaInjectionReport:
-    """Result of a single *specific* injection (:meth:`FpgaDevice.inject_at`).
+    """
+    The result of an injection at one location.
 
-    The wire ``FpgaBitFlip`` RPC returns nothing, so the report echoes the
-    requested location; ``net_name`` is therefore always ``None`` here.
+    FpgaDevice.inject_at returns one report, and
+    FpgaDevice.inject_exhaustive returns one for each location. For
+    inject_at the server returns no details, so the report repeats the
+    requested location and has no net name.
+
+    Attributes:
+        far (int): The frame address of the injection.
+        word_index (int): The index of the word inside the frame.
+        bit_index (int): The index of the bit inside the word.
+        target (TargetMemory): The memory that was targeted.
+        net_name (Optional[str]): The name of the affected net, or None if
+            it is not known.
     """
 
     def __init__(self, far: int, word_index: int, bit_index: int,
                  target: TargetMemory, net_name: Optional[str] = None):
+        """
+        Create an injection report.
+
+        Parameters:
+            far (int): The frame address of the injection.
+            word_index (int): The index of the word inside the frame.
+            bit_index (int): The index of the bit inside the word.
+            target (TargetMemory): The memory that was targeted.
+            net_name (Optional[str]): The name of the affected net, if
+                known.
+        """
         self.__far = far
         self.__word_index = word_index
         self.__bit_index = bit_index
@@ -386,31 +665,57 @@ class FpgaInjectionReport:
 
     @property
     def far(self) -> int:
+        """The frame address of the injection."""
         return self.__far
 
     @property
     def word_index(self) -> int:
+        """The index of the word inside the frame."""
         return self.__word_index
 
     @property
     def bit_index(self) -> int:
+        """The index of the bit inside the word."""
         return self.__bit_index
 
     @property
     def target(self) -> TargetMemory:
+        """The memory that was targeted."""
         return self.__target
 
     @property
     def net_name(self) -> Optional[str]:
+        """The name of the affected net, or None if it is not known."""
         return self.__net_name
 
-
 class FpgaRandomInjectionReport:
-    """Result of a single *random* injection
-    (:meth:`FpgaDevice.inject_random`)."""
+    """
+    The result of a single random injection.
+
+    Returned by FpgaDevice.inject_random.
+
+    Attributes:
+        far (int): The frame address where the injection took place.
+        word_index (int): The index of the word inside the frame.
+        bit_index (int): The index of the bit inside the word.
+        target (TargetMemory): The memory that received the injection.
+        net_name (Optional[str]): The name of the net at the injection site
+            when the upset hit a flip-flop, otherwise None.
+    """
 
     def __init__(self, far: int, word_index: int, bit_index: int,
                  target: TargetMemory, net_name: Optional[str] = None):
+        """
+        Create a random injection report.
+
+        Parameters:
+            far (int): The frame address where the injection took place.
+            word_index (int): The index of the word inside the frame.
+            bit_index (int): The index of the bit inside the word.
+            target (TargetMemory): The memory that received the injection.
+            net_name (Optional[str]): The name of the net at the injection
+                site, if known.
+        """
         self.__far = far
         self.__word_index = word_index
         self.__bit_index = bit_index
@@ -419,41 +724,67 @@ class FpgaRandomInjectionReport:
 
     @property
     def far(self) -> int:
-        """Frame Address (FAR) where the injection took place."""
+        """The frame address where the injection took place."""
         return self.__far
 
     @property
     def word_index(self) -> int:
-        """Word index where the injection took place."""
+        """The index of the word inside the frame."""
         return self.__word_index
 
     @property
     def bit_index(self) -> int:
-        """Bit index where the injection took place."""
+        """The index of the bit inside the word."""
         return self.__bit_index
 
     @property
     def target(self) -> TargetMemory:
-        """The area that was injected."""
+        """The memory that received the injection."""
         return self.__target
 
     @property
     def net_name(self) -> Optional[str]:
-        """Net name at the injection site if the upset hit a flip-flop, else
-        ``None``."""
+        """The name of the net at the injection site, or None."""
         return self.__net_name
 
-
-# --------------------------------------------------------------------------- #
-# Scrubbing
-# --------------------------------------------------------------------------- #
 class FpgaScrubWordSummary:
-    """Per-word detail for a word touched during a scrubbing session."""
+    """
+    The details of one word that a scrubbing session affected.
+
+    Attributes:
+        far (int): The frame address of the affected frame.
+        word_index (int): The index of the affected word.
+        bit_index (int): The index of the affected bit.
+        golden_word_value (int): The expected value of the word.
+        erroneous_word_value (int): The value of the word that was found
+            before the correction.
+        ebd_word_value (int): The word at the same location in the
+            essential bits (EBD) file.
+        msd_word_value (int): The word at the same location in the readback
+            mask (MSD) file.
+        is_essential (bool): True if the affected bit is essential.
+    """
 
     def __init__(self, far: int, word_index: int, bit_index: int,
                  golden_word_value: int, erroneous_word_value: int,
                  ebd_word_value: int, msd_word_value: int,
                  is_essential: bool):
+        """
+        Create a word summary.
+
+        Parameters:
+            far (int): The frame address of the affected frame.
+            word_index (int): The index of the affected word.
+            bit_index (int): The index of the affected bit.
+            golden_word_value (int): The expected value of the word.
+            erroneous_word_value (int): The value found before the
+                correction.
+            ebd_word_value (int): The matching word from the essential bits
+                (EBD) file.
+            msd_word_value (int): The matching word from the readback mask
+                (MSD) file.
+            is_essential (bool): True if the affected bit is essential.
+        """
         self.__far = far
         self.__word_index = word_index
         self.__bit_index = bit_index
@@ -465,51 +796,76 @@ class FpgaScrubWordSummary:
 
     @property
     def far(self) -> int:
-        """Frame Address (FAR) of the affected frame."""
+        """The frame address of the affected frame."""
         return self.__far
 
     @property
     def word_index(self) -> int:
-        """Index of the affected word."""
+        """The index of the affected word."""
         return self.__word_index
 
     @property
     def bit_index(self) -> int:
-        """Index of the affected bit."""
+        """The index of the affected bit."""
         return self.__bit_index
 
     @property
     def golden_word_value(self) -> int:
-        """Expected (golden) word value."""
+        """The expected value of the word."""
         return self.__golden_word_value
 
     @property
     def erroneous_word_value(self) -> int:
-        """Word value observed before correction."""
+        """The value of the word that was found before the correction."""
         return self.__erroneous_word_value
 
     @property
     def ebd_word_value(self) -> int:
-        """Matching word from the essential-bits (EBD) file."""
+        """The word at the same location in the essential bits file."""
         return self.__ebd_word_value
 
     @property
     def msd_word_value(self) -> int:
-        """Matching word from the readback-mask (MSD) file."""
+        """The word at the same location in the readback mask file."""
         return self.__msd_word_value
 
     @property
     def is_essential(self) -> bool:
-        """Whether the affected bit was essential."""
+        """True if the affected bit is essential."""
         return self.__is_essential
 
-
 class FpgaScrubSummary:
-    """Outcome of one scrub cycle within a scrubbing session."""
+    """
+    The result of one scrub cycle in a scrubbing session.
+
+    Attributes:
+        scrub_cycle (int): The scrub cycle that this summary describes.
+        correction_time_ms (int): The time spent correcting upsets, in
+            milliseconds.
+        idle_time_ms (int): The idle time in the cycle, in milliseconds.
+        scrub_cycle_actual_duration_ms (int): The measured duration of the
+            cycle, in milliseconds.
+        word_summaries (list[FpgaScrubWordSummary]): The details of each
+            word that the cycle affected.
+    """
 
     def __init__(self, scrub_cycle: int, correction_time_ms: int,
                  idle_time_ms: int, scrub_cycle_actual_duration_ms: int,
                  word_summaries: list[FpgaScrubWordSummary]):
+        """
+        Create a scrub cycle summary.
+
+        Parameters:
+            scrub_cycle (int): The scrub cycle that this summary describes.
+            correction_time_ms (int): The time spent correcting upsets, in
+                milliseconds.
+            idle_time_ms (int): The idle time in the cycle, in
+                milliseconds.
+            scrub_cycle_actual_duration_ms (int): The measured duration of
+                the cycle, in milliseconds.
+            word_summaries (list[FpgaScrubWordSummary]): The details of
+                each affected word.
+        """
         self.__scrub_cycle = scrub_cycle
         self.__correction_time_ms = correction_time_ms
         self.__idle_time_ms = idle_time_ms
@@ -518,59 +874,81 @@ class FpgaScrubSummary:
 
     @property
     def scrub_cycle(self) -> int:
-        """The scrub cycle this summary belongs to."""
+        """The scrub cycle that this summary describes."""
         return self.__scrub_cycle
 
     @property
     def correction_time_ms(self) -> int:
-        """Time spent correcting upsets, in milliseconds."""
+        """The time spent correcting upsets, in milliseconds."""
         return self.__correction_time_ms
 
     @property
     def idle_time_ms(self) -> int:
-        """Idle time within the cycle, in milliseconds."""
+        """The idle time in the cycle, in milliseconds."""
         return self.__idle_time_ms
 
     @property
     def scrub_cycle_actual_duration_ms(self) -> int:
-        """Measured duration of the scrub cycle, in milliseconds."""
+        """The measured duration of the cycle, in milliseconds."""
         return self.__scrub_cycle_actual_duration_ms
 
     @property
     def word_summaries(self) -> list[FpgaScrubWordSummary]:
-        """Per-word detail for the words touched during the cycle."""
+        """The details of each word that the cycle affected."""
         return self.__word_summaries
 
 
 class FpgaScrubReport:
-    """Outcome of a completed scrubbing session (RPC: ``FpgaScrubbing``).
+    """
+    The result of a completed scrubbing session.
 
-    The wire reply carries one :class:`FpgaScrubSummary` per scrub cycle.
+    Returned by FpgaDevice.scrub.
+
+    Attributes:
+        scrub_summaries (list[FpgaScrubSummary]): One summary for each
+            scrub cycle of the session.
     """
 
     def __init__(self, scrub_summaries: list[FpgaScrubSummary]):
+        """
+        Create a scrubbing report.
+
+        Parameters:
+            scrub_summaries (list[FpgaScrubSummary]): One summary for each
+                scrub cycle.
+        """
         self.__scrub_summaries = scrub_summaries
 
     @property
     def scrub_summaries(self) -> list[FpgaScrubSummary]:
-        """Per-cycle summaries for the session."""
+        """One summary for each scrub cycle of the session."""
         return self.__scrub_summaries
 
-
-# --------------------------------------------------------------------------- #
-# Fault-injection campaign
-# --------------------------------------------------------------------------- #
 @dataclass
 class FpgaFiSession:
-    """User-defined options for a fault-injection campaign.
+    """
+    The settings of a fault injection campaign defined by the user.
 
-    The upset-type shares (``sbu``/``mbu``/``mcu``) are percentages in
-    ``[0, 100]`` and must sum to ``100``; this is validated on construction.
+    The shares of single bit, multiple bit and multiple cell upsets are
+    percentages and must add up to 100. A campaign can only target the
+    whole configuration memory or its essential bits, so storage element
+    targets are not accepted. Both rules are checked when the object is
+    created.
 
-    ``target`` selects the area. The campaign wire message only distinguishes
-    *whole CRAM* from *essential CRAM*, so ``target`` must be either
-    ``TargetMemory.CRAM`` or ``TargetMemory.ESSENTIAL_CRAM``; storage-element
-    targets are rejected.
+    Attributes:
+        fault_type (FaultType): The fault model of the campaign.
+        duration_ms (int): How long the campaign runs, in milliseconds.
+        correction_time_ms (int): The correction time, in milliseconds.
+        time_between_faults_ms (int): The time between consecutive faults,
+            in milliseconds.
+        sbu_percent (float): The share of single bit upsets, in percent.
+        mbu_percent (float): The share of multiple bit upsets, in percent.
+        mcu_percent (float): The share of multiple cell upsets, in percent.
+        target (TargetMemory): The memory to inject into. Either CRAM or
+            ESSENTIAL_CRAM.
+        correct (bool): If True, injected faults are corrected.
+        essential (bool): True if the campaign targets only essential bits.
+            Worked out from target.
     """
 
     fault_type: FaultType
@@ -584,6 +962,13 @@ class FpgaFiSession:
     correct: bool = False
 
     def __post_init__(self) -> None:
+        """
+        Check the campaign settings after the object is created.
+
+        Raises:
+            ValueError: If the upset shares do not add up to 100, or if the
+                target is not CRAM or ESSENTIAL_CRAM.
+        """
         total = self.sbu_percent + self.mbu_percent + self.mcu_percent
         if abs(total - 100.0) > 1e-6:
             raise ValueError(
@@ -599,17 +984,38 @@ class FpgaFiSession:
 
     @property
     def essential(self) -> bool:
-        """Whether the campaign targets only essential bits (derived from
-        ``target``)."""
+        """True if the campaign targets only essential bits."""
         return bool(self.target & TargetMemory.ESSENTIAL_CRAM)
 
-
 class FpgaFiWordSummary:
-    """Per-word detail for a word affected during a campaign."""
+    """
+    The details of one word that a campaign affected.
+
+    Attributes:
+        far (int): The frame address of the injected frame.
+        word_index (int): The index of the injected word.
+        bit_index (int): The index of the injected bit.
+        golden_word_value (int): The value of the word before the
+            injection.
+        injected_word_value (int): The value of the word after the
+            injection.
+        is_essential (bool): True if the injected bit is essential.
+    """
 
     def __init__(self, far: int, word_index: int, bit_index: int,
                  golden_word_value: int, injected_word_value: int,
                  is_essential: bool):
+        """
+        Create a word summary.
+
+        Parameters:
+            far (int): The frame address of the injected frame.
+            word_index (int): The index of the injected word.
+            bit_index (int): The index of the injected bit.
+            golden_word_value (int): The value before the injection.
+            injected_word_value (int): The value after the injection.
+            is_essential (bool): True if the injected bit is essential.
+        """
         self.__far = far
         self.__word_index = word_index
         self.__bit_index = bit_index
@@ -619,47 +1025,62 @@ class FpgaFiWordSummary:
 
     @property
     def far(self) -> int:
-        """Frame Address (FAR) of the injected frame."""
+        """The frame address of the injected frame."""
         return self.__far
 
     @property
     def word_index(self) -> int:
-        """Index of the injected word."""
+        """The index of the injected word."""
         return self.__word_index
 
     @property
     def bit_index(self) -> int:
-        """Index of the injected bit."""
+        """The index of the injected bit."""
         return self.__bit_index
 
     @property
     def golden_word_value(self) -> int:
-        """Word value before injection."""
+        """The value of the word before the injection."""
         return self.__golden_word_value
 
     @property
     def injected_word_value(self) -> int:
-        """Word value after injection."""
+        """The value of the word after the injection."""
         return self.__injected_word_value
 
     @property
     def is_essential(self) -> bool:
-        """Whether the injected bit was essential."""
+        """True if the injected bit is essential."""
         return self.__is_essential
 
-
 class FpgaFiSummary:
-    """Outcome of a completed fault-injection campaign.
+    """
+    The result of a completed fault injection campaign.
 
-    Note: the wire reply only carries the per-word list (plus echoed session
-    parameters). ``faults_injected`` / ``corrected`` are therefore derived
-    client-side from ``affected_words`` and the session's ``correct`` flag.
-    If the server later reports explicit counts, populate them directly
-    instead.
+    The server only returns the list of affected words, so the number of
+    injected and corrected faults is worked out on the client. If the server
+    starts reporting these counts, they should be used instead.
+
+    Attributes:
+        session (FpgaFiSession): The settings that the campaign used.
+        faults_injected (int): The total number of injected faults.
+        corrected (int): The number of injected faults that were corrected.
+        affected_words (list[FpgaFiWordSummary]): The details of each
+            affected word.
     """
 
     def __init__(self, session: FpgaFiSession, faults_injected: int,
                  corrected: int, affected_words: list[FpgaFiWordSummary]):
+        """
+        Create a campaign summary.
+
+        Parameters:
+            session (FpgaFiSession): The settings that the campaign used.
+            faults_injected (int): The total number of injected faults.
+            corrected (int): The number of faults that were corrected.
+            affected_words (list[FpgaFiWordSummary]): The details of each
+                affected word.
+        """
         self.__session = session
         self.__faults_injected = faults_injected
         self.__corrected = corrected
@@ -667,20 +1088,401 @@ class FpgaFiSummary:
 
     @property
     def session(self) -> FpgaFiSession:
-        """The session the campaign was run with."""
+        """The settings that the campaign used."""
         return self.__session
 
     @property
     def faults_injected(self) -> int:
-        """Total number of faults injected."""
+        """The total number of injected faults."""
         return self.__faults_injected
 
     @property
     def corrected(self) -> int:
-        """Number of injected faults that were corrected."""
+        """The number of injected faults that were corrected."""
         return self.__corrected
 
     @property
     def affected_words(self) -> list[FpgaFiWordSummary]:
-        """Per-word detail for the affected words."""
+        """The details of each affected word."""
         return self.__affected_words
+
+
+# --------------------------------------------------------------------------- #
+# XADC
+# --------------------------------------------------------------------------- #
+class XadcSensorSelector:
+    """
+    An XADC sensor of the device, for FpgaDevice.xadc.
+
+    The library defines a selector for each known sensor, for example VCCINT
+    or TEMPERATURE, so selectors are not normally created by hand.
+
+    Attributes:
+        addr (int): The DRP address of the status register of the sensor.
+    """
+
+    def __init__(self, addr: int):
+        """
+        Create a sensor selector.
+
+        Parameters:
+            addr (int): The DRP address of the status register of the
+                sensor.
+        """
+        self.__addr = addr
+
+    @property
+    def addr(self) -> int:
+        """The DRP address of the status register of the sensor."""
+        return self.__addr
+
+
+class XadcSensor:
+    """
+    The value of an XADC sensor, as read by FpgaDevice.xadc.
+
+    The value is in units of the International System of Units (SI): volts
+    (V) for voltages and degrees Celsius (degC) for temperatures.
+
+    Attributes:
+        addr (int): The DRP address of the status register that was read.
+        value (float): The value of the sensor, in V or degC.
+    """
+
+    def __init__(self, addr: int, value: float):
+        """
+        Create a sensor value.
+
+        Parameters:
+            addr (int): The DRP address of the status register that was
+                read.
+            value (float): The value of the sensor, in V or degC.
+        """
+        self.__addr = addr
+        self.__value = value
+
+    @property
+    def addr(self) -> int:
+        """The DRP address of the status register that was read."""
+        return self.__addr
+
+    @property
+    def value(self) -> float:
+        """The value of the sensor, in V or degC."""
+        return self.__value
+
+
+# The XADC sensors of the 7 series FPGAs and SoCs, at the DRP
+# addresses of their status registers (UG480, Status Registers). The sensors
+# of the Processing System (PS) supplies, VCCPINT, VCCPAUX and VCCO_DDR
+TEMPERATURE = XadcSensorSelector(0x00)  # degC
+VCCINT = XadcSensorSelector(0x01)  # V
+VCCAUX = XadcSensorSelector(0x02)  # V
+VREFP = XadcSensorSelector(0x04)  # V
+VREFN = XadcSensorSelector(0x05)  # V
+VCCBRAM = XadcSensorSelector(0x06)  # V
+VCCPINT = XadcSensorSelector(0x0D)  # V
+VCCPAUX = XadcSensorSelector(0x0E)  # V
+VCCO_DDR = XadcSensorSelector(0x0F)  # V
+
+# The maximum and minimum values that the XADC sensors recorded since
+# power-up or the last XADC reset.
+MAX_TEMPERATURE = XadcSensorSelector(0x20)  # degC
+MAX_VCCINT = XadcSensorSelector(0x21)  # V
+MAX_VCCAUX = XadcSensorSelector(0x22)  # V
+MAX_VCCBRAM = XadcSensorSelector(0x23)  # V
+MIN_TEMPERATURE = XadcSensorSelector(0x24)  # degC
+MIN_VCCINT = XadcSensorSelector(0x25)  # V
+MIN_VCCAUX = XadcSensorSelector(0x26)  # V
+MIN_VCCBRAM = XadcSensorSelector(0x27)  # V
+MAX_VCCPINT = XadcSensorSelector(0x28)  # V
+MAX_VCCPAUX = XadcSensorSelector(0x29)  # V
+MAX_VCCO_DDR = XadcSensorSelector(0x2A)  # V
+MIN_VCCPINT = XadcSensorSelector(0x2C)  # V
+MIN_VCCPAUX = XadcSensorSelector(0x2D)  # V
+MIN_VCCO_DDR = XadcSensorSelector(0x2E)  # V
+
+
+class XadcAlarmSelector:
+    """
+    An XADC alarm threshold of the device, for FpgaDevice.xadc_alarm and
+    FpgaDevice.set_xadc_alarm.
+
+    The library defines a selector for each alarm register, for example
+    TEMPERATURE_UPPER or VCCINT_LOWER, so selectors are not normally created
+    by hand.
+
+    Attributes:
+        addr (int): The DRP address of the alarm register.
+    """
+
+    def __init__(self, addr: int):
+        """
+        Create an alarm selector.
+
+        Parameters:
+            addr (int): The DRP address of the alarm register.
+        """
+        self.__addr = addr
+
+    @property
+    def addr(self) -> int:
+        """The DRP address of the alarm register."""
+        return self.__addr
+
+
+class XadcAlarm:
+    """
+    The threshold of an XADC alarm, as read by FpgaDevice.xadc_alarm.
+
+    The value is in units of the International System of Units (SI): volts
+    (V) for voltages and degrees Celsius (degC) for temperatures.
+
+    Attributes:
+        addr (int): The DRP address of the alarm register that was read.
+        value (float): The threshold, in V or degC.
+    """
+
+    def __init__(self, addr: int, value: float):
+        """
+        Create an alarm threshold.
+
+        Parameters:
+            addr (int): The DRP address of the alarm register that was
+                read.
+            value (float): The threshold, in V or degC.
+        """
+        self.__addr = addr
+        self.__value = value
+
+    @property
+    def addr(self) -> int:
+        """The DRP address of the alarm register that was read."""
+        return self.__addr
+
+    @property
+    def value(self) -> float:
+        """The threshold, in V or degC."""
+        return self.__value
+
+
+# The XADC alarm thresholds, at the DRP addresses of their alarm registers
+# (UG480, Automatic Alarms). The temperature alarm goes on above
+# TEMPERATURE_UPPER, and goes off below TEMPERATURE_LOWER. The
+# over-temperature alarm does the same with OT_LIMIT and OT_RESET. A supply
+# alarm is on while the voltage is above its upper threshold or below its
+# lower threshold. The XADC uses the default OT limit, 125 degC, if ALARM3
+# (53h) holds 0000h (7 series), or if its four LSBs are not 0011b
+# (UltraScale). The server converts the temperatures with the transfer
+# function of the family of the device (UG480, UG580).
+TEMPERATURE_UPPER = XadcAlarmSelector(0x50)  # degC
+TEMPERATURE_LOWER = XadcAlarmSelector(0x54)  # degC
+OT_LIMIT = XadcAlarmSelector(0x53)  # degC
+OT_RESET = XadcAlarmSelector(0x57)  # degC
+VCCINT_UPPER = XadcAlarmSelector(0x51)  # V
+VCCINT_LOWER = XadcAlarmSelector(0x55)  # V
+VCCAUX_UPPER = XadcAlarmSelector(0x52)  # V
+VCCAUX_LOWER = XadcAlarmSelector(0x56)  # V
+VCCBRAM_UPPER = XadcAlarmSelector(0x58)  # V
+VCCBRAM_LOWER = XadcAlarmSelector(0x5C)  # V
+
+# The thresholds of the Processing System (PS) supplies, in Zynq-7000 SoCs
+# only.
+VCCPINT_UPPER = XadcAlarmSelector(0x59)  # V
+VCCPINT_LOWER = XadcAlarmSelector(0x5D)  # V
+VCCPAUX_UPPER = XadcAlarmSelector(0x5A)  # V
+VCCPAUX_LOWER = XadcAlarmSelector(0x5E)  # V
+VCCO_DDR_UPPER = XadcAlarmSelector(0x5B)  # V
+VCCO_DDR_LOWER = XadcAlarmSelector(0x5F)  # V
+
+
+class XadcFlags:
+    """
+    The state of the XADC alarms and of the JTAG access, as read by
+    FpgaDevice.xadc_flags from the flag register (3Fh).
+
+    An alarm attribute is True while the alarm is on. In the default mode
+    of the sequencer, the XADC disables all the alarms, except the
+    over-temperature alarm (UG480 and UG580, Sequencer Modes). In Zynq
+    UltraScale+ MPSoCs, vccpint, vccpaux and vcco_ddr are the alarms of
+    VCC_PSINTLP, VCC_PSINTFP and VCC_PSAUX.
+
+    Attributes:
+        temperature (bool): The temperature alarm (ALM0) is on.
+        vccint (bool): The VCCINT alarm (ALM1) is on.
+        vccaux (bool): The VCCAUX alarm (ALM2) is on.
+        over_temperature (bool): The over-temperature alarm (OT) is on.
+        vccbram (bool): The VCCBRAM alarm (ALM3) is on.
+        vccpint (bool): The VCCPINT alarm (ALM4) is on, Zynq-7000 only.
+        vccpaux (bool): The VCCPAUX alarm (ALM5) is on, Zynq-7000 only.
+        vcco_ddr (bool): The VCCO_DDR alarm (ALM6) is on, Zynq-7000 only.
+        internal_reference (bool): The ADC uses the on-chip reference
+            (REF).
+        jtag_read_only (bool): The design allows only reads of the XADC
+            through JTAG (JTGR).
+        jtag_disabled (bool): The design disables the JTAG access to the
+            XADC (JTGD).
+    """
+
+    def __init__(self, temperature: bool, vccint: bool, vccaux: bool,
+                 over_temperature: bool, vccbram: bool, vccpint: bool,
+                 vccpaux: bool, vcco_ddr: bool, internal_reference: bool,
+                 jtag_read_only: bool, jtag_disabled: bool):
+        """
+        Create the state of the XADC flags.
+
+        Parameters:
+            temperature (bool): The temperature alarm (ALM0) is on.
+            vccint (bool): The VCCINT alarm (ALM1) is on.
+            vccaux (bool): The VCCAUX alarm (ALM2) is on.
+            over_temperature (bool): The over-temperature alarm (OT) is on.
+            vccbram (bool): The VCCBRAM alarm (ALM3) is on.
+            vccpint (bool): The VCCPINT alarm (ALM4) is on.
+            vccpaux (bool): The VCCPAUX alarm (ALM5) is on.
+            vcco_ddr (bool): The VCCO_DDR alarm (ALM6) is on.
+            internal_reference (bool): The ADC uses the on-chip reference.
+            jtag_read_only (bool): The design allows only reads of the
+                XADC through JTAG.
+            jtag_disabled (bool): The design disables the JTAG access to
+                the XADC.
+        """
+        self.__temperature = temperature
+        self.__vccint = vccint
+        self.__vccaux = vccaux
+        self.__over_temperature = over_temperature
+        self.__vccbram = vccbram
+        self.__vccpint = vccpint
+        self.__vccpaux = vccpaux
+        self.__vcco_ddr = vcco_ddr
+        self.__internal_reference = internal_reference
+        self.__jtag_read_only = jtag_read_only
+        self.__jtag_disabled = jtag_disabled
+
+    @property
+    def temperature(self) -> bool:
+        """The temperature alarm (ALM0) is on."""
+        return self.__temperature
+
+    @property
+    def vccint(self) -> bool:
+        """The VCCINT alarm (ALM1) is on."""
+        return self.__vccint
+
+    @property
+    def vccaux(self) -> bool:
+        """The VCCAUX alarm (ALM2) is on."""
+        return self.__vccaux
+
+    @property
+    def over_temperature(self) -> bool:
+        """The over-temperature alarm (OT) is on."""
+        return self.__over_temperature
+
+    @property
+    def vccbram(self) -> bool:
+        """The VCCBRAM alarm (ALM3) is on."""
+        return self.__vccbram
+
+    @property
+    def vccpint(self) -> bool:
+        """The VCCPINT alarm (ALM4) is on, Zynq-7000 only."""
+        return self.__vccpint
+
+    @property
+    def vccpaux(self) -> bool:
+        """The VCCPAUX alarm (ALM5) is on, Zynq-7000 only."""
+        return self.__vccpaux
+
+    @property
+    def vcco_ddr(self) -> bool:
+        """The VCCO_DDR alarm (ALM6) is on, Zynq-7000 only."""
+        return self.__vcco_ddr
+
+    @property
+    def internal_reference(self) -> bool:
+        """The ADC uses the on-chip reference (REF)."""
+        return self.__internal_reference
+
+    @property
+    def jtag_read_only(self) -> bool:
+        """The design allows only reads of the XADC through JTAG (JTGR)."""
+        return self.__jtag_read_only
+
+    @property
+    def jtag_disabled(self) -> bool:
+        """The design disables the JTAG access to the XADC (JTGD)."""
+        return self.__jtag_disabled
+
+
+class XadcRegister(int, Enum):
+    """
+    The XADC registers, at their DRP addresses, for
+    FpgaDevice.read_xadc_register and FpgaDevice.write_xadc_register.
+
+    Only the flag register, the configuration registers and the alarm
+    registers are accessible. The flag register is read only. The values are
+    raw 16-bit contents. UG480 (Status Registers, Control Registers) gives the
+    meaning of each bit, and the ADC transfer functions give the codes of the
+    alarm thresholds. The thresholds of the Processing System (PS) supplies
+    exist only in Zynq-7000 SoCs. FpgaDevice.xadc_alarm and
+    FpgaDevice.set_xadc_alarm give the thresholds in SI units, and
+    FpgaDevice.xadc_flags decodes the flag register.
+
+    The flag register shows the state of the alarms. Bit 0 is ALM0
+    (temperature), bit 1 is ALM1 (VCCINT), bit 2 is ALM2 (VCCAUX), bit 3 is
+    OT (over-temperature), bit 4 is ALM3 (VCCBRAM), and bits 5 to 7 are ALM4
+    to ALM6 (VCCPINT, VCCPAUX, VCCO_DDR). In the default sequencer mode
+    (CONFIG1), only OT operates. Bits 9 to 11 are REF, JTGR and JTGD.
+
+    Caution: the four least significant bits of ALARM3 select the automatic
+    shutdown at the over-temperature (OT) limit. The value 0011b enables it.
+
+    Attributes:
+        FLAG (XadcRegister): Flag register (3Fh), read only.
+        CONFIG0 (XadcRegister): Configuration register 0 (40h).
+        CONFIG1 (XadcRegister): Configuration register 1 (41h).
+        CONFIG2 (XadcRegister): Configuration register 2 (42h).
+        ALARM0 (XadcRegister): Temperature upper threshold (50h).
+        ALARM1 (XadcRegister): VCCINT upper threshold (51h).
+        ALARM2 (XadcRegister): VCCAUX upper threshold (52h).
+        ALARM3 (XadcRegister): Over-temperature (OT) limit (53h).
+        ALARM4 (XadcRegister): Temperature lower threshold (54h).
+        ALARM5 (XadcRegister): VCCINT lower threshold (55h).
+        ALARM6 (XadcRegister): VCCAUX lower threshold (56h).
+        ALARM7 (XadcRegister): Over-temperature (OT) reset (57h).
+        ALARM8 (XadcRegister): VCCBRAM upper threshold (58h).
+        ALARM9 (XadcRegister): VCCPINT upper threshold (59h), Zynq-7000
+            only.
+        ALARM10 (XadcRegister): VCCPAUX upper threshold (5Ah), Zynq-7000
+            only.
+        ALARM11 (XadcRegister): VCCO_DDR upper threshold (5Bh), Zynq-7000
+            only.
+        ALARM12 (XadcRegister): VCCBRAM lower threshold (5Ch).
+        ALARM13 (XadcRegister): VCCPINT lower threshold (5Dh), Zynq-7000
+            only.
+        ALARM14 (XadcRegister): VCCPAUX lower threshold (5Eh), Zynq-7000
+            only.
+        ALARM15 (XadcRegister): VCCO_DDR lower threshold (5Fh), Zynq-7000
+            only.
+    """
+
+    FLAG = 0x3F
+    CONFIG0 = 0x40
+    CONFIG1 = 0x41
+    CONFIG2 = 0x42
+    ALARM0 = 0x50
+    ALARM1 = 0x51
+    ALARM2 = 0x52
+    ALARM3 = 0x53
+    ALARM4 = 0x54
+    ALARM5 = 0x55
+    ALARM6 = 0x56
+    ALARM7 = 0x57
+    ALARM8 = 0x58
+    ALARM9 = 0x59
+    ALARM10 = 0x5A
+    ALARM11 = 0x5B
+    ALARM12 = 0x5C
+    ALARM13 = 0x5D
+    ALARM14 = 0x5E
+    ALARM15 = 0x5F

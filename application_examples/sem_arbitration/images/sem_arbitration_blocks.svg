@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1340" height="428" viewBox="0 0 1340 428" font-family="Ubuntu, 'Liberation Sans', Arial, Helvetica, sans-serif">
+<rect width="1340" height="428" fill="#ffffff"/>
+<rect x="70" y="4" width="1030" height="420" fill="#FFFFFF" stroke="#111111" stroke-width="1.5"/>
+<rect x="250" y="104" width="154" height="230" fill="none" stroke="#111111" stroke-width="1.2" stroke-dasharray="6 4"/>
+<text x="327" y="322" font-size="12.5" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">BSCAN registers</text>
+<rect x="470" y="28" width="280" height="222" fill="#FFF4C2" stroke="#111111" stroke-width="1.5"/>
+<text x="610" y="44" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">pblock_sem</text>
+<text x="4" y="70" font-size="15" font-weight="700" fill="#111111" text-anchor="start" dominant-baseline="central">clock</text>
+<path d="M52,70 L67.5,70" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="78,70 67.5,73.75 67.5,66.25" fill="#111111"/>
+<rect x="78" y="38" width="160" height="64" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="158" y="54" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">safe clock</text>
+<text x="158" y="71" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">generation</text>
+<text x="158" y="88" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">PLL</text>
+<rect x="262" y="47" width="110" height="47" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="317.0" y="62.5" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">clock gate</text>
+<text x="317.0" y="79.5" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">BUFGCE</text>
+<path d="M238,70 L251.5,70" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="262,70 251.5,73.75 251.5,66.25" fill="#111111"/>
+<path d="M372,70 L479.5,70" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="490,70 479.5,73.75 479.5,66.25" fill="#111111"/>
+<text x="445" y="58" font-size="11" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">sem_clk</text>
+<path d="M400,70 L400,16 L925,16" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<path d="M925,16 L925,69.5" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="925,80 928.75,69.5 921.25,69.5" fill="#111111"/>
+<rect x="262" y="112" width="135" height="47" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="329.5" y="127.5" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">BSCAN USER1</text>
+<text x="329.5" y="144.5" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">clock enable</text>
+<path d="M317,112 L317,104.5" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="317,94 320.75,104.5 313.25,104.5" fill="#111111"/>
+<rect x="262" y="185" width="135" height="47" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="329.5" y="200.5" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">BSCAN USER2</text>
+<text x="329.5" y="217.5" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">ICAP grant</text>
+<rect x="262" y="265" width="135" height="47" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="329.5" y="280.5" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">BSCAN USER3</text>
+<text x="329.5" y="297.5" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">SEM status</text>
+<text x="4" y="228" font-size="15" font-weight="700" fill="#111111" text-anchor="start" dominant-baseline="central">JTAG</text>
+<text x="4" y="246" font-size="11" font-weight="400" fill="#3F4651" text-anchor="start" dominant-baseline="central">(SK-RAFT)</text>
+<path d="M52,228 L242,228" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<path d="M242,135 L242,401" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<path d="M242,135 L251.5,135" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="262,135 251.5,138.75 251.5,131.25" fill="#111111"/>
+<path d="M242,208 L251.5,208" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="262,208 251.5,211.75 251.5,204.25" fill="#111111"/>
+<path d="M242,288 L251.5,288" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="262,288 251.5,291.75 251.5,284.25" fill="#111111"/>
+<rect x="282" y="344" width="110" height="34" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="337" y="354" font-size="13" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">CFG IN</text>
+<text x="337" y="369" font-size="10.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">JTAG to CRAM</text>
+<rect x="282" y="384" width="110" height="34" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="337" y="394" font-size="13" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">CFG OUT</text>
+<text x="337" y="409" font-size="10.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">CRAM to JTAG</text>
+<path d="M242,361 L271.5,361" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="282,361 271.5,364.75 271.5,357.25" fill="#111111"/>
+<path d="M392,361 L419.5,361" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="430,361 419.5,364.75 419.5,357.25" fill="#111111"/>
+<path d="M430,401 L402.5,401" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="392,401 402.5,404.75 402.5,397.25" fill="#111111"/>
+<path d="M282,401 L252.5,401" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="242,401 252.5,404.75 252.5,397.25" fill="#111111"/>
+<rect x="490" y="60" width="240" height="170" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="610" y="128" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">SEM controller</text>
+<text x="610" y="147" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">PG036 (7 series)</text>
+<text x="610" y="164" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">PG187 (UltraScale)</text>
+<path d="M397,200 L479.5,200" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="490,200 479.5,203.75 479.5,196.25" fill="#111111"/>
+<text x="437" y="191" font-size="10" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">icap_grant</text>
+<path d="M490,218 L407.5,218" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="397,218 407.5,221.75 407.5,214.25" fill="#111111"/>
+<text x="437" y="228" font-size="10" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">icap_request</text>
+<path d="M510,230 L510,288" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<path d="M510,288 L407.5,288" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="397,288 407.5,291.75 407.5,284.25" fill="#111111"/>
+<text x="453" y="278" font-size="10" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">status bits</text>
+<rect x="840" y="80" width="170" height="60" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="925.0" y="102.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">monitor interface</text>
+<text x="925.0" y="119.0" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">UART 9600 8-N-1</text>
+<path d="M730,100 L829.5,100" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="840,100 829.5,103.75 829.5,96.25" fill="#111111"/>
+<path d="M840,120 L740.5,120" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="730,120 740.5,123.75 740.5,116.25" fill="#111111"/>
+<text x="795" y="90" font-size="10" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">monitor port</text>
+<path d="M1010,100 L1089.5,100" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="1100,100 1089.5,103.75 1089.5,96.25" fill="#111111"/>
+<path d="M1100,120 L1020.5,120" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="1010,120 1020.5,123.75 1020.5,116.25" fill="#111111"/>
+<text x="1055" y="90" font-size="10" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">tx_o</text>
+<text x="1055" y="130" font-size="10" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">rx_i</text>
+<text x="1108" y="110" font-size="15" font-weight="700" fill="#111111" text-anchor="start" dominant-baseline="central">UART</text>
+<text x="1108" y="128" font-size="11" font-weight="400" fill="#3F4651" text-anchor="start" dominant-baseline="central">(host: I, O, reports)</text>
+<rect x="560" y="275" width="110" height="47" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="615.0" y="298.5" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">ICAPEX</text>
+<rect x="690" y="275" width="130" height="47" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="755.0" y="298.5" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">FRAME_ECCEX</text>
+<path d="M600,230 L600,264.5" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="600,275 603.75,264.5 596.25,264.5" fill="#111111"/>
+<path d="M630,275 L630,240.5" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="630,230 633.75,240.5 626.25,240.5" fill="#111111"/>
+<text x="645" y="262" font-size="10" font-weight="400" fill="#3F4651" text-anchor="start" dominant-baseline="central">frames</text>
+<path d="M715,275 L715,240.5" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="715,230 718.75,240.5 711.25,240.5" fill="#111111"/>
+<text x="723" y="262" font-size="10" font-weight="400" fill="#3F4651" text-anchor="start" dominant-baseline="central">ECC syndrome</text>
+<rect x="430" y="358" width="660" height="54" fill="#D2D2D2" stroke="#111111" stroke-width="1.5"/>
+<text x="760.0" y="377.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">CRAM</text>
+<text x="760.0" y="394.0" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">frames scanned by the SEM, upsets injected by SK-RAFT</text>
+<path d="M600,322 L600,347.5" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="600,358 603.75,347.5 596.25,347.5" fill="#111111"/>
+<path d="M630,358 L630,332.5" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="630,322 633.75,332.5 626.25,332.5" fill="#111111"/>
+<path d="M715,358 L715,332.5" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<polygon points="715,322 718.75,332.5 711.25,332.5" fill="#111111"/>
+<rect x="1114" y="312" width="222" height="96" fill="#FFFFFF" stroke="#111111" stroke-width="1.2"/>
+<text x="1126" y="328" font-size="12.5" font-weight="700" fill="#111827" text-anchor="start" dominant-baseline="central">legend</text>
+<rect x="1126" y="341" width="22" height="14" fill="#FFFFFF" stroke="#111111" stroke-width="1" stroke-dasharray="3 2"/>
+<text x="1156" y="348" font-size="12" font-weight="400" fill="#3F4651" text-anchor="start" dominant-baseline="central">BSCAN registers (SK-RAFT)</text>
+<rect x="1126" y="363" width="22" height="14" fill="#FFF4C2" stroke="#111111" stroke-width="1"/>
+<text x="1156" y="370" font-size="12" font-weight="400" fill="#3F4651" text-anchor="start" dominant-baseline="central">pblock_sem (experiments 4, 5)</text>
+<rect x="1126" y="385" width="22" height="14" fill="#D2D2D2" stroke="#111111" stroke-width="1"/>
+<text x="1156" y="392" font-size="12" font-weight="400" fill="#3F4651" text-anchor="start" dominant-baseline="central">CRAM (experiments 1 to 3)</text>
+</svg>

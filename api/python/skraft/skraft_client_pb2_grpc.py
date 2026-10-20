@@ -50,7 +50,7 @@ class SKRaftFpgaStub(object):
         self.FpgaSelectDevice = channel.unary_unary(
                 '/proto.SKRaftFpga/FpgaSelectDevice',
                 request_serializer=skraft__client__pb2.FpgaDeviceDetails.SerializeToString,
-                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                response_deserializer=skraft__client__pb2.FpgaDevice.FromString,
                 _registered_method=True)
         self.FpgaGetDevices = channel.unary_unary(
                 '/proto.SKRaftFpga/FpgaGetDevices',
@@ -107,14 +107,19 @@ class SKRaftFpgaStub(object):
                 request_serializer=skraft__client__pb2.FpgaFiSession.SerializeToString,
                 response_deserializer=skraft__client__pb2.FpgaFiSummary.FromString,
                 _registered_method=True)
-        self.FpgaProgram = channel.unary_unary(
-                '/proto.SKRaftFpga/FpgaProgram',
-                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+        self.FpgaConfigureSeed = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaConfigureSeed',
+                request_serializer=skraft__client__pb2.FpgaSeedOptions.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 _registered_method=True)
-        self.FpgaExtractFarsFromBitstream = channel.unary_unary(
+        self.FpgaProgram = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaProgram',
+                request_serializer=skraft__client__pb2.FpgaProgramRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
+        self.FpgaExtractFarsFromBitstream = channel.stream_unary(
                 '/proto.SKRaftFpga/FpgaExtractFarsFromBitstream',
-                request_serializer=skraft__client__pb2.FpgaFarListExtractRequest.SerializeToString,
+                request_serializer=skraft__client__pb2.UploadDesignFileRequest.SerializeToString,
                 response_deserializer=skraft__client__pb2.FpgaFarListExtractResponse.FromString,
                 _registered_method=True)
         self.FpgaExcludeFars = channel.unary_unary(
@@ -146,6 +151,11 @@ class SKRaftFpgaStub(object):
                 '/proto.SKRaftFpga/FpgaReadBack',
                 request_serializer=skraft__client__pb2.FpgaReadbackTarget.SerializeToString,
                 response_deserializer=skraft__client__pb2.FpgaReadbackDetail.FromString,
+                _registered_method=True)
+        self.FpgaWriteFrame = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaWriteFrame',
+                request_serializer=skraft__client__pb2.FpgaWriteFrameRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 _registered_method=True)
         self.FpgaShutdown = channel.unary_unary(
                 '/proto.SKRaftFpga/FpgaShutdown',
@@ -187,6 +197,46 @@ class SKRaftFpgaStub(object):
                 request_serializer=skraft__client__pb2.FpgaPblockClause.SerializeToString,
                 response_deserializer=skraft__client__pb2.FpgaPblockFars.FromString,
                 _registered_method=True)
+        self.FpgaExcludePblocks = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaExcludePblocks',
+                request_serializer=skraft__client__pb2.FpgaPblockListExcludeRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
+        self.FpgaIncludePblocks = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaIncludePblocks',
+                request_serializer=skraft__client__pb2.FpgaPblockListIncludeRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
+        self.FpgaXadcSensor = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaXadcSensor',
+                request_serializer=skraft__client__pb2.FpgaXadcSensorRequest.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaXadcResult.FromString,
+                _registered_method=True)
+        self.FpgaXadcAlarm = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaXadcAlarm',
+                request_serializer=skraft__client__pb2.FpgaXadcAlarmRequest.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaXadcResult.FromString,
+                _registered_method=True)
+        self.FpgaXadcSetAlarm = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaXadcSetAlarm',
+                request_serializer=skraft__client__pb2.FpgaXadcSetAlarmRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
+        self.FpgaXadcFlags = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaXadcFlags',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaXadcFlagsResult.FromString,
+                _registered_method=True)
+        self.FpgaXadcReadRegister = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaXadcReadRegister',
+                request_serializer=skraft__client__pb2.FpgaXadcReadRegisterRequest.SerializeToString,
+                response_deserializer=skraft__client__pb2.FpgaXadcRegisterContent.FromString,
+                _registered_method=True)
+        self.FpgaXadcWriteRegister = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaXadcWriteRegister',
+                request_serializer=skraft__client__pb2.FpgaXadcWriteRegisterRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
         self.Version = channel.unary_unary(
                 '/proto.SKRaftFpga/Version',
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
@@ -213,7 +263,8 @@ class SKRaftFpgaServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def FpgaSelectDevice(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Returns the serial number and the part number of the selected device.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -290,15 +341,26 @@ class SKRaftFpgaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def FpgaConfigureSeed(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def FpgaProgram(self, request, context):
         """Programming
+        Programs the device with an uploaded design. The request gives the
+        files of the design, as the client uploaded them. A request with no
+        files programs the files of the last upload.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def FpgaExtractFarsFromBitstream(self, request, context):
+    def FpgaExtractFarsFromBitstream(self, request_iterator, context):
         """Frame address (FAR) list management
+        Streams a bitstream, as FpgaUploadDesignFile does, and returns its
+        FARs. The bitstream used to program the FPGA is not changed.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -337,6 +399,13 @@ class SKRaftFpgaServicer(object):
 
     def FpgaReadBack(self, request, context):
         """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaWriteFrame(self, request, context):
+        """Frame write
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -389,6 +458,62 @@ class SKRaftFpgaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def FpgaExcludePblocks(self, request, context):
+        """Excludes the bits of the named pblocks from the injection.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaIncludePblocks(self, request, context):
+        """Includes the named pblocks again, after FpgaExcludePblocks.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaXadcSensor(self, request, context):
+        """XADC sensors (7 series FPGAs and Zynq-7000 SoCs)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaXadcAlarm(self, request, context):
+        """XADC alarm thresholds (50h-5Fh), in SI units, and the state of the
+        alarms, from the flag register.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaXadcSetAlarm(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaXadcFlags(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaXadcReadRegister(self, request, context):
+        """XADC registers, as raw 16-bit values: the flag register (3Fh, read
+        only), the configuration registers (40h-42h) and the alarm registers
+        (50h-5Fh) only.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaXadcWriteRegister(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def Version(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -411,7 +536,7 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
             'FpgaSelectDevice': grpc.unary_unary_rpc_method_handler(
                     servicer.FpgaSelectDevice,
                     request_deserializer=skraft__client__pb2.FpgaDeviceDetails.FromString,
-                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                    response_serializer=skraft__client__pb2.FpgaDevice.SerializeToString,
             ),
             'FpgaGetDevices': grpc.unary_unary_rpc_method_handler(
                     servicer.FpgaGetDevices,
@@ -468,14 +593,19 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
                     request_deserializer=skraft__client__pb2.FpgaFiSession.FromString,
                     response_serializer=skraft__client__pb2.FpgaFiSummary.SerializeToString,
             ),
-            'FpgaProgram': grpc.unary_unary_rpc_method_handler(
-                    servicer.FpgaProgram,
-                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            'FpgaConfigureSeed': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaConfigureSeed,
+                    request_deserializer=skraft__client__pb2.FpgaSeedOptions.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
-            'FpgaExtractFarsFromBitstream': grpc.unary_unary_rpc_method_handler(
+            'FpgaProgram': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaProgram,
+                    request_deserializer=skraft__client__pb2.FpgaProgramRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'FpgaExtractFarsFromBitstream': grpc.stream_unary_rpc_method_handler(
                     servicer.FpgaExtractFarsFromBitstream,
-                    request_deserializer=skraft__client__pb2.FpgaFarListExtractRequest.FromString,
+                    request_deserializer=skraft__client__pb2.UploadDesignFileRequest.FromString,
                     response_serializer=skraft__client__pb2.FpgaFarListExtractResponse.SerializeToString,
             ),
             'FpgaExcludeFars': grpc.unary_unary_rpc_method_handler(
@@ -507,6 +637,11 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
                     servicer.FpgaReadBack,
                     request_deserializer=skraft__client__pb2.FpgaReadbackTarget.FromString,
                     response_serializer=skraft__client__pb2.FpgaReadbackDetail.SerializeToString,
+            ),
+            'FpgaWriteFrame': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaWriteFrame,
+                    request_deserializer=skraft__client__pb2.FpgaWriteFrameRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
             'FpgaShutdown': grpc.unary_unary_rpc_method_handler(
                     servicer.FpgaShutdown,
@@ -547,6 +682,46 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
                     servicer.FpgaGetPblockFarsByClause,
                     request_deserializer=skraft__client__pb2.FpgaPblockClause.FromString,
                     response_serializer=skraft__client__pb2.FpgaPblockFars.SerializeToString,
+            ),
+            'FpgaExcludePblocks': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaExcludePblocks,
+                    request_deserializer=skraft__client__pb2.FpgaPblockListExcludeRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'FpgaIncludePblocks': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaIncludePblocks,
+                    request_deserializer=skraft__client__pb2.FpgaPblockListIncludeRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'FpgaXadcSensor': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaXadcSensor,
+                    request_deserializer=skraft__client__pb2.FpgaXadcSensorRequest.FromString,
+                    response_serializer=skraft__client__pb2.FpgaXadcResult.SerializeToString,
+            ),
+            'FpgaXadcAlarm': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaXadcAlarm,
+                    request_deserializer=skraft__client__pb2.FpgaXadcAlarmRequest.FromString,
+                    response_serializer=skraft__client__pb2.FpgaXadcResult.SerializeToString,
+            ),
+            'FpgaXadcSetAlarm': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaXadcSetAlarm,
+                    request_deserializer=skraft__client__pb2.FpgaXadcSetAlarmRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'FpgaXadcFlags': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaXadcFlags,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=skraft__client__pb2.FpgaXadcFlagsResult.SerializeToString,
+            ),
+            'FpgaXadcReadRegister': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaXadcReadRegister,
+                    request_deserializer=skraft__client__pb2.FpgaXadcReadRegisterRequest.FromString,
+                    response_serializer=skraft__client__pb2.FpgaXadcRegisterContent.SerializeToString,
+            ),
+            'FpgaXadcWriteRegister': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaXadcWriteRegister,
+                    request_deserializer=skraft__client__pb2.FpgaXadcWriteRegisterRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
             'Version': grpc.unary_unary_rpc_method_handler(
                     servicer.Version,
@@ -636,7 +811,7 @@ class SKRaftFpga(object):
             target,
             '/proto.SKRaftFpga/FpgaSelectDevice',
             skraft__client__pb2.FpgaDeviceDetails.SerializeToString,
-            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            skraft__client__pb2.FpgaDevice.FromString,
             options,
             channel_credentials,
             insecure,
@@ -945,6 +1120,33 @@ class SKRaftFpga(object):
             _registered_method=True)
 
     @staticmethod
+    def FpgaConfigureSeed(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaConfigureSeed',
+            skraft__client__pb2.FpgaSeedOptions.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
     def FpgaProgram(request,
             target,
             options=(),
@@ -959,7 +1161,7 @@ class SKRaftFpga(object):
             request,
             target,
             '/proto.SKRaftFpga/FpgaProgram',
-            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            skraft__client__pb2.FpgaProgramRequest.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,
             channel_credentials,
@@ -972,7 +1174,7 @@ class SKRaftFpga(object):
             _registered_method=True)
 
     @staticmethod
-    def FpgaExtractFarsFromBitstream(request,
+    def FpgaExtractFarsFromBitstream(request_iterator,
             target,
             options=(),
             channel_credentials=None,
@@ -982,11 +1184,11 @@ class SKRaftFpga(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
+        return grpc.experimental.stream_unary(
+            request_iterator,
             target,
             '/proto.SKRaftFpga/FpgaExtractFarsFromBitstream',
-            skraft__client__pb2.FpgaFarListExtractRequest.SerializeToString,
+            skraft__client__pb2.UploadDesignFileRequest.SerializeToString,
             skraft__client__pb2.FpgaFarListExtractResponse.FromString,
             options,
             channel_credentials,
@@ -1150,6 +1352,33 @@ class SKRaftFpga(object):
             '/proto.SKRaftFpga/FpgaReadBack',
             skraft__client__pb2.FpgaReadbackTarget.SerializeToString,
             skraft__client__pb2.FpgaReadbackDetail.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaWriteFrame(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaWriteFrame',
+            skraft__client__pb2.FpgaWriteFrameRequest.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,
             channel_credentials,
             insecure,
@@ -1366,6 +1595,222 @@ class SKRaftFpga(object):
             '/proto.SKRaftFpga/FpgaGetPblockFarsByClause',
             skraft__client__pb2.FpgaPblockClause.SerializeToString,
             skraft__client__pb2.FpgaPblockFars.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaExcludePblocks(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaExcludePblocks',
+            skraft__client__pb2.FpgaPblockListExcludeRequest.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaIncludePblocks(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaIncludePblocks',
+            skraft__client__pb2.FpgaPblockListIncludeRequest.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaXadcSensor(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaXadcSensor',
+            skraft__client__pb2.FpgaXadcSensorRequest.SerializeToString,
+            skraft__client__pb2.FpgaXadcResult.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaXadcAlarm(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaXadcAlarm',
+            skraft__client__pb2.FpgaXadcAlarmRequest.SerializeToString,
+            skraft__client__pb2.FpgaXadcResult.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaXadcSetAlarm(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaXadcSetAlarm',
+            skraft__client__pb2.FpgaXadcSetAlarmRequest.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaXadcFlags(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaXadcFlags',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            skraft__client__pb2.FpgaXadcFlagsResult.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaXadcReadRegister(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaXadcReadRegister',
+            skraft__client__pb2.FpgaXadcReadRegisterRequest.SerializeToString,
+            skraft__client__pb2.FpgaXadcRegisterContent.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaXadcWriteRegister(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaXadcWriteRegister',
+            skraft__client__pb2.FpgaXadcWriteRegisterRequest.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,
             channel_credentials,
             insecure,

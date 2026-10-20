@@ -1,0 +1,9 @@
+# Vivado project and build outputs
+hw/build/
+.Xil/
+*.jou
+*.log
+*.str
+src/design_files/
+# CSV logs of main.py
+src/logs/

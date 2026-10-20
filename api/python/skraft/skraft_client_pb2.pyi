@@ -8,6 +8,11 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class FpgaFarModel(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    FPGA_7SERIES_FAR_MODEL: _ClassVar[FpgaFarModel]
+    FPGA_ULTRASCALE_FAR_MODEL: _ClassVar[FpgaFarModel]
+
 class FpgaFileType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     FPGA_FILE_TYPE_UNSPECIFIED: _ClassVar[FpgaFileType]
@@ -41,6 +46,8 @@ class FpgaFaultType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     FPGA_FAULT_TYPE_RANDOM: _ClassVar[FpgaFaultType]
     FPGA_FAULT_TYPE_EXHAUSTIVE: _ClassVar[FpgaFaultType]
+FPGA_7SERIES_FAR_MODEL: FpgaFarModel
+FPGA_ULTRASCALE_FAR_MODEL: FpgaFarModel
 FPGA_FILE_TYPE_UNSPECIFIED: FpgaFileType
 FPGA_FILE_TYPE_RBD: FpgaFileType
 FPGA_FILE_TYPE_MSD: FpgaFileType
@@ -127,6 +134,18 @@ class FpgaPblockFars(_message.Message):
     fars: _containers.RepeatedCompositeFieldContainer[FpgaPblockFar]
     def __init__(self, fars: _Optional[_Iterable[_Union[FpgaPblockFar, _Mapping]]] = ...) -> None: ...
 
+class FpgaPblockListExcludeRequest(_message.Message):
+    __slots__ = ("pblock_names",)
+    PBLOCK_NAMES_FIELD_NUMBER: _ClassVar[int]
+    pblock_names: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, pblock_names: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class FpgaPblockListIncludeRequest(_message.Message):
+    __slots__ = ("pblock_names",)
+    PBLOCK_NAMES_FIELD_NUMBER: _ClassVar[int]
+    pblock_names: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, pblock_names: _Optional[_Iterable[str]] = ...) -> None: ...
+
 class FpgaFarDecodeRequest(_message.Message):
     __slots__ = ("value",)
     VALUE_FIELD_NUMBER: _ClassVar[int]
@@ -134,18 +153,20 @@ class FpgaFarDecodeRequest(_message.Message):
     def __init__(self, value: _Optional[int] = ...) -> None: ...
 
 class FpgaFarDecodeResponse(_message.Message):
-    __slots__ = ("block_type", "top_bottom", "row_address", "column_address", "minor_address")
+    __slots__ = ("far_model", "block_type", "top_bottom", "row_address", "column_address", "minor_address")
+    FAR_MODEL_FIELD_NUMBER: _ClassVar[int]
     BLOCK_TYPE_FIELD_NUMBER: _ClassVar[int]
     TOP_BOTTOM_FIELD_NUMBER: _ClassVar[int]
     ROW_ADDRESS_FIELD_NUMBER: _ClassVar[int]
     COLUMN_ADDRESS_FIELD_NUMBER: _ClassVar[int]
     MINOR_ADDRESS_FIELD_NUMBER: _ClassVar[int]
+    far_model: FpgaFarModel
     block_type: int
     top_bottom: int
     row_address: int
     column_address: int
     minor_address: int
-    def __init__(self, block_type: _Optional[int] = ..., top_bottom: _Optional[int] = ..., row_address: _Optional[int] = ..., column_address: _Optional[int] = ..., minor_address: _Optional[int] = ...) -> None: ...
+    def __init__(self, far_model: _Optional[_Union[FpgaFarModel, str]] = ..., block_type: _Optional[int] = ..., top_bottom: _Optional[int] = ..., row_address: _Optional[int] = ..., column_address: _Optional[int] = ..., minor_address: _Optional[int] = ...) -> None: ...
 
 class FpgaReadRegisterRequest(_message.Message):
     __slots__ = ("addr",)
@@ -210,6 +231,12 @@ class FpgaDesignFileResponse(_message.Message):
     bytes_written: int
     sha256: str
     def __init__(self, stored_path: _Optional[str] = ..., bytes_written: _Optional[int] = ..., sha256: _Optional[str] = ...) -> None: ...
+
+class FpgaProgramRequest(_message.Message):
+    __slots__ = ("files",)
+    FILES_FIELD_NUMBER: _ClassVar[int]
+    files: _containers.RepeatedCompositeFieldContainer[FpgaDesignFileInfo]
+    def __init__(self, files: _Optional[_Iterable[_Union[FpgaDesignFileInfo, _Mapping]]] = ...) -> None: ...
 
 class FpgaBitCountRequest(_message.Message):
     __slots__ = ("category", "pblock_name")
@@ -295,12 +322,6 @@ class FpgaScrubWordSummary(_message.Message):
     is_essential: bool
     def __init__(self, far: _Optional[int] = ..., word_index: _Optional[int] = ..., bit_index: _Optional[int] = ..., golden_word_value: _Optional[int] = ..., erroneous_word_value: _Optional[int] = ..., ebd_word_value: _Optional[int] = ..., msd_word_value: _Optional[int] = ..., is_essential: bool = ...) -> None: ...
 
-class FpgaFarListExtractRequest(_message.Message):
-    __slots__ = ("bitstream_path",)
-    BITSTREAM_PATH_FIELD_NUMBER: _ClassVar[int]
-    bitstream_path: str
-    def __init__(self, bitstream_path: _Optional[str] = ...) -> None: ...
-
 class FpgaFarListExtractResponse(_message.Message):
     __slots__ = ("fars",)
     FARS_FIELD_NUMBER: _ClassVar[int]
@@ -349,6 +370,14 @@ class FpgaReadbackDetail(_message.Message):
     frames: _containers.RepeatedCompositeFieldContainer[FpgaFrame]
     def __init__(self, frames: _Optional[_Iterable[_Union[FpgaFrame, _Mapping]]] = ...) -> None: ...
 
+class FpgaWriteFrameRequest(_message.Message):
+    __slots__ = ("frame", "restore")
+    FRAME_FIELD_NUMBER: _ClassVar[int]
+    RESTORE_FIELD_NUMBER: _ClassVar[int]
+    frame: FpgaFrame
+    restore: bool
+    def __init__(self, frame: _Optional[_Union[FpgaFrame, _Mapping]] = ..., restore: bool = ...) -> None: ...
+
 class FpgaBscanTarget(_message.Message):
     __slots__ = ("user_register_id", "value", "useful_bits")
     USER_REGISTER_ID_FIELD_NUMBER: _ClassVar[int]
@@ -365,6 +394,78 @@ class FpgaBscanOutput(_message.Message):
     value: bytes
     def __init__(self, value: _Optional[bytes] = ...) -> None: ...
 
+class FpgaXadcSensorRequest(_message.Message):
+    __slots__ = ("addr",)
+    ADDR_FIELD_NUMBER: _ClassVar[int]
+    addr: int
+    def __init__(self, addr: _Optional[int] = ...) -> None: ...
+
+class FpgaXadcResult(_message.Message):
+    __slots__ = ("value",)
+    VALUE_FIELD_NUMBER: _ClassVar[int]
+    value: float
+    def __init__(self, value: _Optional[float] = ...) -> None: ...
+
+class FpgaXadcAlarmRequest(_message.Message):
+    __slots__ = ("addr",)
+    ADDR_FIELD_NUMBER: _ClassVar[int]
+    addr: int
+    def __init__(self, addr: _Optional[int] = ...) -> None: ...
+
+class FpgaXadcSetAlarmRequest(_message.Message):
+    __slots__ = ("addr", "value")
+    ADDR_FIELD_NUMBER: _ClassVar[int]
+    VALUE_FIELD_NUMBER: _ClassVar[int]
+    addr: int
+    value: float
+    def __init__(self, addr: _Optional[int] = ..., value: _Optional[float] = ...) -> None: ...
+
+class FpgaXadcFlagsResult(_message.Message):
+    __slots__ = ("temperature", "vccint", "vccaux", "over_temperature", "vccbram", "vccpint", "vccpaux", "vcco_ddr", "internal_reference", "jtag_read_only", "jtag_disabled")
+    TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
+    VCCINT_FIELD_NUMBER: _ClassVar[int]
+    VCCAUX_FIELD_NUMBER: _ClassVar[int]
+    OVER_TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
+    VCCBRAM_FIELD_NUMBER: _ClassVar[int]
+    VCCPINT_FIELD_NUMBER: _ClassVar[int]
+    VCCPAUX_FIELD_NUMBER: _ClassVar[int]
+    VCCO_DDR_FIELD_NUMBER: _ClassVar[int]
+    INTERNAL_REFERENCE_FIELD_NUMBER: _ClassVar[int]
+    JTAG_READ_ONLY_FIELD_NUMBER: _ClassVar[int]
+    JTAG_DISABLED_FIELD_NUMBER: _ClassVar[int]
+    temperature: bool
+    vccint: bool
+    vccaux: bool
+    over_temperature: bool
+    vccbram: bool
+    vccpint: bool
+    vccpaux: bool
+    vcco_ddr: bool
+    internal_reference: bool
+    jtag_read_only: bool
+    jtag_disabled: bool
+    def __init__(self, temperature: bool = ..., vccint: bool = ..., vccaux: bool = ..., over_temperature: bool = ..., vccbram: bool = ..., vccpint: bool = ..., vccpaux: bool = ..., vcco_ddr: bool = ..., internal_reference: bool = ..., jtag_read_only: bool = ..., jtag_disabled: bool = ...) -> None: ...
+
+class FpgaXadcReadRegisterRequest(_message.Message):
+    __slots__ = ("addr",)
+    ADDR_FIELD_NUMBER: _ClassVar[int]
+    addr: int
+    def __init__(self, addr: _Optional[int] = ...) -> None: ...
+
+class FpgaXadcWriteRegisterRequest(_message.Message):
+    __slots__ = ("addr", "value")
+    ADDR_FIELD_NUMBER: _ClassVar[int]
+    VALUE_FIELD_NUMBER: _ClassVar[int]
+    addr: int
+    value: int
+    def __init__(self, addr: _Optional[int] = ..., value: _Optional[int] = ...) -> None: ...
+
+class FpgaXadcRegisterContent(_message.Message):
+    __slots__ = ("value",)
+    VALUE_FIELD_NUMBER: _ClassVar[int]
+    value: int
+    def __init__(self, value: _Optional[int] = ...) -> None: ...
+
 class FpgaInjectionTarget(_message.Message):
     __slots__ = ("frame_address", "word_index", "bit_index", "kind", "net_name")
     FRAME_ADDRESS_FIELD_NUMBER: _ClassVar[int]
@@ -378,6 +479,12 @@ class FpgaInjectionTarget(_message.Message):
     kind: FpgaTargetKind
     net_name: str
     def __init__(self, frame_address: _Optional[int] = ..., word_index: _Optional[int] = ..., bit_index: _Optional[int] = ..., kind: _Optional[_Union[FpgaTargetKind, str]] = ..., net_name: _Optional[str] = ...) -> None: ...
+
+class FpgaSeedOptions(_message.Message):
+    __slots__ = ("seed",)
+    SEED_FIELD_NUMBER: _ClassVar[int]
+    seed: int
+    def __init__(self, seed: _Optional[int] = ...) -> None: ...
 
 class FpgaInjectionOptions(_message.Message):
     __slots__ = ("essentials", "include_flip_flops", "include_lutrams", "include_brams", "include_pblock", "pblock_name")

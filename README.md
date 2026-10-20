@@ -1,37 +1,75 @@
-## SolidKosmos S.A.
+## ![SK-RAFT by SolidKosmos](docs/images/image-20261004221145345.png)
 
-# SK-RAFT
+**Getting-started examples for SK-RAFT.** 
 
-SK-RAFT is SolidKosmos's fault-injection platform for emulating and analysing single-event effects (SEEs) on commercial off-the-shelf (COTS) FPGAs and SoCs: fault injection, recovery validation, and radiation-tolerance assessment.
+SK-RAFT is an EDA software tool for fault injection in AMD-Xilinx FPGAs. It emulates single-event upsets (SEUs).
 
-This repository contains the SK-RAFT client API and example designs/scripts. It does not include the SK-RAFT server.
+This repository contains open-source getting-started examples for the SK-RAFT server. The SK-RAFT server is proprietary SolidKosmos software and requires a valid trial or commercial licence.
 
-The get-started examples (`examples/`) demonstrate SK-RAFT's core capabilities, each against a small purpose-built design: whole-device, essential-bit, and pblock-confined CRAM targeting; BSCAN-driven register access; flip-flop and LUTRAM injection; and BRAM content injection with ECC recovery.
+**Get a trial licence:** `<trial link: TBD>`
 
-## How SK-RAFT models a device
+## Main functions
 
-![Where a fault lands: the application plane and configuration plane are two physically stacked layers; a fault can strike through both at the same point, and SK-RAFT can inject into either plane directly](docs/images/plane-diagram.svg)
+- **Injection into the configuration RAM (CRAM).** The CRAM contains the FPGA configuration: CLBs, DSPs, clock managers, IOBs, and all other configurable resources. SK-RAFT can inject faults into all of the CRAM. 
+- **Injection into the application RAM (ARAM).** The ARAM contains the design data during operation: the contents of the BRAMs, the flip-flops, and the LUTRAM. 
+- **Targeted fault injection.** SK-RAFT can limit the injection to:
+  - The essential bits of the design.
+  - The essential bits of a specific Pblock.
+  - The application memories of selected components in your RTL hierarchy.
+- **Essential-bit analysis.** SK-RAFT reads the Vivado-generated EBD file and finds the essential bits of the design or specific Pblocks.
+- **Full BSCAN support.** Your script can write inputs to the design and read outputs from the design through the BSCAN user registers (USER1 to USER4).
+- **External scrubbing through JTAG.** SK-RAFT can scrub the CRAM from outside the FPGA, through JTAG. This function helps during radiation tests.
+- **Programmer.** SK-RAFT can program the FPGA with a bitstream.
+- **Readback with GCAPTURE.** SK-RAFT can read back the FPGA's configuration frames. With GCAPTURE, the readback also contains the current values of the flip-flops.
 
-SK-RAFT addresses two physically stacked planes on the device: the **configuration plane** (CRAM — the bitstream itself: LUT truth tables, routing, BRAM mode) and the **application plane** (the live runtime state: flip-flop values, BRAM content). Both are direct injection targets. See [`docs/concepts.md`](docs/concepts.md) for the full model: essential bits, LUTRAM, pblocks, and how a fault is located.
+## How SK-RAFT operates
 
-**Try SK-RAFT:** `<trial link — TBD>`
+SK-RAFT is a server:
 
-## Layout
+- On one side, the server connects to the AMD-Xilinx FPGA through FTDI JTAG (a USB JTAG cable).
+- On the other side, the server receives gRPC requests from clients through TCP/IP.
+
+To inject a fault, your script sends a gRPC request to the server. The server does the operation on the FPGA through JTAG. Then the server sends the result back to your script. The server and your script can be on the same computer (`127.0.0.1`) or on different computers.
+
+![Architecture of SK-RAFT. Your script and the skraft client send gRPC requests over TCP/IP to the SK-RAFT server. The server returns the results. The server connects over JTAG (USB) to the FPGA board, which has configuration memory, application memory, and a BSCAN interface to the user design.](docs/images/sk-raft-architecture.svg)
+
+The `skraft` Python client in this repository sends the gRPC requests for you. A typical script does these steps:
+
+1. Connect to the server: `SkraftFpga.connect(ip, port)`.
+2. Reserve the board with its serial number: `client.attach(serial_number)`. To find the serial numbers of the connected boards, use `client.get_devices()`.
+3. Upload the design files (bitstream, EBD, LL and XDC files) to the server: `dev.uploadDesignToServer(design)`.
+4. Program the FPGA with an uploaded design: `dev.programFPGA(design)`. The server keeps each uploaded design. Thus, you can upload several designs, and then program the one to use.
+5. Inject faults, for example: `dev.inject_random(TargetMemory.ESSENTIAL_CRAM)`.
+6. Read the effect of the faults, for example through BSCAN: `dev.read_bscan(...)`.
+
+Example:
+
+```python
+from skraft import Design, SkraftFpga, TargetMemory
+
+with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
+    with client.attach("210183BFD452A") as dev:
+        design = Design(bit="top.bit", ebd="top.ebd")
+        dev.uploadDesignToServer(design)
+        dev.programFPGA(design)
+        report = dev.inject_random(TargetMemory.ESSENTIAL_CRAM)
+        print(f"far {report.far:#010x} word {report.word_index} bit {report.bit_index}")
+```
+
+## Folder structure
 
 ```
-sk-raft-deliverables/
+sk-raft-client/
 ├── api/python/                           Python client (skraft package)
-├── docs/                                 Concepts and reference docs
-└── examples/                             Example designs and scripts (see examples/README.md)
-    ├── example1/ .. example4/              Python API walkthroughs (src/main.py)
-    └── hw/                                 Vivado project (create_project.tcl)
-        ├── sources_1/new/                   VHDL sources
-        └── xdc/                             basys3/, zedboard/, custom_template/
+├── application_examples/                 Example designs and scripts for specific use cases
+├── auxiliary_components/                 Reusable BSCAN registers, safe clock, BRAM hold pass
+├── docs/                                 Concepts and reference documents
+└── get_started/                          Example designs and scripts
 ```
 
 ## Installation
 
-Install the `skraft` Python client into your project's virtual environment directly from this repository; it is not published to PyPI.
+The `skraft` Python client is not on PyPI. Install it from this repository into the virtual environment of your project:
 
 ```bash
 cd your-project
@@ -40,4 +78,16 @@ source .venv/bin/activate        # .venv\Scripts\activate on Windows
 pip install /path/to/api/python
 ```
 
-Use `pip install -e /path/to/api/python` instead to pick up local changes to the client without reinstalling.
+To use local changes to the client without a new installation, use `pip install -e /path/to/api/python`.
+
+## Report a problem
+
+To report a bug in the client, the examples or the documents, open an issue in the Issues tab of this repository. Use the "Bug report" template. For more information, refer to [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+SolidKosmos does not accept pull requests from persons outside SolidKosmos.
+
+## License
+
+- The Python client (`api/python`), the examples (`get_started/`) and the documents (`docs/`) are open source under the Apache License 2.0. Refer to [`LICENSE.md`](LICENSE.md) and [`NOTICE.md`](NOTICE.md).
+- The SK-RAFT server is not open source. The SK-RAFT Trial Licence Agreement or the SK-RAFT End User Licence Agreement applies to the server.
+- SK-RAFT and SolidKosmos are trademarks of SOLIDKOSMOS S.A. The Apache License 2.0 does not give permission to use these trademarks.

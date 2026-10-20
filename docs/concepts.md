@@ -1,47 +1,35 @@
-# SK-RAFT Concepts
+# SK-RAFT concepts
 
-How SK-RAFT locates and describes a fault, independent of any one example. The get-started examples (`examples/`) are the hands-on counterpart to this document.
+## Conceptual model of an SRAM-based FPGA
 
-## The two planes
+The following figure presents a conceptual model of an SRAM-based FPGA to illustrate the radiation-induced failure modes of such devices. The model divides the chip into two layers: the configuration layer, which holds the FPGA's configuration memory (CRAM), and the application layer, which implements the circuit. A failure in the application layer can arise for two reasons. First, highly energetic particles, such as heavy ions, can strike and corrupt the CRAM bits that configure the resources the circuit uses, thereby altering the logic or routing of the implemented design. Second, particles can strike and corrupt application memory elements in the application layer (ARAM), such as flip-flops and the contents of block RAMs (BRAMs).
 
-Every fault SK-RAFT injects lands in one of two places.
+<img src="images/cram-aram-layers.svg" alt="Conceptual model of an SRAM-based FPGA. The configuration memory (CRAM) layer configures the application memory (ARAM) layer, which holds flip-flops, LUTRAM and BRAM. An ion strike can flip a stored bit in ARAM or change the circuit through CRAM." width="680" />
 
-The **configuration plane** is the bitstream itself — the configuration memory (CRAM) that defines what the fabrics behaviour: each LUT's truth table, the routing between them, the BRAM's mode and width and every primitive's configuration. A fault here changes the circuit's structure.
 
-The **application plane** is the live, dynamic state the configured circuit is working with as it runs — a flip-flop's current value, a BRAM's or LUTRAM's stored data. A fault here changes a value, not the circuit itself.
+Each fault that SK-RAFT injects goes into one of the mentioned planes:
 
-SK-RAFT can manipulate both planes directly. `TargetMemory.FF`, `TargetMemory.LUTRAM` and `TargetMemory.BRAM` inject into the application plane itself — flipping a register's current value or a stored data word — exactly as `TargetMemory.CRAM`/`ESSENTIAL_CRAM` inject into the configuration plane. Both planes are addressable injection targets.
+- **CRAM plane**: Corrupts the FPGA's programmable resources, such as LUTs, global and local routing, and BRAM mode and width. A fault (i.e., a bit flip) in this plane changes the structure of the application circuit. The directives `TargetMemory.CRAM` and `TargetMemory.ESSENTIAL_CRAM` inject faults into the configuration plane.
+- **ARAM plane:** Corrupts the dynamic state of the configured circuit during operation. Examples include the current value of a flip-flop and the data in a BRAM or a LUTRAM. A fault in this plane changes a value but not the circuit. Directives `TargetMemory.FF`, `TargetMemory.LUTRAM` and `TargetMemory.BRAM` inject into the application plane. 
 
-![Where a fault lands: the application plane and configuration plane are two physically stacked layers](images/plane-diagram.svg)
-
-*The application plane (live flip-flop and BRAM state) sits above the configuration plane (CRAM) that defines the circuit. A fault can land in either layer at the same physical location. The next two sections cover the two cases that complicate this picture: essential bits within the configuration plane, and LUTRAM, which sits in both.*
+# Targeted Fault Injection 
 
 ## Essential bits
 
-Most of a device's configuration memory is unused by any one design — unused routing slack, logic for features the design doesn't instantiate. A random bit flip anywhere in CRAM (`TargetMemory.CRAM`) usually lands there and has no observable effect.
+Even the densest FPGA design uses only a small part of the CRAM. Thus, a bit flip (fault) in CRAM (`TargetMemory.CRAM`) usually goes into one of these unused CRAM bits. Then the flip has no effect that you can see.
 
-**Essential bits** are the subset of CRAM this specific design actually depends on, read from its `.ebd` file. Targeting `TargetMemory.ESSENTIAL_CRAM` guarantees every injected bit is one the design relies on, so every flip has a real chance of producing an observable effect. This is the difference the first get-started example walks through directly.
+**Essential bits** are CRAM bits that, when corrupted, can cause an application-observable error. SK-RAFT reads the bits from the `.ebd` file of the design that is generated from Vivado bitgen. Thus, targeting faults only in essential CRAM bits (`TargetMemory.ESSENTIAL_CRAM`) can significantly reduce testing time, since only those bits that matter are tested.
 
-## Where LUTRAM sits
+## Targeting or excluding resources from fault injection
 
-LUTRAM is the one case that blurs the two planes. A LUT configured as distributed RAM stores its contents in its own configuration bits (its INIT field) — so a LUTRAM word is, physically, a set of essential configuration bits, but the circuit uses it as application-plane data. `TargetMemory.LUTRAM` targets exactly those bits.
+You can inject faults only to the resources of a specific Pblock defined in your XDC constraints file. Combine `pblock=<pblock_name>` with `TargetMemory.FF`, `TargetMemory.LUTRAM`, `TargetMemory.BRAM`, `TargetMemory.CRAM` and `TargetMemory.ESSENTIAL_CRAM` to inject faults into the specific Pblock. To exclude configuration frames from testing, give their frame addresses (FARs) to `dev.exclude_frames()`. The exclusion has no effect on `dev.inject_at()`.
 
-BRAM keeps the two cleanly separate instead: its configuration (mode, width) and its content live in different frame types entirely (block type 0 vs. block type 1 — see `examples/example4`), so `TargetMemory.ESSENTIAL_CRAM` and `TargetMemory.BRAM` never overlap.
+## Location of a bit: FAR, word index and bit index
 
-## Pblocks: confining the search
+SK-RAFT always uses three coordinates for the location of a bit, in reports and in arguments:
 
-Any of the targets above can be confined to a named pblock from the design's XDC (`pblock=` on `bit_count`, `inject_random`, and `inject_exhaustive`). This narrows injection to one region of the design — one heartbeat generator, one adder, one BRAM — without changing which plane or which essential-bit population is being drawn from.
+1. The frame address (FAR).
+2. The word index in the frame.
+3. The bit index in the word.
 
-## Locating a bit: FAR, word, and bit index
-
-However a target is selected, SK-RAFT reports and accepts the same three coordinates: a Frame Address (FAR), a word index within that frame, and a bit index within that word. `dev.decode_far()` turns a FAR into its block type, top/bottom half, row, column, and minor frame number — useful for telling a configuration hit (block type 0) from a content hit (block type 1), as in `example4`.
-
-## `TargetMemory` at a glance
-
-| `TargetMemory` | Plane | Selects | Used in |
-| --- | --- | --- | --- |
-| `CRAM` | Configuration | Every configuration bit, essential or not | example1 (step 1) |
-| `ESSENTIAL_CRAM` | Configuration | Only the bits this design's `.ebd` marks essential | example1 (steps 2-3), example2, example4 (Part 1) |
-| `FF` | Application | A flip-flop's current register value | example3 (Part 1) |
-| `LUTRAM` | Configuration, acting as application data | A distributed-RAM word's essential config bits | example3 (Part 2) |
-| `BRAM` | Application | A block RAM word (content frames, block type 1) | example4 (Part 2) |
+`dev.decode_far()` decodes a FAR into its block type, top or bottom half, row, column and minor frame number (see 7 Series FPGAs Configuration User Guide - UG470). 

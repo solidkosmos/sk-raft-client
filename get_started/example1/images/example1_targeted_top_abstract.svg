@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="492" height="182" viewBox="0 0 529.5 196" font-family="Ubuntu, 'Liberation Sans', Arial, Helvetica, sans-serif">
+<rect width="529.5" height="196" fill="#ffffff"/>
+<rect x="56" y="4" width="375.5" height="188" fill="#FFFFFF" stroke="#111111" stroke-width="1.5"/>
+<rect x="72" y="72.5" width="118" height="65.0" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="131" y="88.5" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">safe clock</text>
+<text x="131" y="106.5" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">generation</text>
+<text x="131" y="123.0" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">PLL + BUFGCE</text>
+<text x="4" y="105.0" font-size="15" font-weight="700" fill="#111111" text-anchor="start" dominant-baseline="central">clock</text>
+<path d="M50,105 L58,105.0" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="72,105 58,110.0 58,100.0" fill="#111111"/>
+<path d="M190,105 L218,105" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<circle cx="218" cy="105" r="3.5" fill="#111111"/>
+<rect x="254" y="12" width="165" height="81" fill="#FFFFFF" stroke="#555555" stroke-width="1.5" stroke-dasharray="9 6"/>
+<text x="264" y="22.8" font-size="12" font-weight="400" fill="#333333" text-anchor="start" dominant-baseline="central">pblock</text>
+<rect x="266" y="36.0" width="141" height="47.0" fill="#D9D9D9" stroke="#111111" stroke-width="1.5"/>
+<text x="336.5" y="52.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">slow heartbeat</text>
+<text x="336.5" y="68.5" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">toggles every 1 s</text>
+<rect x="254" y="103" width="165" height="81" fill="#FFFFFF" stroke="#555555" stroke-width="1.5" stroke-dasharray="9 6"/>
+<text x="264" y="113.8" font-size="12" font-weight="400" fill="#333333" text-anchor="start" dominant-baseline="central">pblock</text>
+<rect x="266" y="127.0" width="141" height="47.0" fill="#D9D9D9" stroke="#111111" stroke-width="1.5"/>
+<text x="336.5" y="143.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">fast heartbeat</text>
+<text x="336.5" y="159.5" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">toggles every 0.25 s</text>
+<path d="M218,105 L218,59.5 L252,59.5" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="266,59.5 252,64.5 252,54.5" fill="#111111"/>
+<path d="M218,105 L218,150.5 L252,150.5" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="266,150.5 252,155.5 252,145.5" fill="#111111"/>
+<path d="M407,59.5 L457.5,59.5" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="471.5,59.5 457.5,64.5 457.5,54.5" fill="#111111"/>
+<text x="481.5" y="59.5" font-size="15" font-weight="700" fill="#111111" text-anchor="start" dominant-baseline="central">led</text>
+<path d="M407,150.5 L457.5,150.5" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="471.5,150.5 457.5,155.5 457.5,145.5" fill="#111111"/>
+<text x="481.5" y="150.5" font-size="15" font-weight="700" fill="#111111" text-anchor="start" dominant-baseline="central">led</text>
+</svg>
