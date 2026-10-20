@@ -2,31 +2,22 @@
 
 ## The problem
 
-SK-RAFT reads and writes BRAM content through the configuration interface
-(readback, inject, revert). Every such access to a BRAM content frame
-overwrites the **output latch** of the BRAMs in that frame: the value on
-`DO` changes, the stored content and the FIFO pointers do not.
+SK-RAFT reads and writes the BRAM content through the configuration interface (readback, inject and revert). Each access to a BRAM content frame changes the **output latch** of the BRAMs in that frame. The value on `DO` changes. The stored content and the FIFO pointers do not change.
 
-A design reads the latch whenever it uses `DO` after the read cycle. If a
-freeze, an injection and a resume fall between the read and that use, the
-design takes the overwritten value instead of the word it read.
+A design reads the latch each time it uses `DO` after the read cycle. If a freeze, an injection and a resume occur between the read and that use, the design gets the changed value. It does not get the word that it read.
 
-Only ports **without the output register** (`DO_REG = 0`) are affected.
-With `DOA_REG`/`DOB_REG`/`DO_REG = 1` the output register holds the word
-while the clock is stopped, and nothing is needed.
+This problem occurs only on ports **without the output register** (`DO_REG = 0`). With `DOA_REG`, `DOB_REG` or `DO_REG = 1`, the output register keeps the word while the clock is stopped. These ports do not need the pass.
 
 ## The fix: a hold register
 
-A flip-flop on the **opposite clock edge** of the BRAM read clock copies
-`DO` in the half cycle after each read. Everything that used `DO` uses the
-hold register instead.
+A hold register is a flip-flop on the **opposite clock edge** of the BRAM read clock. It copies `DO` in the half cycle after each read. All the logic that used `DO` uses the hold register instead.
 
 ```vhdl
 -- BRAM on rising_edge(clk), DO_REG = 0
 process (clk) begin                       -- read enable, registered
   if rising_edge(clk) then ren_d <= bram_en; end if;
 end process;
-process (clk) begin                       -- hold
+process (clk) begin                       -- hold register
   if falling_edge(clk) then
     if ren_d = '1' then hold <= bram_do; end if;
   end if;
@@ -34,86 +25,59 @@ end process;
 -- the design uses hold, not bram_do
 ```
 
-The hold register must load **only right after a read** (CE = the registered
-enable). A falling-edge register that loads every cycle is not a hold register:
-after the resume it loads the overwritten latch.
+The hold register must load **only directly after a read**. Its clock enable (CE) is the registered read enable. A falling-edge register that loads on each cycle is not a hold register: after the resume, it loads the changed latch.
 
-`bram_hold_pass.tcl` inserts this structure into the netlist, so the
-source needs no change.
+`bram_hold_pass.tcl` adds this structure to the netlist. You do not change the source.
 
 ## Requirements on the design
 
-1. **The clock must stop after the edge of the hold register.** Between the
-   last read edge and the freeze there must be an edge of the hold
-   register. For a BRAM on the rising edge, gate the clock with a buffer
-   that stops **low** (BUFGCE, or BUFGCTRL with `INIT_OUT = 0`), never
-   BUFGCE_1. For a BRAM with an inverted clock (`IS_CLK*_INVERTED = 1`),
-   the opposite. The pass warns when it sees a gating buffer that stops on
-   the wrong level.
-2. **Timing of the half-cycle paths is yours.** BRAM clock-to-out to the
-   hold register, and the hold register to its loads, each get half a clock
-   period. The pass adds no constraints; Vivado times these paths normally.
-   If they fail, lower the clock or use `DO_REG = 1` on that port.
-3. **Injections happen with the clock stopped.** The hold register protects
-   the word read before the freeze. It does not make access to a running
-   BRAM safe.
+1. **The clock must stop after an edge of the hold register.** Between the last read edge and the freeze, an edge of the hold register must occur. For a BRAM on the rising edge, gate the clock with a buffer that stops **low**: BUFGCE, or BUFGCTRL with `INIT_OUT = 0`. Do not use BUFGCE_1. For a BRAM with an inverted clock (`IS_CLK*_INVERTED = 1`), do the opposite. The pass gives a warning if a gating buffer stops on the wrong level.
+2. **You are responsible for the timing of the half-cycle paths.** The path from the BRAM to the hold register gets half a clock period. The path from the hold register to its loads also gets half a clock period. The pass adds no constraints, and Vivado times these paths normally. If they fail, decrease the clock frequency or use `DO_REG = 1` on that port.
+3. **Inject only while the clock is stopped.** The hold register keeps the word that the design read before the freeze. It does not make an access to a BRAM safe while the clock runs.
 4. **Exclude the BRAMs from power optimization.** Add this line to the XDC:
 
    ```tcl
    set_power_opt -exclude_cells [get_cells -hier -filter {REF_NAME =~ RAMB*}]
    ```
 
-   This way the tool does not optimize the way the BRAMs perform reads.
-   Without it, the power optimization of `opt_design` (after the pass) can
-   add gating logic to a read enable, for example one that is tied on.
-   Then the BRAM reads less often than the pass assumed. The examples of
-   this repository have this line in their XDC files.
+   This prevents the tool from changing how the BRAMs do their reads. Without this line, the power optimization of `opt_design` runs after the pass and can add gating logic to a read enable, also to a read enable that is tied to 1. Then the BRAM reads less frequently than the pass expects. The XDC files of the examples in this repository have this line.
 
 ## What the pass does
 
-Per BRAM read port (7-series RAMB18E1, RAMB36E1, FIFO18E1, FIFO36E1;
-UltraScale RAMB18E2, RAMB36E2, FIFO18E2, FIFO36E2):
+The pass examines each BRAM read port of these primitives: RAMB18E1, RAMB36E1, FIFO18E1 and FIFO36E1 (7-series), and RAMB18E2, RAMB36E2, FIFO18E2 and FIFO36E2 (UltraScale).
 
 | Case | Action |
 | --- | --- |
-| `DO_REG = 1` (includes every asynchronous and FWFT 7-series FIFO); UltraScale FIFO with `REGISTER_MODE` other than UNREGISTERED | skipped |
-| no output pin of the port has a load | skipped |
-| port enable tied off | skipped |
-| every load is already a hold register (opposite edge, CE = enable registered on the BRAM edge) | skipped |
-| loads are opposite-edge flip-flops with another CE | protected (see below; reported) |
-| cascade 64K x 1 (`RAM_EXTENSION`) | hold register on the UPPER output; enable covers both halves; LOWER skipped (no loads) |
-| anything else with `DO_REG = 0` | hold register inserted |
-| UltraScale RAMB*E2 with full-width read (`READ_WIDTH_A` = 72 / 36) | one read port on port A: DOUTADOUT, DOUTBDOUT, parity, ECC outputs |
-| UltraScale RAMB*E2 otherwise | ports A and B separately (DOUTADOUT / DOUTBDOUT) |
-| UltraScale cascades (`CASCADE_ORDER` not NONE), FWFT FIFO*E2 without output register, URAM | reported, not changed |
+| `DO_REG = 1`. This includes all asynchronous and FWFT 7-series FIFOs, and the UltraScale FIFOs with `REGISTER_MODE` other than UNREGISTERED. | Skipped |
+| No output pin of the port has a load. | Skipped |
+| The port enable is tied to 0. | Skipped |
+| Each load is already a hold register (opposite edge, CE = the read enable registered on the BRAM edge). | Skipped |
+| The loads are opposite-edge flip-flops with a different CE. | Protected (see below) and reported |
+| 64K x 1 cascade (`RAM_EXTENSION`). | Hold register on the UPPER output. Its enable includes both halves. The LOWER output has no loads and is skipped. |
+| All other ports with `DO_REG = 0`. | Hold register added |
+| UltraScale RAMB*E2 with full-width read (`READ_WIDTH_A` = 72 or 36). | One read port on port A: DOUTADOUT, DOUTBDOUT, the parity outputs and the ECC outputs |
+| Other UltraScale RAMB*E2. | Ports A and B separately (DOUTADOUT and DOUTBDOUT) |
+| UltraScale cascades (`CASCADE_ORDER` other than NONE), FWFT FIFO*E2 without the output register, and URAM. | Reported, not changed |
 
-- Each load is connected according to the edge on which it samples the
-  word (directly, or through logic: the registers its logic reaches):
+- The pass connects each load according to the clock edge on which the load samples the word. A load can be a register, or logic that goes to registers.
 
-  | Load samples on | Connected to | Why |
+  | Load samples on | Connected to | Reason |
   | --- | --- | --- |
-  | the BRAM edge | the hold register | the hold register has the word half a cycle before the load samples it: timing unchanged |
-  | the opposite edge | `ren_d ? DO : hold` (one LUT3 per bit) | the hold register loads on that same edge, so a load behind it would be one cycle late; the mux gives it DO in the half cycle after a read, as before, and the hold register otherwise |
-  | no clock edge (output port, ...) | the hold register | |
-  | both edges (logic reaching registers on both) | the mux, with a WARNING | the logic cannot be split; a register on the BRAM edge behind it is not protected when a read is on the last edge before a freeze: fix by hand |
+  | The BRAM edge | The hold register | The hold register has the word half a cycle before the load samples it. The timing does not change. |
+  | The opposite edge | A multiplexer (one LUT3 for each bit). It selects `DO` in the half cycle after a read, and the hold register at all other times. | The hold register loads on the same edge as the load, so a load behind it gets the word one cycle late. The multiplexer gives the load `DO` directly after a read, as before. |
+  | No clock edge (for example an output port) | The hold register | |
+  | Both edges (logic that goes to registers on both edges) | The multiplexer, with a warning | The pass cannot split the logic. A register on the BRAM edge behind this logic is not protected if a read occurs on the last edge before a freeze. Correct this logic manually. |
 
-  With the port enable tied on, opposite-edge loads stay on `DO` (the port
-  reads every cycle, so a fresh word replaces the overwritten one before
-  they sample; this needs requirement 4).
+  If the port enable is tied to 1, the opposite-edge loads stay on `DO`. The port reads on each cycle, so a new word replaces the changed latch before these loads sample it. This is correct only with requirement 4.
 - Only output pins with loads get a hold flip-flop.
-- Hold register CE = OR of the port enable and the output latch reset
-  (RAMB18E1/RAMB36E1), registered on the BRAM edge. One enable flip-flop
-  is shared by every port with the same clock and enable terms; with the
-  enable tied on, no enable flip-flop is used.
-- `IS_*_INVERTED` on the BRAM clock, enable and reset pins is followed.
-- Every added cell has `DONT_TOUCH`.
-- FIFO flags (EMPTY, FULL, ...) are not held; they are not read from
-  the output latch.
+- The CE of the hold register is the OR of the port enable and the output latch reset (RAMB18E1 and RAMB36E1), registered on the BRAM edge. Ports with the same clock and the same enable signals share one enable flip-flop. If the enable is tied to 1, the pass adds no enable flip-flop.
+- The pass uses the `IS_*_INVERTED` properties of the BRAM clock, enable and reset pins.
+- All the cells that the pass adds have `DONT_TOUCH`.
+- The pass does not add hold registers to the FIFO flags (EMPTY, FULL and the other flags). The flags do not come from the output latch.
 
 ## Running it
 
-In a project, as the hook before `opt_design` (set it before you launch
-`impl_1`):
+In a project, set the pass as the hook before `opt_design`. Do this before you start `impl_1`:
 
 ```tcl
 set_property STEPS.OPT_DESIGN.TCL.PRE \
@@ -121,15 +85,11 @@ set_property STEPS.OPT_DESIGN.TCL.PRE \
     [get_runs impl_1]
 ```
 
-The examples do this in their `create_project.tcl`:
-`get_started/hw/create_project.tcl` (for `brams_top`) and
-`application_examples/test_neo_hardened/create_project.tcl`.
+The examples do this in their `create_project.tcl` files: `get_started/hw/create_project.tcl` (for `brams_top`) and `application_examples/test_neo_hardened/create_project.tcl`.
 
-The report is `bram_hold_pass.rpt` in the impl_1 run directory. To pass
-options, copy `bram_hold_hook.tcl` and add them to the `bram_hold::run`
-line.
+The pass writes its report to `bram_hold_pass.rpt` in the `impl_1` run directory. To give options, copy `bram_hold_hook.tcl` and add the options to the `bram_hold::run` line.
 
-Non-project flow, after `synth_design` or `link_design`:
+In a non-project flow, run the pass after `synth_design` or `link_design`:
 
 ```tcl
 source bram_hold_pass.tcl
@@ -140,43 +100,28 @@ Options:
 
 | Option | Effect |
 | --- | --- |
-| `-dry_run` | report only, change nothing |
-| `-report file` | report file name (default `bram_hold_pass.rpt`) |
-| `-exclude {pattern ...}` | leave BRAM cells whose name matches a pattern (glob) alone |
-| `-trust_existing` | accept any opposite-edge flip-flop as a hold register (the CE is not checked) |
+| `-dry_run` | Writes the report only. Changes nothing. |
+| `-report file` | The name of the report file. The default is `bram_hold_pass.rpt`. |
+| `-exclude {pattern ...}` | Does not change the BRAM cells whose names match a pattern (glob). |
+| `-trust_existing` | Accepts each opposite-edge flip-flop as a hold register. The pass does not examine its CE. |
 
-Use `-exclude` for BRAMs you protect yourself, and `-trust_existing` only
-when you know your opposite-edge registers load only after reads.
+Use `-exclude` for BRAMs that you protect yourself. Use `-trust_existing` only if you know that your opposite-edge registers load only after reads.
 
 ## Reading the report
 
-The header counts ports and cells per decision. Then one line per BRAM:
+The header gives the number of ports and cells for each decision. Then the report has one line for each BRAM:
 
-- `held N pins`: N hold flip-flops added.
-- `(K of these pins feed only opposite-edge flip-flops that are not
-  hold registers ...)`: those registers had a CE that is not the registered
-  enable; they were protected.
-- `(K opposite-edge loads get DO in the half cycle after a read, the
-  hold otherwise)`: K loads got the DO/hold mux.
-- `WARNING: K loads reach registers on both clock edges`: see the table
-  above; check that logic by hand.
+- `held N pins`: the pass added N hold flip-flops.
+- `(K of these pins feed only opposite-edge flip-flops that are not hold registers ...)`: the CE of these registers is not the registered read enable. The pass protected them.
+- `(K opposite-edge loads get DO in the half cycle after a read, the hold otherwise)`: K loads are connected through the multiplexer.
+- `WARNING: K loads reach registers on both clock edges`: refer to the table above, and examine this logic manually.
 - `already held`: the source already has the hold structure.
-- `DO_REG = 1`, `no loads`, `port never enabled`, `excluded`: skipped.
-- `WARNING: clock buffer ... stops on the wrong level`: fix the gating
-  (requirement 1), or the hold register does not protect a read on the last edge
-  before a freeze.
-- `ERROR`: the cell could not be processed (for example a protected IP);
-  it is left unchanged.
+- `DO_REG = 1`, `no loads`, `port never enabled`, `excluded`: the pass skipped the port.
+- `WARNING: clock buffer ... stops on the wrong level`: correct the clock gating (requirement 1). If you do not, the hold register does not protect a read on the last edge before a freeze.
+- `ERROR`: the pass cannot process the cell (for example, a protected IP). The cell does not change.
 
 ## Known limits
 
-- **Built-in ECC** (`EN_ECC_WRITE = TRUE`): the hold register covers the ECC
-  outputs, but an SK-RAFT injection into such a BRAM never produces an ECC
-  error. The BRAM ECC encoder rewrites the stored ECC bits on the frame
-  write, so the flipped bit becomes a valid codeword: silent data
-  corruption, not a detected or corrected error.
-- **UltraScale**: RAMB*E2 and FIFO*E2 are supported (the latch
-  behaviour is the same as on 7-series). RAMB*E2 output cascades (`CASCADE_ORDER`,
-  `CASDOMUX`), FWFT FIFO*E2 without the output register and URAM are
-  reported, not changed.
-- **Latch reset in FIFOs**: the CE of the FIFO hold register is the registered `RDEN`.
+- **Built-in ECC** (`EN_ECC_WRITE = TRUE`): the hold register also keeps the ECC outputs. But an SK-RAFT injection into such a BRAM never causes an ECC error. When SK-RAFT writes the frame, the ECC encoder of the BRAM calculates new ECC bits for the changed data. Thus the stored word is a valid ECC word, and the flipped bit is silent data corruption. The ECC does not detect or correct it.
+- **UltraScale**: the pass supports RAMB*E2 and FIFO*E2. The latch behaviour is the same as on 7-series. The pass reports RAMB*E2 output cascades (`CASCADE_ORDER`, `CASDOMUX`), FWFT FIFO*E2 without the output register, and URAM, but does not change them.
+- **Latch reset in FIFOs**: the CE of a FIFO hold register is the registered `RDEN`.
