@@ -522,6 +522,7 @@ proc bram_hold::port {cell label outs clk inv_clk spec} {
     set n [llength $todo]
     if {$dry_run} {
         dict incr counts hold_ffs $n
+        dict incr counts held_ports
         return "$label: would hold $n pins$note$warn"
     }
     set ce [hold_ce $parent $clk_net $clk_inv $sig]

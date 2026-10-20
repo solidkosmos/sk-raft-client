@@ -88,7 +88,6 @@ architecture Structure of bram_sdp_native_wrapper is
 
     component RAMB36E2 is
       generic (
-        RAM_MODE       : string  := "TDP";
         READ_WIDTH_A   : integer := 0;
         WRITE_WIDTH_B  : integer := 0;
         WRITE_MODE_A   : string  := "WRITE_FIRST";
@@ -203,9 +202,11 @@ begin
                              or g_family = "ULTRASCALEPLUS" generate
     begin
 
+        -- RAMB36E2 has no RAM_MODE generic. With READ_WIDTH_A = 36 and
+        -- WRITE_WIDTH_B = 36, port A reads and port B writes, as in the
+        -- 7-series SDP mode above.
         ramb36e2_inst : RAMB36E2
           Generic map (
-            RAM_MODE      => "SDP",
             READ_WIDTH_A  => 36,
             WRITE_WIDTH_B => 36,
             WRITE_MODE_A  => "READ_FIRST",
