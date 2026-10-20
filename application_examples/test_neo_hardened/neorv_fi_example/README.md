@@ -10,7 +10,7 @@ count, root clock, CRC read).
 - **Connection** — `SkraftFpga.connect()` and `client.attach()`, in `with`
   statements that release the device and close the connection
 - **Design** — `Design` (`.bit`, `.ebd`, `.ll`, `.xdc`) and
-  `dev.uploadDesignToServer()`, `dev.programFPGA()`
+  `dev.uploadDesignToServer()`, `dev.programFPGA(design)`
 - **Pblock exclusion** — `exclude_pblock` of `dev.inject_random()`: no
   injection into the harness pblock
 - **BSCAN** — `BscanPrimitive`, `dev.write_bscan()`, `dev.read_bscan()`

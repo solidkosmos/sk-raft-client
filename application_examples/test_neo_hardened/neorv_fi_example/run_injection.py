@@ -173,7 +173,7 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
     dev.uploadDesignToServer(design)
 
     # Program the FPGA with the uploaded bitstream.
-    dev.programFPGA()
+    dev.programFPGA(design)
 
     # Markers used to extract the benchmark report from the UART stream
     msg_start_marker = b"TOTAL REPORT:\n"
@@ -287,7 +287,7 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
                 if flag != 0:
                     print(f"[ERROR] r-{run+1}: injection failed, "
                           f"reprogramming.")
-                    dev.programFPGA()
+                    dev.programFPGA(design)
                     restarts += 1
                     continue
 
@@ -299,7 +299,7 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
                     else:
                         print(f"[ERROR] r-{run+1}: step send failed, "
                               f"reprogramming.")
-                        dev.programFPGA()
+                        dev.programFPGA(design)
                         retry = True
                         restarts += 1
                         break
@@ -310,7 +310,7 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
                 if bscan_counter not in (TX_DRAIN_SENTINEL, COUNT_ZERO):
                     print(f"[ERROR] r-{run+1}: unexpected counter "
                           f"{bscan_counter}, reprogramming.")
-                    dev.programFPGA()
+                    dev.programFPGA(design)
                     retry = True
                     restarts += 1
 
@@ -437,10 +437,10 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
                                  inject_report.word_index,
                                  inject_report.bit_index, status])
                 if not finished:
-                    dev.programFPGA()
+                    dev.programFPGA(design)
                     not_done += 1
                 else:
-                    dev.programFPGA()
+                    dev.programFPGA(design)
                     done += 1
             else:
                 # Run without an error: count the small differences of the

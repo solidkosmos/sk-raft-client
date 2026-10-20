@@ -142,7 +142,7 @@ def main() -> None:
                 dev.configure_seed(0)
 
                 dev.uploadDesignToServer(design)
-                dev.programFPGA()
+                dev.programFPGA(design)
                 print(f"Programmed {SERIAL_NUMBER}.")
 
                 # Part 1: flip-flop shift register.
@@ -203,7 +203,7 @@ def main() -> None:
                 print(f"Part 1: done after {n} trials.")
 
                 print("Re-programming before Part 2.")
-                dev.programFPGA()
+                dev.programFPGA(design)
 
                 # Part 2: LUTRAM.
                 # When the script programs the FPGA again, USER1 resets to
@@ -284,7 +284,7 @@ def main() -> None:
                       f"corrupted, {corrupt_bits} bits in total.")
 
                 print("Re-programming to clear the device.")
-                dev.programFPGA()
+                dev.programFPGA(design)
     except SkraftError as e:
         print(f"Example 3 failed: {e}")
     except KeyboardInterrupt:

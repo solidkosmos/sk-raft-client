@@ -80,7 +80,7 @@ def main() -> None:
                 dev.configure_seed(0)
 
                 dev.uploadDesignToServer(design)
-                dev.programFPGA()
+                dev.programFPGA(design)
                 print(f"programmed {SERIAL_NUMBER} with {design.bit}")
 
                 # ----------------------------------------------------------- #
@@ -135,7 +135,7 @@ def main() -> None:
                       f"({dev.bit_count(TargetMemory.ESSENTIAL_CRAM)})",
                       f". Press Enter to move on.")
                 # Program the FPGA again to remove the upsets of step 1.
-                dev.programFPGA()
+                dev.programFPGA(design)
 
                 watch_for_enter()
                 n = 0
@@ -167,7 +167,7 @@ def main() -> None:
                 # ----------------------------------------------------------- #
                 print("\nStep 3: one pblock at a time.")
                 # Program the FPGA again to remove the upsets of step 2.
-                dev.programFPGA()
+                dev.programFPGA(design)
 
                 # The names of the two pblocks, as declared in the XDC file.
                 pblocks = ["pblock_slow_heartbeat", "pblock_fast_heartbeat"]

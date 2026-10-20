@@ -76,7 +76,7 @@ def main() -> int:
                                 tls_key=CLIENT_KEY) as client:
             with client.attach(SERIAL_NUMBER) as dev:
                 dev.uploadDesignToServer(design)
-                dev.programFPGA()
+                dev.programFPGA(design)
                 print(f"programmed {SERIAL_NUMBER} ({dev.part_number}) "
                       f"with {design.bit}")
     except (SkraftError, OSError) as e:

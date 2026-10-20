@@ -135,7 +135,7 @@ def main() -> None:
                 # SK-RAFT: upload the bitstream, EBD file and XDC file.
                 # Then program the FPGA.
                 dev.uploadDesignToServer(design)
-                dev.programFPGA()
+                dev.programFPGA(design)
                 print(f"Programmed {SERIAL_NUMBER}.")
                 simplex_ebits = dev.bit_count(TargetMemory.ESSENTIAL_CRAM, 
                                               pblock=PBLOCK_SIMPLEX)
