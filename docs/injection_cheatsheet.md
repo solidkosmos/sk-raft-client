@@ -36,7 +36,7 @@ dev.write_bscan(USER_CLK_EN, 1)         # start the clock
 
 - XAPP1230 (v1.1), *Configuration Readback Capture in UltraScale FPGAs*: "the user must stop the clocks with the associated logic to freeze the user state". For 7-series: "Xilinx recommends stopping the clock of the associated user logic while the GCAPTURE command is being loaded".
 - UG470, *7 Series FPGAs Configuration User Guide*, Chapter 6, "Readback Capture" (GCAPTURE and the CAPTUREE2 primitive).
-- UG570, *UltraScale Architecture Configuration User Guide*, Chapter 10, "Readback Capture".
+- UG570 (v1.17), *UltraScale Architecture Configuration User Guide*, Chapter 10, "Readback Capture" (pp. 193-194): "In the UltraScale FPGAs, you must stop or disable the clock associated with the user state elements being targeted throughout the duration of the readback capture sequence."
 - UG953, *Vivado Design Suite 7 Series FPGA and Zynq 7000 SoC Libraries Guide*, `CAPTUREE2`: only flip-flop and latch states can be captured. LUTRAM, SRL and block RAM states can be read back, but not captured.
 
 ## 3. BRAM injection changes the BRAM output
@@ -62,3 +62,7 @@ The pass works only if the design obeys these requirements:
 - [`bram_readback_writeback`](../get_started/bram_readback_writeback/README.md): shows the effect. The BRAM outputs a wrong word while the clock is stopped after an injection.
 - [example4](../get_started/example4/README.md#bram-output-latch-and-the-hold-register): a BRAM protected by the pass.
 - [`get_started/hw/create_project.tcl`](../get_started/hw/create_project.tcl) (list `tops_with_bram_hold`) and [`application_examples/test_neo_hardened/create_project.tcl`](../application_examples/test_neo_hardened/create_project.tcl) set the pass as the hook before `opt_design`.
+
+**AMD references:**
+
+- UG570 (v1.17), *UltraScale Architecture Configuration User Guide*, Chapter 10, "SEU Detection and Correction" (p. 192): "Block RAM content is skipped during readback to avoid interfering with user functions." The guide does not describe the effect on the output latch. The effect above comes from the measurements of the `bram_readback_writeback` example.
