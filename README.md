@@ -1,4 +1,7 @@
-## ![SK-RAFT by SolidKosmos](docs/images/image-20261004221145345.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/sk-raft-logo-dark-bg.svg">
+  <img alt="SK-RAFT by SolidKosmos" src="docs/images/sk-raft-logo-light-bg.svg">
+</picture>
 
 **Getting-started examples for SK-RAFT.** 
 
