@@ -88,6 +88,7 @@ SolidKosmos does not accept pull requests from persons outside SolidKosmos.
 
 ## License
 
-- The Python client (`api/python`), the examples (`get_started/`) and the documents (`docs/`) are open source under the Apache License 2.0. Refer to [`LICENSE.md`](LICENSE.md) and [`NOTICE.md`](NOTICE.md).
+- The Python client (`api/python`), the examples (`get_started/` and `application_examples/`), the auxiliary components (`auxiliary_components/`) and the documents (`docs/`) are open source under the Apache License 2.0. Refer to [`LICENSE.md`](LICENSE.md) and [`NOTICE.md`](NOTICE.md).
+- Exception: the NEORV32 files in `application_examples/test_neo_hardened` are under the BSD 3-Clause License. Refer to [`NOTICE.md`](NOTICE.md).
 - The SK-RAFT server is not open source. The SK-RAFT Trial Licence Agreement or the SK-RAFT End User Licence Agreement applies to the server.
 - SK-RAFT and SolidKosmos are trademarks of SOLIDKOSMOS S.A. The Apache License 2.0 does not give permission to use these trademarks.
