@@ -23,7 +23,7 @@ create_clock -add -name bscan_clk_u3 -period 66.667 -waveform {0 33.333} \
   [get_pins -of_objects [get_cells bscan_u3*/tck_BUFG_inst] -filter {REF_PIN_NAME==O}]
 
 set_clock_groups -asynchronous \
-  -group [get_clocks sys_clk_pin] \
+  -group [get_clocks pll_clk_o] \
   -group [get_clocks {bscan_clk_u1 bscan_clk_u2 bscan_clk_u3}]
 
 ## Configuration options. Set CONFIG_VOLTAGE, CFGBVS, CONFIG_MODE and

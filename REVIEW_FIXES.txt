@@ -12,7 +12,9 @@ Mark done items with [x].
        [x] sem_arbitration and test_neo_hardened copies: comments differ
        [ ] Rebuild the prebuilt files in design_examples.zip from the
            synced sources, and run the affected examples on a board
-       [ ] Decide how to keep copies in sync (single source or a check)
+       [x] Single source: all create_project.tcl scripts add the BSCAN files
+           and clk_gen_wrapper from auxiliary_components/
+       [ ] git rm the 16 local copies (list in the commit commands)
 
 [ ] 2. Fix the contradicting licence statements
        - CONTRIBUTING.md says Apache-2.0 covers all contents; NOTICE.md

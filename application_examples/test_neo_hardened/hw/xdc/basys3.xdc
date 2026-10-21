@@ -76,7 +76,8 @@ add_cells_to_pblock [get_pblocks harness_pblock] \
 resize_pblock [get_pblocks harness_pblock] -add {SLICE_X28Y16:SLICE_X31Y28}
 set_property EXCLUDE_PLACEMENT 1 [get_pblocks harness_pblock]
 
-## Keep BRAM enables ungated
+## Exclude the BRAMs from power optimization. Otherwise, Vivado adds
+## gating logic to the BRAM enables.
 set_power_opt -exclude_cells [get_cells -hier -filter {REF_NAME =~ RAMB*}]
 
 

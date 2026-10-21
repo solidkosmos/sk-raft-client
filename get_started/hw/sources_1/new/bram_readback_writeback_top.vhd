@@ -26,7 +26,8 @@
 -- with the built-in ECC encoder and decoder (EN_ECC_WRITE = EN_ECC_READ =
 -- TRUE). Port A is the read port. It is always enabled, so the BRAM reads
 -- the word at the address on each clock edge. Port B is the write port.
--- The BRAM and the BSCAN logic run on gated_clk, the output of a BUFGCE.
+-- clk_gen_wrapper (safe startup) makes safe_clk from clk_i. The BRAM and
+-- the BSCAN logic run on gated_clk, the output of a BUFGCE on safe_clk.
 -- The USER1 enable drives its CE.
 --------------------------------------------------------------------------------
 
@@ -37,6 +38,14 @@ library UNISIM;
 use UNISIM.VComponents.all;
 
 entity bram_readback_writeback_top is
+  Generic (
+    -- "7SERIES", "ULTRASCALE", or "ULTRASCALEPLUS". The value goes directly
+    -- to clk_gen_wrapper. The RAMB36E1 builds only for 7-series parts.
+    g_family : string                 := "7SERIES";
+    -- The input clock frequency in MHz (100 MHz by default). The PLL
+    -- wrapper uses it.
+    clk_freq : integer range 1 to 400 := 100
+  );
   Port (
     clk_i : in std_ulogic
   );
@@ -44,7 +53,10 @@ end bram_readback_writeback_top;
 
 architecture Behavioral of bram_readback_writeback_top is
 
-  -- Clock gate: the USER1 enable, synchronized on clk_i, drives a BUFGCE.
+  -- Safe-startup clock from the PLL wrapper
+  signal safe_clk               : std_ulogic;
+
+  -- Clock gate: the USER1 enable, synchronized on safe_clk, drives a BUFGCE.
   signal gated_clk              : std_ulogic;
   signal clk_en_jtag, clk_en_rb : std_ulogic_vector(0 downto 0);
   signal clk_en_d0, clk_en_sync : std_ulogic := '0';
@@ -72,6 +84,19 @@ architecture Behavioral of bram_readback_writeback_top is
 
 begin
 
+  -- Send the input clock through the safe-startup PLL wrapper. The period
+  -- (ns) comes from clk_freq (MHz).
+  safe_pll : entity work.clk_gen_wrapper
+    generic map (
+      g_family          => g_family,
+      g_clkin_period_ns => 1000.0 / real(clk_freq)
+    )
+    port map (
+      clk_i    => clk_i,
+      clk_o    => safe_clk,
+      locked_o => open
+    );
+
   -- BSCAN USER1: clock enable, 0 after programming
   bscan_u1_clk_en : entity work.bscan_interface
     generic map (
@@ -90,10 +115,10 @@ begin
       ux_ack_o         => open
     );
 
-  -- Two flip-flops synchronize the enable from TCK to clk_i.
-  process (clk_i)
+  -- Two flip-flops synchronize the enable from TCK to safe_clk.
+  process (safe_clk)
   begin
-    if rising_edge(clk_i) then
+    if rising_edge(safe_clk) then
       clk_en_d0   <= clk_en_jtag(0);
       clk_en_sync <= clk_en_d0;
     end if;
@@ -106,7 +131,7 @@ begin
     port map (
       O  => gated_clk,
       CE => clk_en_sync,
-      I  => clk_i
+      I  => safe_clk
     );
 
   -- BSCAN USER2: address

@@ -56,6 +56,7 @@ set tops_with_device_generics {
     targeted_top
     ff_lut_top
     brams_top
+    bram_readback_writeback_top
 }
 
 # Optional -gui flag (at any position in tclargs): open the project in the
