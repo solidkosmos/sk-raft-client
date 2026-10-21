@@ -127,7 +127,7 @@ To change the firmware, build it in NEORV32 and replace
 Path | Contents
 ---- | --------
 `hw/neorv32/` | NEORV32 files: `core/`, the top (`neorv32_test_setup_bootloader.vhd`) and the application image. Modified files are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-`hw/src/` | SolidKosmos sources: test harness, `clk_gen_wrapper`, parity/SECDED blocks.
+`hw/src/` | SolidKosmos sources: test harness, parity/SECDED blocks. The build adds the BSCAN files and `clk_gen_wrapper` from `auxiliary_components/`.
 `hw/xdc/` | Basys 3 constraints (`basys3.xdc`).
 `create_project.tcl` | Creates the Vivado project (with the BRAM hold register pass from `../../auxiliary_components/bram_hold_pass/`).
 `neorv_fi_example/` | The SK-RAFT fault-injection campaign.

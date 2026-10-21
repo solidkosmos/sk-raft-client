@@ -56,6 +56,7 @@ set tops_with_device_generics {
     targeted_top
     ff_lut_top
     brams_top
+    bram_readback_writeback_top
 }
 
 # Optional -gui flag (at any position in tclargs): open the project in the
@@ -161,13 +162,19 @@ if { ![file exists $xdc_path] } {
     exit 1
 }
 
+# The shared components, relative to auxiliary_components/ at the root of
+# the repository. The build uses these reference files directly.
+set aux_dir [file normalize "$script_dir/../../auxiliary_components"]
+set aux_files {
+    bscan/bscan_interface.vhd
+    bscan/bscan_primitive_wrapper.vhd
+    bscan/bscan_user_register_io.vhd
+    safe_clk_gen/clk_gen_wrapper.vhd
+}
+
 set vhdl_files {
     adder.vhd
     bram_sdp_native_wrapper.vhd
-    bscan_interface.vhd
-    bscan_primitive_wrapper.vhd
-    bscan_user_register_io.vhd
-    clk_gen_wrapper.vhd
     targeted_top.vhd
     bscan_adder_top.vhd
     ff_lut_top.vhd
@@ -190,6 +197,11 @@ foreach f $vhdl_files {
         lappend missing_files $f
     }
 }
+foreach f $aux_files {
+    if { ![file exists "$aux_dir/$f"] } {
+        lappend missing_files "$aux_dir/$f"
+    }
+}
 if { [llength $missing_files] > 0 } {
     puts "ERROR: missing expected source file(s) under $src_dir:"
     foreach f $missing_files { puts "  - $f" }
@@ -205,6 +217,9 @@ set_property default_lib         xil_defaultlib [current_project]
 set src_paths {}
 foreach f $vhdl_files {
     lappend src_paths "$src_dir/$f"
+}
+foreach f $aux_files {
+    lappend src_paths "$aux_dir/$f"
 }
 add_files -norecurse -fileset [get_filesets sources_1] $src_paths
 

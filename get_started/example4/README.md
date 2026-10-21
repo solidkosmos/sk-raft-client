@@ -28,7 +28,7 @@ When SK-RAFT reads or writes BRAM content frames (part 2 injects into them), the
 | --- | --- | --- | --- |
 | USER1 | 1 bit | write | BRAM clock enable (the script stops the clock during each injection) |
 | USER2 | 16 bits | write | Address select (only the low 10 bits have an effect) |
-| USER3 | 24 bits | read/write (check bscan_user_register_io.vhd in the get_started/hw sources to see how reads are performed) | The data at the selected address |
+| USER3 | 24 bits | read/write (check auxiliary_components/bscan/bscan_user_register_io.vhd to see how reads are performed) | The data at the selected address |
 | USER4 | 1 bit | write | ECC correction enable. It applies to the BRAM read path only. The reset value is 0. |
 
 ## Requirements
