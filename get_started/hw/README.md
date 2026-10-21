@@ -1,6 +1,6 @@
 # Hardware designs for the getting-started examples
 
-This folder contains the Vivado build script, the VHDL sources and the constraint files of the getting-started examples. Each top-level design in `sources_1/new/` uses a different fabric element (FF, LUTRAM, BRAM). The scripts control each design and read back its data through JTAG/BSCAN. Thus you can compare the results of the different elements with the same fault-injection setup.
+This folder contains the Vivado build script, the VHDL sources and the constraint files of the getting-started examples. Each top-level design in `sources_1/new/` shows a different part of the fault-injection setup: targeted CRAM injection (`targeted_top`), a comparison of two circuits (`bscan_adder_top`), and the application memory elements FF, LUTRAM and BRAM (`ff_lut_top`, `brams_top`, `bram_readback_writeback_top`). The scripts control the designs and read their results through JTAG/BSCAN. `targeted_top` shows its state on the LEDs only.
 
 ## Designs
 
