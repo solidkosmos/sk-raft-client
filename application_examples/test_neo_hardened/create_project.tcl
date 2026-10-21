@@ -94,13 +94,19 @@ if { ![file exists $xdc_path] } {
 
 # The VHDL sources, relative to hw/. All of them are in the VHDL library
 # neorv32.
+# The shared components, relative to auxiliary_components/ at the root of
+# the repository. The build uses these reference files directly.
+set aux_dir [file normalize "$script_dir/../../auxiliary_components"]
+set aux_files {
+    bscan/bscan_interface.vhd
+    bscan/bscan_primitive_wrapper.vhd
+    bscan/bscan_user_register_io.vhd
+    safe_clk_gen/clk_gen_wrapper.vhd
+}
+
 # SolidKosmos sources: the test harness and the hardening blocks
 set src_files {
-    src/bscan_interface.vhd
-    src/bscan_primitive_wrapper.vhd
-    src/bscan_user_register_io.vhd
     src/clk_cycle_ctrlr.vhd
-    src/clk_gen_wrapper.vhd
     src/examples_utilities_pkg.vhd
     src/harness_controller.vhd
     src/par_checker.vhd
@@ -177,6 +183,11 @@ foreach f $vhdl_files {
         lappend missing_files $f
     }
 }
+foreach f $aux_files {
+    if { ![file exists "$aux_dir/$f"] } {
+        lappend missing_files "$aux_dir/$f"
+    }
+}
 if { [llength $missing_files] > 0 } {
     puts "ERROR: missing expected source file(s) under $srcs_dir:"
     foreach f $missing_files { puts "  - $f" }
@@ -193,6 +204,9 @@ set_property enable_vhdl_2008    1 [current_project]
 set src_paths {}
 foreach f $vhdl_files {
     lappend src_paths "$srcs_dir/$f"
+}
+foreach f $aux_files {
+    lappend src_paths "$aux_dir/$f"
 }
 add_files -norecurse -fileset [get_filesets sources_1] $src_paths
 set_property library $lib_name \

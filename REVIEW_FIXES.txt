@@ -1,0 +1,107 @@
+SK-RAFT client repo - review fixes, in priority order
+Started: 2026-10-21
+Mark done items with [x].
+
+=== P1: Correctness and drift ===
+
+[~] 1. Re-sync the duplicated VHDL with the reference versions in auxiliary_components/
+       [x] get_started/hw/sources_1/new/bscan_interface.vhd: no async_reg
+           attributes on avail_d0/avail_sync/ack_d0/ack_sync (CDC problem)
+       [x] get_started/hw/sources_1/new/clk_gen_wrapper.vhd: older
+           passthrough-only version (no g_clkout_freq_mhz)
+       [x] sem_arbitration and test_neo_hardened copies: comments differ
+       [ ] Rebuild the prebuilt files in design_examples.zip from the
+           synced sources, and run the affected examples on a board
+       [ ] Decide how to keep copies in sync (single source or a check)
+
+[ ] 2. Fix the contradicting licence statements
+       - CONTRIBUTING.md says Apache-2.0 covers all contents; NOTICE.md
+         (correctly) says the NEORV32 files are BSD-3-Clause
+       - README.md licence list leaves out application_examples/ and
+         auxiliary_components/
+
+[ ] 3. Align and explain the versions
+       - pyproject.toml: 1.0.0-alpha.1
+       - skraft_fpga.py SK_RAFT_VERSION: 1.0.0.alpha.28 (the server version?)
+       - Version check is a substring match and uses print(); use
+         warnings.warn
+
+=== P2: Documentation gaps ===
+
+[ ] 4. Add api/python/README.md (CONTRIBUTING requires one per client):
+       a capability map that links each feature to its method and an example.
+       Cover scrub, run_campaign/FpgaFiSession, readback options/GCAPTURE,
+       write_frame, shutdown/startup_sequence/restore_application_layer,
+       read/write_register, XADC
+
+[ ] 5. Move the freeze methodology into docs/concepts.md
+       (BUFGCE clock gate on USER1 -> inject while stopped -> resume;
+       BRAM output latch and the hold pass). Now only in
+       auxiliary_components/README.md and example4
+
+[ ] 6. Add application_examples/README.md (index table).
+       Add XADC monitoring and TLS to "Main functions" in README.md
+
+[ ] 7. Replace the trial licence link placeholder in README.md (<trial link: TBD>)
+
+[ ] 8. docs/concepts.md: use one term (layer or plane), fix the second H1
+       ("# Targeted Fault Injection"), use or remove
+       docs/images/plane-diagram.svg
+
+[ ] 9. get_started/hw/README.md: "each top uses a different element
+       (FF, LUTRAM, BRAM)" is not true for targeted_top and bscan_adder_top
+
+[ ] 10. .github/ISSUE_TEMPLATE/bug_report.md: finish "Attach SK-RAFT logs,
+        which are in the same path"; ".proto API version" field, but there
+        is no .proto in the repo
+
+[ ] 11. auxiliary_components/README.md "Used in": add sem_arbitration
+
+=== P3: API consistency ===
+
+[ ] 12. Rename uploadDesignToServer / programFPGA to snake_case
+        (alpha.1, nothing to stay compatible with; update style guide)
+
+[ ] 13. Bscan vs BscanPrimitive overlap: examples ignore Bscan and unpack
+        bytes manually. BscanPrimitive.shift_in() takes a raw gRPC stub
+        (internal detail in a public type)
+
+[ ] 14. Exception semantics: read_register/write_register raise
+        FrameAddressError; all injection failures raise
+        ConnectionFailedError. Error message capitalisation is mixed
+
+[ ] 15. Export the return types from skraft/__init__.py: FpgaPblock,
+        FpgaPblockFar, FpgaPblockRange, FpgaFar7series, FpgaFarUltraScale
+
+[ ] 16. pyproject.toml: add requires-python = ">=3.9" (docs say 3.9+)
+
+=== P4: Cleanliness and consistency ===
+
+[ ] 17. 79-column hard limit is broken: skraft_fpga.py (3), datatypes.py (9),
+        get_started examples (3-10 each). Add a lint config (ruff/flake8);
+        consider CI and basic tests
+
+[ ] 18. Add SPDX headers to datatypes.py and skraft_fpga.py
+
+[ ] 19. Serial numbers: example1 README table 210183BFD452A vs code
+        210183BA251CA; examples 1-3 vs 4/bram_readback_writeback differ.
+        Use one placeholder everywhere
+
+[ ] 20. Example scripts: align with example2
+        - example1: add "SK-RAFT:" markers on API calls, fix misaligned
+          continuation lines, fix "(N) . Press Enter" print,
+          print(f"Interrupted") has no placeholder
+        - example1 docstring "stop a step early" vs loops that run until Enter
+        - example2: unused-looking import os is only for ANSI colours
+          (fine, keep comment)
+
+[ ] 21. Example READMEs: same section set everywhere (Design, Requirements,
+        Run the example, Result). Only example4 and bram_readback_writeback
+        have Requirements; example2 has no Design. "design" listed as a
+        Constant in the tables
+
+[ ] 22. test_neo_hardened READMEs: match the house style (unnumbered,
+        sentence-case headings, ASD-STE100)
+
+[ ] 23. example4/brams_top: README says Hamming SEC, files are named
+        secded_*; check and align the naming

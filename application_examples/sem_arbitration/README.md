@@ -41,7 +41,7 @@ The example has a design for two boards. One script, `src/main.py`, works with b
 | `<board>/create_project.tcl` | Creates the Vivado project with the sources, the constraints and the SEM IP. |
 | `basys3/hw/src/sem_arbitration_7series.vhd`, `te0841/hw/src/sem_arbitration_us.vhd` | The top: the SEM, ICAP, frame ECC, the BSCAN registers and the clock enable. |
 | `<board>/hw/src/monitor_interface.vhd`, `fifo_mem.vhd`, `uart_rx_tx.vhd`, `rx_module.vhd`, `tx_module.vhd` | The UART bridge of the SEM monitor port (9600 8-N-1). |
-| `<board>/hw/src/bscan_*.vhd`, `clk_gen_wrapper.vhd`, `examples_utilities_pkg.vhd` | The BSCAN interface and the safe-startup PLL of the getting-started examples. |
+| `<board>/hw/src/examples_utilities_pkg.vhd` | The utilities package of the getting-started examples. The build adds the BSCAN interface and the safe-startup PLL from `auxiliary_components/`. |
 | `<board>/hw/xdc/` | Pins, clocks, bitstream settings (EBD, per-frame CRC) and the pblock of the SEM, `pblock_sem`. |
 | `images/` | The block diagram. |
 

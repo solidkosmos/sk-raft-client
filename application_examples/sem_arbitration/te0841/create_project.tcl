@@ -82,13 +82,19 @@ if { ![file exists $xdc_path] } {
     exit 1
 }
 
+# The shared components, relative to auxiliary_components/ at the root of
+# the repository. The build uses these reference files directly.
+set aux_dir [file normalize "$script_dir/../../../auxiliary_components"]
+set aux_files {
+    bscan/bscan_interface.vhd
+    bscan/bscan_primitive_wrapper.vhd
+    bscan/bscan_user_register_io.vhd
+    safe_clk_gen/clk_gen_wrapper.vhd
+}
+
 # The VHDL sources, relative to hw/
 set vhdl_files {
     src/examples_utilities_pkg.vhd
-    src/bscan_primitive_wrapper.vhd
-    src/bscan_user_register_io.vhd
-    src/bscan_interface.vhd
-    src/clk_gen_wrapper.vhd
     src/fifo_mem.vhd
     src/rx_module.vhd
     src/tx_module.vhd
@@ -101,6 +107,11 @@ set missing_files {}
 foreach f $vhdl_files {
     if { ![file exists "$srcs_dir/$f"] } {
         lappend missing_files $f
+    }
+}
+foreach f $aux_files {
+    if { ![file exists "$aux_dir/$f"] } {
+        lappend missing_files "$aux_dir/$f"
     }
 }
 if { [llength $missing_files] > 0 } {
@@ -117,6 +128,9 @@ set_property simulator_language  VHDL [current_project]
 set src_paths {}
 foreach f $vhdl_files {
     lappend src_paths "$srcs_dir/$f"
+}
+foreach f $aux_files {
+    lappend src_paths "$aux_dir/$f"
 }
 add_files -norecurse -fileset [get_filesets sources_1] $src_paths
 

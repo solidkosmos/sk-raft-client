@@ -34,5 +34,5 @@ XDC lines and the Python calls.
 - `application_examples/test_neo_hardened/` (NEORV32): BSCAN registers,
   safe clock, and the hold pass.
 
-The examples keep their own copies of the VHDL files. The copies in this
-folder are the reference versions.
+The examples do not keep copies of these VHDL files. Their
+`create_project.tcl` scripts add the files from this folder.
