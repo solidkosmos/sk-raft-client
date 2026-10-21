@@ -1,7 +1,4 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/sk-raft-logo-dark-bg.svg">
-  <img alt="SK-RAFT by SolidKosmos" src="docs/images/sk-raft-logo-light-bg.svg">
-</picture>
+<img alt="SK-RAFT by SolidKosmos" src="docs/images/sk-raft-logo-light-bg.svg">
 
 **Getting-started examples for SK-RAFT.** 
 
