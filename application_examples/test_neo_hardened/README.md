@@ -1,158 +1,168 @@
-# NEORV32 Hardening Example
+# NEORV32 hardening: a hardened RISC-V core under SK-RAFT fault injection
 
-Board | Part | License
------ | ---- | -------
-Digilent Basys 3 | xc7a35tcpg236-1 (Artix-7) | Apache-2.0 (SolidKosmos code), BSD-3-Clause (NEORV32)
+| Board | Part | License |
+| --- | --- | --- |
+| Digilent Basys 3 | xc7a35tcpg236-1 (Artix-7) | Apache-2.0 (SolidKosmos code), BSD-3-Clause (NEORV32) |
 
-## 1. Overview
-
-A [NEORV32](https://github.com/stnolting/neorv32) RISC-V SoC with
-SECDED/parity hardening (DMEM, register file, CPU control FSM state, program
-counter) and a JTAG test harness for fault injection with SK-RAFT. The same
-design builds hardened or unhardened (`HARDEN_EN`), so the effect of the
-hardening can be measured under fault injection.
+This example has a [NEORV32](https://github.com/stnolting/neorv32) RISC-V SoC
+with SECDED and parity hardening, and a JTAG test harness for fault injection
+with SK-RAFT. The hardening protects the DMEM, the register file, the state of
+the CPU control FSM and the program counter. The `HARDEN_EN` generic selects a
+hardened or an unhardened build of the same design. Thus you can measure the
+effect of the hardening under fault injection.
 
 ![Block diagram of the example. The board clock goes through the safe clock generation PLL, a root clock gate (BSCAN USER3) and the cycle controller, which enables the clock for the number of cycles set over BSCAN USER2, then to the NEORV32. The tester (BSCAN USER1/USER2/USER3 and the cycle controller) sits in harness_pblock, which SK-RAFT does not inject into. Inside the NEORV32, the hardened modules (CPU control, CPU frontend, register file, DMEM) are grouped apart from the stock modules (IMEM, UART0, GPIO and the rest). USER1 resets the NEORV32 and reads the CRC word from its GPIO, the UART tx_busy keeps the clock running until the UART is idle, and ECC/parity events raise fast interrupts that print an [ALERT] on the UART.](images/neorv32_hardening_blocks.svg)
 
 The NEORV32 boots the CoreMark firmware from the IMEM image
 (`BOOT_MODE_SELECT => 2`). The image is in
-`hw/neorv32/neorv32_application_image.vhd`, so the bitstream holds the
-firmware and no upload is necessary.
+`hw/neorv32/neorv32_application_image.vhd`. Thus the bitstream holds the
+firmware, and you do not upload it separately.
 
-## 2. Build and Run
+## Build and run the example
 
 1. From this folder, create the project:
    ```
    vivado -mode batch -source create_project.tcl
    ```
    The script creates `test_neo/test_neo.xpr` from `hw/` and opens it in the
-   GUI. Optional arguments: `-tclargs [project_name] [project_dir]`.
-2. Run **Generate Bitstream**. The `.bit`, `.ebd` and `.ll` files go to
-   `test_neo/test_neo.runs/impl_1/`. The implementation run also executes
-   the BRAM hold register pass (see section 5) and writes its report,
-   `bram_hold_pass.rpt`, to the same folder.
-3. Run the campaign with `neorv_fi_example/run_injection.py` (see its
-   [README](neorv_fi_example/README.md)). The script programs the FPGA and
+   GUI. The optional arguments are `-tclargs [project_name] [project_dir]`.
+2. Run **Generate Bitstream**. Vivado writes the `.bit`, `.ebd` and `.ll`
+   files to `test_neo/test_neo.runs/impl_1/`. The implementation run also
+   runs the BRAM hold register pass (refer to "BRAM output latch
+   protection"). The pass writes its report, `bram_hold_pass.rpt`, to the
+   same folder.
+3. Run the campaign with `neorv_fi_example/run_injection.py`. Refer to its
+   [README](neorv_fi_example/README.md). The script programs the FPGA and
    reads the UART at 500000 baud.
 
 For the unhardened baseline, remove the `#` from this line near the end of
-`create_project.tcl` and use a separate project name:
+`create_project.tcl`, and use a different project name:
+
 ```tcl
 # set_property generic HARDEN_EN=false [get_filesets sources_1]
 ```
 
-## 3. The HARDEN_EN Generic
+## The HARDEN_EN generic
 
-`HARDEN_EN : boolean := true` goes from `neorv32_test_setup_bootloader`
-through `neorv32_top` / `neorv32_cpu` to each modified file. With
-`HARDEN_EN => false` the design behaves like stock NEORV32:
+The generic `HARDEN_EN : boolean := true` goes from
+`neorv32_test_setup_bootloader` through `neorv32_top` and `neorv32_cpu` to
+each modified file. With `HARDEN_EN => false`, the design operates as the
+stock NEORV32:
 
 - DMEM and register file (`neorv32_dmem.vhd`, `neorv32_prim.vhd`): the
-  protected and the plain datapaths are separate `generate` branches, so a
-  disabled build has no ECC hardware.
+  protected datapath and the plain datapath are in different `generate`
+  branches. Thus a build with `HARDEN_EN => false` has no ECC hardware.
 - CPU control and frontend (`neorv32_cpu_control.vhd`,
-  `neorv32_cpu_frontend.vhd`): the SECDED/parity logic stays in the design;
-  only its effect on execution and on the interrupts is masked.
+  `neorv32_cpu_frontend.vhd`): the SECDED and parity logic stays in the
+  design. The generic only masks its effect on the execution and on the
+  interrupts.
 
-## 4. Fault-Injection Test Harness
+## Fault-injection test harness
 
-`tester` connects three BSCAN user registers to the cycle controller
-(`clk_cycle_ctrlr`), which gates the NEORV32 clock:
+The `tester` module connects three BSCAN USER registers to the cycle
+controller (`clk_cycle_ctrlr`). The cycle controller gates the NEORV32 clock.
 
-Register | Write | Read
--------- | ----- | ----
-USER1 | design reset (active low) | 32-bit status/CRC word
-USER2 | 32-bit step-count command | live step count/status
-USER3 | root clock enable (1 = on) | synchronized enable
+| Register | Write | Read |
+| --- | --- | --- |
+| USER1 | Design reset (active low) | 32-bit status and CRC word |
+| USER2 | 32-bit step-count command | Current step count and status |
+| USER3 | Root clock enable (1 = on) | The synchronized enable |
 
-USER2 commands: a nonzero value loads a cycle countdown, 0x1 starts it, 0x2
-cancels it. If the UART still sends when the countdown ends, the controller
-keeps the clock on until the UART is idle (`check_tx`). The root clock feeds
-the NEORV32, the harness and the cycle controller. It is off after
-programming, and `run_injection.py` turns it off during each injection.
+The USER2 commands are:
 
-## 5. BRAM Output Latch Protection
+- A value other than 0 loads a cycle countdown.
+- 0x1 starts the countdown.
+- 0x2 cancels the countdown.
 
-Vivado builds the NEORV32 IMEM and DMEM from block RAMs. An SK-RAFT
-access to BRAM content frames (readback, inject, revert) overwrites the
-output latch of each block RAM port without an output register; the stored
-content does not change. Without protection, the core can take that wrong
-value instead of the word it read before the freeze.
+If the UART still sends data when the countdown ends, the controller keeps
+the clock on until the UART is idle (`check_tx`). The root clock goes to the
+NEORV32, the harness and the cycle controller. The root clock is off after
+programming. `run_injection.py` stops it during each injection.
+
+## BRAM output latch protection
+
+Vivado makes the NEORV32 IMEM and DMEM from block RAMs. An SK-RAFT access to
+BRAM content frames (readback, inject, revert) overwrites the output latch of
+each block RAM port without an output register. The stored content does not
+change. Without protection, the core can use that wrong value instead of the
+word that it read before the freeze.
 
 `create_project.tcl` sets the BRAM hold register pass
 ([`auxiliary_components/bram_hold_pass`](../../auxiliary_components/bram_hold_pass/README.md))
 as the hook before `opt_design`. The pass adds a register on the opposite
-clock edge behind each BRAM output in use, which keeps the word read before
-the freeze. Check `bram_hold_pass.rpt` after the build: it lists each
-block RAM and what the pass did. The clock gates of the harness are
-BUFGCEs, which stop low, as the pass requires.
+clock edge behind each BRAM output in use. This register keeps the word that
+the core read before the freeze. After the build, examine
+`bram_hold_pass.rpt`. The report lists each block RAM and the change that the
+pass made. The clock gates of the harness are BUFGCEs. A BUFGCE stops low, as
+the pass requires.
 
-The paths from a hold register to the logic on the BRAM clock edge have
-half a clock period. The paths from the register file BRAM through the
-ECC decoder and the ALU do not meet 70 MHz with half a period, so the
-default core clock is 40 MHz.
+The paths from a hold register to the logic on the BRAM clock edge have half
+a clock period. The paths from the register file BRAM through the ECC decoder
+and the ALU do not meet 70 MHz with half a period. Thus the default core
+clock is 40 MHz.
 
-## 6. Firmware
+## Firmware
 
-`sw/hardening_coremark/main.c` is the design-specific part of the firmware.
-It installs the fast-interrupt handlers of the hardening (DMEM and register
-file corrections, CPU control/frontend state and PC/RA parity) and then runs
-CoreMark. The rest is NEORV32's
+`sw/hardening_coremark/main.c` is the part of the firmware that is specific to
+this design. It installs the fast-interrupt handlers of the hardening (DMEM
+and register file corrections, CPU control and frontend state, PC and RA
+parity). Then it runs CoreMark. The other files come from the NEORV32
 [`sw/example/coremark/`](https://github.com/stnolting/neorv32/tree/main/sw/example/coremark),
-with these changes in `core_portme.c`/`.h`:
+with these changes in `core_portme.c` and `core_portme.h`:
 
-- interrupts stay enabled during the timed run, so the hardening interrupts
-  can fire
-- `ITERATIONS` is 3, for a short run
-- no floating-point result output
-- UART at 500000 baud
-- a CRC over the printed characters
+- The interrupts stay enabled during the timed run, so that the hardening
+  interrupts can occur.
+- `ITERATIONS` is 3, for a short run.
+- The firmware does not print the floating-point results.
+- The UART runs at 500000 baud.
+- The firmware calculates a CRC over the printed characters.
 
-To change the firmware, build it in NEORV32 and replace
-`hw/neorv32/neorv32_application_image.vhd` with the generated image.
+To change the firmware, build it in NEORV32. Then replace
+`hw/neorv32/neorv32_application_image.vhd` with the image that NEORV32 makes.
 
-## 7. Porting to a Different Board
+## Use another board
 
 1. Change `part_name` in `create_project.tcl`.
-2. Replace `hw/xdc/basys3.xdc` with constraints for the board (clock, UART,
-   GPIO/LED pins).
-3. For a different input clock, set `CLK_IN_FREQUENCY` and the `clk_i`
-   period in the XDC. `INTERNAL_CLOCK_FREQUENCY` (default 40 MHz, see section 5) is the
-   core clock that `clk_gen_wrapper` makes from `clk_i`.
-4. Redraw `harness_pblock` in the XDC: its slice range is for the
-   xc7a35t.
+2. Replace `hw/xdc/basys3.xdc` with the constraints of your board (clock,
+   UART, GPIO and LED pins).
+3. For a different input clock, set `CLK_IN_FREQUENCY` and the `clk_i` period
+   in the XDC. `INTERNAL_CLOCK_FREQUENCY` (default 40 MHz, refer to "BRAM
+   output latch protection") is the core clock that `clk_gen_wrapper` makes
+   from `clk_i`.
+4. Change `harness_pblock` in the XDC. Its slice range is for the xc7a35t.
 
-## 8. Directory Layout
+## Files
 
-Path | Contents
----- | --------
-`hw/neorv32/` | NEORV32 files: `core/`, the top (`neorv32_test_setup_bootloader.vhd`) and the application image. Modified files are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-`hw/src/` | SolidKosmos sources: test harness, parity/SECDED blocks. The build adds the BSCAN files and `clk_gen_wrapper` from `auxiliary_components/`.
-`hw/xdc/` | Basys 3 constraints (`basys3.xdc`).
-`create_project.tcl` | Creates the Vivado project (with the BRAM hold register pass from `../../auxiliary_components/bram_hold_pass/`).
-`neorv_fi_example/` | The SK-RAFT fault-injection campaign.
-`sw/hardening_coremark/` | The design-specific firmware source.
-`images/` | The block diagram.
+| Path | Contents |
+| --- | --- |
+| `hw/neorv32/` | NEORV32 files: `core/`, the top (`neorv32_test_setup_bootloader.vhd`) and the application image. [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) lists the modified files. |
+| `hw/src/` | SolidKosmos sources: test harness, parity and SECDED blocks. The build adds the BSCAN files and `clk_gen_wrapper` from `auxiliary_components/`. |
+| `hw/xdc/` | Basys 3 constraints (`basys3.xdc`). |
+| `create_project.tcl` | Creates the Vivado project, with the BRAM hold register pass from `../../auxiliary_components/bram_hold_pass/`. |
+| `neorv_fi_example/` | The SK-RAFT fault-injection campaign. |
+| `sw/hardening_coremark/` | The firmware source that is specific to this design. |
+| `images/` | The block diagram. |
 
-## 9. Known Limitations
+## Known limits
 
-- The DMEM decoder (`secded_dec8b`) corrects from the syndrome only and does
-  not check the overall parity: a double-bit error can be miscorrected.
-- The register-file SECDED covers the FPGA-style register file only, and a
-  detected double-bit error is not reported yet. The ASIC-style register
-  file (`CPU_RF_HW_RST_EN`) has no ECC.
-- `HARDEN_EN => false` does not remove the CPU control/frontend hardening
-  logic (see section 3).
+- The DMEM decoder (`secded_dec8b`) corrects from the syndrome only. It does
+  not check the overall parity. Thus it can correct a double-bit error
+  incorrectly.
+- The register file SECDED covers only the FPGA-style register file. It does
+  not report a detected double-bit error yet. The ASIC-style register file
+  (`CPU_RF_HW_RST_EN`) has no ECC.
+- `HARDEN_EN => false` does not remove the hardening logic of the CPU control
+  and frontend (refer to "The HARDEN_EN generic").
 
-## 10. License
+## License
 
-SolidKosmos S.A. code (test harness, hardening blocks, Tcl, XDC, Python) is
-licensed under Apache-2.0, see [LICENSE.md](../../LICENSE.md). The NEORV32
-files and the firmware adapted from NEORV32 stay under the NEORV32
-BSD-3-Clause license, see [LICENSE-NEORV32](LICENSE-NEORV32). The per-file
-list is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The Apache License 2.0 applies to the SolidKosmos S.A. code (test harness,
+hardening blocks, Tcl, XDC, Python). Refer to [LICENSE.md](../../LICENSE.md).
+The NEORV32 BSD 3-Clause License applies to the NEORV32 files and to the
+firmware that comes from NEORV32. Refer to [LICENSE-NEORV32](LICENSE-NEORV32).
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) has the list of files.
 
-## 11. References
+## References
 
 - [NEORV32 RISC-V Processor](https://github.com/stnolting/neorv32) and its
   [data sheet](https://stnolting.github.io/neorv32)

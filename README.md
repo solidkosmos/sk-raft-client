@@ -20,6 +20,8 @@ This repository contains open-source getting-started examples for the SK-RAFT se
 - **Full BSCAN support.** Your script can write inputs to the design and read outputs from the design through the BSCAN user registers (USER1 to USER4).
 - **External scrubbing through JTAG.** SK-RAFT can scrub the CRAM from outside the FPGA, through JTAG. This function helps during radiation tests.
 - **Programmer.** SK-RAFT can program the FPGA with a bitstream.
+- **XADC and System Monitor access.** SK-RAFT can read the temperature and voltage sensors of the XADC (7 series) and of the System Monitor (UltraScale, UltraScale+) through JTAG. It can also set and clear their alarms.
+- **TLS connection.** The client can connect to the SK-RAFT server through TLS, with the certificates of the server and of the client.
 - **Readback with GCAPTURE.** SK-RAFT can read back the FPGA's configuration frames. With GCAPTURE, the readback also contains the current values of the flip-flops.
 
 ## How SK-RAFT operates
