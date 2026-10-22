@@ -1,0 +1,497 @@
+syntax = "proto3";
+
+package proto;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "bitbucket.org/sk_dev_team/sk-raft-software/cmd/sk_raft/proto";
+
+// SKRaftFpga exposes FPGA connection management, bitstream/auxiliary file
+// configuration, scrubbing, fault injection, BSCAN access and readback.
+service SKRaftFpga {
+    // Connection lifecycle
+    rpc FpgaConnect(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    rpc FpgaClose(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+
+    // Returns the serial number and the part number of the selected device.
+    rpc FpgaSelectDevice(FpgaDeviceDetails) returns (FpgaDevice) {}
+
+    rpc FpgaGetDevices(google.protobuf.Empty) returns (FpgaDevicesResponse) {}
+
+    // Upload design files in the server file system.
+    rpc FpgaUploadDesignFile(stream UploadDesignFileRequest) returns (FpgaDesignFileResponse) {}
+
+    // Bit statistics. One RPC with a category selector replaces the five
+    // fpgaXxxBits RPCs; FpgaGetAllBitCounts returns everything in one call.
+    rpc FpgaGetBitCount(FpgaBitCountRequest) returns (FpgaBitCount) {}
+    rpc FpgaGetAllBitCounts(google.protobuf.Empty) returns (FpgaBitCounts) {}
+
+    // Scrubbing
+    rpc FpgaScrubbing(FpgaScrubSession) returns (FpgaScrubReport) {}
+
+    // Boundary scan (BSCAN) user register access
+    rpc FpgaWriteBscan(FpgaBscanTarget) returns (FpgaBscanOutput) {}
+    rpc FpgaReadBscan(FpgaBscanTarget) returns (FpgaBscanOutput) {}
+
+    // Fault injection
+    rpc FpgaBitFlip(FpgaInjectionTarget) returns (google.protobuf.Empty) {}
+    rpc FpgaRandomBitFlip(FpgaInjectionOptions) returns (FpgaSingleInjectionReport) {}
+    rpc FpgaExhaustiveBitFlip(FpgaInjectionOptions) returns (FpgaExhaustiveInjectionReport) {}
+    rpc FpgaFaultInjection(FpgaFiSession) returns (FpgaFiSummary) {}
+
+    rpc FpgaConfigureSeed(FpgaSeedOptions) returns (google.protobuf.Empty) {}
+
+    // Programming
+    // Programs the device with an uploaded design. The request gives the
+    // files of the design, as the client uploaded them. A request with no
+    // files programs the files of the last upload.
+    rpc FpgaProgram(FpgaProgramRequest) returns (google.protobuf.Empty) {}
+
+    // Frame address (FAR) list management
+    // Streams a bitstream, as FpgaUploadDesignFile does, and returns its
+    // FARs. The bitstream used to program the FPGA is not changed.
+    rpc FpgaExtractFarsFromBitstream(stream UploadDesignFileRequest) returns (FpgaFarListExtractResponse) {}
+    rpc FpgaExcludeFars(FpgaFarListExcludeRequest) returns (google.protobuf.Empty) {}
+    rpc FpgaFarList(google.protobuf.Empty) returns (FpgaFarListResponse) {}
+
+    rpc FpgaEssentialFrames(google.protobuf.Empty) returns (FpgaFrames) {}
+    rpc FpgaMaskFrames(google.protobuf.Empty) returns (FpgaFrames) {}
+
+    // Readback
+    rpc FpgaReadBackRange(FpgaReadbackTarget) returns (FpgaReadbackDetail) {}
+    rpc FpgaReadBack(FpgaReadbackTarget) returns (FpgaReadbackDetail) {}
+
+    // Frame write
+    rpc FpgaWriteFrame(FpgaWriteFrameRequest) returns (google.protobuf.Empty) {}
+
+    rpc FpgaShutdown(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    rpc FpgaStartupSequence(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    rpc FpgaRestoreApplication(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+
+    rpc FpgaReadRegister(FpgaReadRegisterRequest) returns (FpgaRegisterContent) {}
+    rpc FpgaWriteRegister(FpgaWriteRegisterRequest) returns (google.protobuf.Empty) {}
+
+    rpc FpgaDecodeFrameAddress(FpgaFarDecodeRequest) returns (FpgaFarDecodeResponse) {}
+
+    rpc FpgaGetPblocks(google.protobuf.Empty) returns (FpgaPblocks) {}
+    rpc FpgaGetPblockFarsByClause(FpgaPblockClause) returns (FpgaPblockFars) {}
+    // Excludes the bits of the named pblocks from the injection.
+    rpc FpgaExcludePblocks(FpgaPblockListExcludeRequest) returns (google.protobuf.Empty) {}
+    // Includes the named pblocks again, after FpgaExcludePblocks.
+    rpc FpgaIncludePblocks(FpgaPblockListIncludeRequest) returns (google.protobuf.Empty) {}
+
+    // XADC sensors (7 series FPGAs and Zynq-7000 SoCs)
+    rpc FpgaXadcSensor(FpgaXadcSensorRequest) returns (FpgaXadcResult) {}
+    // XADC alarm thresholds (50h-5Fh), in SI units, and the state of the
+    // alarms, from the flag register.
+    rpc FpgaXadcAlarm(FpgaXadcAlarmRequest) returns (FpgaXadcResult) {}
+    rpc FpgaXadcSetAlarm(FpgaXadcSetAlarmRequest) returns (google.protobuf.Empty) {}
+    rpc FpgaXadcFlags(google.protobuf.Empty) returns (FpgaXadcFlagsResult) {}
+    // XADC registers, as raw 16-bit values: the flag register (3Fh, read
+    // only), the configuration registers (40h-42h) and the alarm registers
+    // (50h-5Fh) only.
+    rpc FpgaXadcReadRegister(FpgaXadcReadRegisterRequest) returns (FpgaXadcRegisterContent) {}
+    rpc FpgaXadcWriteRegister(FpgaXadcWriteRegisterRequest) returns (google.protobuf.Empty) {}
+
+    rpc Version(google.protobuf.Empty) returns (VersionDetails) {}
+}
+
+message FpgaDevice {
+    string part_number   = 1;
+    string serial_number = 2;
+}
+
+message FpgaDevicesResponse {
+    repeated FpgaDevice devices = 1;
+}
+
+message FpgaPblock {
+    string name = 1;
+    repeated FpgaPblockClause clauses = 2;
+}
+
+message FpgaPblocks {
+    repeated FpgaPblock pblocks = 1;
+}
+
+message FpgaPblockClause {
+    string value = 1;
+}
+
+message FpgaPblockRange {
+    uint32 from = 1;
+    uint32 to = 2;
+}
+
+message FpgaPblockAreaRange {
+    FpgaPblockRange bit_range = 1;
+    FpgaPblockRange word_range = 2;
+}
+
+message FpgaPblockFar {
+    uint32 far = 1;
+    repeated FpgaPblockAreaRange occupied_area = 2;
+}
+
+message FpgaPblockFars {
+    repeated FpgaPblockFar fars = 1;
+}
+
+message FpgaPblockListExcludeRequest {
+    repeated string pblock_names = 1;
+}
+
+message FpgaPblockListIncludeRequest {
+    repeated string pblock_names = 1;
+}
+
+message FpgaFarDecodeRequest {
+    uint32 value = 1;
+}
+
+enum FpgaFarModel {
+    FPGA_7SERIES_FAR_MODEL = 0;
+    FPGA_ULTRASCALE_FAR_MODEL = 1;
+}
+
+message FpgaFarDecodeResponse {
+    FpgaFarModel far_model = 1;
+    uint32 block_type     = 2;
+    uint32 top_bottom     = 3;
+    uint32 row_address    = 4;
+    uint32 column_address = 6;
+    uint32 minor_address  = 7;
+}
+
+message FpgaReadRegisterRequest {
+    uint32 addr = 1;
+}
+
+message FpgaWriteRegisterRequest {
+    uint32 addr = 1;
+    uint32 value = 2;
+}
+
+message FpgaRegisterContent {
+    uint32 value = 1;
+}
+
+message VersionDetails {
+    string version = 1;
+}
+
+// ---------------------------------------------------------------------------
+// Connection
+// ---------------------------------------------------------------------------
+
+message FpgaDeviceDetails {
+    string device_serial_number     = 1;
+}
+
+// ---------------------------------------------------------------------------
+// File configuration
+// ---------------------------------------------------------------------------
+enum FpgaFileType {
+    FPGA_FILE_TYPE_UNSPECIFIED = 0;
+    FPGA_FILE_TYPE_RBD         = 1; // Readback data file
+    FPGA_FILE_TYPE_MSD         = 2; // Readback mask data file
+    FPGA_FILE_TYPE_EBD         = 3; // Essential bits data file
+    FPGA_FILE_TYPE_LL          = 4; // Logic location file
+    FPGA_FILE_TYPE_BIT         = 5; // Bitstream file
+    FPGA_FILE_TYPE_XDC         = 6; // Constrain file (XDC).
+}
+
+message FpgaDesignFileInfo {
+    FpgaFileType type          = 1;  // straight from your original
+    string       relative_path = 3;  // e.g. "src/top.v", never absolute
+    string       compression   = 4;  // "gzip", "zstd", or "" for raw
+    uint64       size          = 5;  // compressed size if known, 0 otherwise
+    string       sha256        = 6;  // optional, lets the server verify
+}
+
+message UploadDesignFileRequest {
+    oneof payload {
+        FpgaDesignFileInfo info  = 1;
+        bytes              chunk = 2;
+    }
+}
+
+message FpgaDesignFileResponse {
+    string stored_path   = 1;
+    uint64 bytes_written = 2;
+    string sha256        = 3;
+}
+
+// The design to program: its files, with the type and the relative_path of
+// the upload. If sha256 is set, the server checks that the stored file did
+// not change. Each file type can occur one time, and the bitstream is
+// necessary.
+message FpgaProgramRequest {
+    repeated FpgaDesignFileInfo files = 1;
+}
+
+enum FpgaBitCategory {
+    FPGA_BIT_CATEGORY_UNSPECIFIED      = 0;
+    FPGA_BIT_CATEGORY_CRAM             = 1;
+    FPGA_BIT_CATEGORY_ESSENTIAL_CRAM   = 2;
+    FPGA_BIT_CATEGORY_BRAM             = 3;
+    FPGA_BIT_CATEGORY_FLIP_FLOP        = 4;
+    FPGA_BIT_CATEGORY_LUTRAM           = 5;
+    FPGA_BIT_CATEGORY_PBLOCK           = 6;
+    FPGA_BIT_CATEGORY_ESSENTIAL_PBLOCK = 7;
+}
+
+message FpgaBitCountRequest {
+    FpgaBitCategory category = 1;
+    string pblock_name       = 2; // count only inside this XDC pblock, if set
+}
+
+message FpgaBitCount {
+    uint32 value = 1;
+}
+
+message FpgaBitCounts {
+    uint32 cram_bits             = 1;
+    uint32 essential_cram_bits   = 2;
+    uint32 bram_bits             = 3;
+    uint32 flip_flop_bits        = 4;
+    uint32 lutram_bits           = 5;
+    uint32 pblock_bits           = 6;
+    uint32 pblock_essential_bits = 7;
+}
+
+// ---------------------------------------------------------------------------
+// Scrubbing
+// ---------------------------------------------------------------------------
+
+message FpgaScrubSession {
+    uint32 scrub_cycle     = 1;
+    uint32 duration_ms     = 2; // Session duration in milliseconds
+    bool essential = 3; // scrub only into essential bits
+    string id              = 4;
+}
+
+message FpgaScrubSummary {
+    uint32 scrub_cycle                     = 1;
+    uint32 correction_time_ms              = 2;
+    uint32 idle_time_ms                    = 3;
+    uint32 scrub_cycle_actual_duration_ms  = 4;
+
+    repeated FpgaScrubWordSummary word_summaries = 5;
+}
+
+message FpgaScrubReport {
+    repeated FpgaScrubSummary scrub_summaries = 1;
+}
+
+message FpgaScrubWordSummary {
+    uint32 far                  = 1;
+    uint32 word_index           = 2;
+    uint32 bit_index            = 3;
+    uint32 golden_word_value    = 4;
+    uint32 erroneous_word_value = 5; // fixed typo: was "erroneusWordValue"
+    uint32 ebd_word_value       = 6;
+    uint32 msd_word_value       = 7;
+    bool   is_essential         = 8;
+}
+
+// ---------------------------------------------------------------------------
+// FAR list management
+// ---------------------------------------------------------------------------
+
+message FpgaFarListExtractResponse {
+    repeated uint32 fars = 1;
+}
+
+message FpgaFarListExcludeRequest {
+    repeated uint32 fars = 1;
+}
+
+message FpgaFarListResponse {
+    repeated uint32 fars = 1;
+}
+
+// ---------------------------------------------------------------------------
+// Readback
+// ---------------------------------------------------------------------------
+
+message FpgaReadbackTarget {
+    uint32 start_frame_address = 1;
+    uint32 end_frame_address   = 2;
+    bool capture = 3;
+}
+
+// A configuration frame is a flat sequence of 32-bit words, so the extra
+// FpgaWord wrapper (a repeated message each holding a repeated uint32) was
+// removed in favor of a single repeated uint32.
+message FpgaFrame {
+    uint32 frame_address  = 1;
+    repeated uint32 words = 2;
+}
+
+// Plain list of frames. Returned by FpgaEssentialFrames (frames derived from
+// the EBD file) and FpgaMaskFrames (frames derived from the MSD file).
+message FpgaFrames {
+    repeated FpgaFrame frames = 1;
+}
+
+message FpgaReadbackDetail {
+    repeated FpgaFrame frames = 1;
+}
+
+// The frame to write in the CRAM, at its frame address. The frame must have
+// all the words of a frame of the device. If restore = true, the server also
+// restores the Flip-Flops and RAMs after the write.
+message FpgaWriteFrameRequest {
+    FpgaFrame frame = 1;
+    bool restore    = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Boundary scan
+// ---------------------------------------------------------------------------
+
+message FpgaBscanTarget {
+    uint32 user_register_id = 1;
+    bytes  value            = 2;
+    uint32 useful_bits      = 3;
+}
+
+message FpgaBscanOutput {
+    bytes value = 1; // fixed field number: was 2 with no field 1
+}
+
+// ---------------------------------------------------------------------------
+// XADC
+// ---------------------------------------------------------------------------
+
+message FpgaXadcSensorRequest {
+    uint32 addr = 1; // DRP address of the sensor status register
+}
+
+// The value of the sensor, or the threshold of the alarm, not raw, in SI
+// units: volts (V) for voltages, degrees Celsius (degC) for temperatures.
+message FpgaXadcResult {
+    double value = 1;
+}
+
+message FpgaXadcAlarmRequest {
+    uint32 addr = 1; // DRP address of the alarm register
+}
+
+message FpgaXadcSetAlarmRequest {
+    uint32 addr  = 1; // DRP address of the alarm register
+    double value = 2; // threshold in SI units: V or degC
+}
+
+// The state of the XADC alarms (true = active) and of the JTAG access, from
+// the flag register (3Fh).
+message FpgaXadcFlagsResult {
+    bool temperature        = 1;  // ALM0
+    bool vccint             = 2;  // ALM1
+    bool vccaux             = 3;  // ALM2
+    bool over_temperature   = 4;  // OT
+    bool vccbram            = 5;  // ALM3
+    bool vccpint            = 6;  // ALM4, Zynq-7000 only
+    bool vccpaux            = 7;  // ALM5, Zynq-7000 only
+    bool vcco_ddr           = 8;  // ALM6, Zynq-7000 only
+    bool internal_reference = 9;  // REF
+    bool jtag_read_only     = 10; // JTGR
+    bool jtag_disabled      = 11; // JTGD
+}
+
+message FpgaXadcReadRegisterRequest {
+    uint32 addr = 1; // DRP address of the control register
+}
+
+message FpgaXadcWriteRegisterRequest {
+    uint32 addr  = 1; // DRP address of the control register
+    uint32 value = 2; // 16-bit value to write
+}
+
+message FpgaXadcRegisterContent {
+    uint32 value = 1; // 16-bit content of the control register
+}
+
+// ---------------------------------------------------------------------------
+// Fault injection
+// ---------------------------------------------------------------------------
+
+// Memory type of the injection target. The three mutually exclusive booleans
+// (isFlipFlop / isLutRam / isBram) were replaced by an enum, which makes
+// invalid combinations unrepresentable.
+enum FpgaTargetKind {
+    FPGA_TARGET_KIND_UNSPECIFIED = 0;
+    FPGA_TARGET_KIND_CRAM        = 1;
+    FPGA_TARGET_KIND_FLIP_FLOP   = 2;
+    FPGA_TARGET_KIND_LUTRAM      = 3;
+    FPGA_TARGET_KIND_BRAM        = 4;
+}
+
+message FpgaInjectionTarget {
+    uint32 frame_address = 1;
+    uint32 word_index    = 2;
+    uint32 bit_index     = 3;
+    FpgaTargetKind kind  = 4;
+    string net_name      = 5;
+}
+
+message FpgaSeedOptions {
+    uint32 seed = 2;
+}
+
+message FpgaInjectionOptions {
+    bool essentials  = 1;
+    bool include_flip_flops = 2;
+    bool include_lutrams    = 3;
+    bool include_brams      = 4;
+    bool include_pblock     = 5;
+    string pblock_name      = 6; // inject only inside this XDC pblock, if set
+}
+
+message FpgaSingleInjectionReport {
+    FpgaInjectionTarget target = 1;
+}
+
+message FpgaExhaustiveInjectionReport {
+    repeated FpgaInjectionTarget targets = 1;
+    uint32 injected_bit_count            = 2;
+}
+
+enum FpgaFaultType {
+    FPGA_FAULT_TYPE_RANDOM = 0;
+    FPGA_FAULT_TYPE_EXHAUSTIVE = 1;
+}
+
+message FpgaFiSession {
+    FpgaFaultType type            = 1;
+    uint32 duration_ms            = 2;
+    uint32 correction_time_ms     = 3;
+    uint32 time_between_faults_ms = 4;
+
+    // Distribution of upset types; the three values should sum to 100.
+    float sbu_percent = 5;
+    float mbu_percent = 6;
+    float mcu_percent = 7;
+
+    bool essential = 8; // Inject only into essential bits
+    bool correct   = 9; // Correct faults after injection
+}
+
+message FpgaFiWordSummary {
+    uint32 far                 = 1;
+    uint32 word_index          = 2;
+    uint32 bit_index           = 3;
+    uint32 golden_word_value   = 4;
+    uint32 injected_word_value = 5;
+    bool   is_essential        = 6;
+}
+
+message FpgaFiSummary {
+    FpgaFaultType type            = 1;
+    uint32 duration_ms            = 2;
+    uint32 correction_time_ms     = 3;
+    uint32 time_between_faults_ms = 4;
+
+    repeated FpgaFiWordSummary word_summaries = 5;
+}
