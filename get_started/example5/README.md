@@ -1,4 +1,4 @@
-# BRAM readback and writeback: a BRAM with built-in ECC under SK-RAFT injection
+# Example 5: BRAM readback and writeback, a BRAM with built-in ECC under SK-RAFT injection
 
 This example shows two effects of an SK-RAFT injection into the content of a block RAM that uses the built-in ECC of the BRAM and has no output register (`DO_REG = 0`):
 

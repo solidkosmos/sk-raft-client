@@ -302,7 +302,7 @@ if { ![file exists $bit_path] } {
     return
 }
 
-# top -> the example that uses this design (its number, or its folder name).
+# top -> the number of the example that uses this design.
 # The script copies the design files (bit/ebd/ll and board.xdc) to
 # design_examples/<device>/<top>/, next to this script. This is the same
 # layout as the prebuilt files in design_examples.zip. If the folder does not
@@ -313,7 +313,7 @@ array set top_to_example {
     bscan_adder_top 2
     ff_lut_top      3
     brams_top       4
-    bram_readback_writeback_top bram_readback_writeback
+    bram_readback_writeback_top 5
 }
 
 if { [info exists top_to_example($top)] } {

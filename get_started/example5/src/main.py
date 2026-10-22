@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (C) 2026 SOLIDKOSMOS S.A.
 
-"""BRAM readback and writeback: what a BRAM with the built-in ECC and no
+"""Example 5: BRAM readback and writeback. What a BRAM with the built-in ECC and no
 output register outputs when SK-RAFT injects into its content.
 
 The design has one RAMB36 (512 x 72: 64 data bits, 8 ECC bits) with the

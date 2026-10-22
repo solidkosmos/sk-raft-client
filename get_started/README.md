@@ -4,8 +4,7 @@
 
 ```
 get_started/
-├── example1/ .. example4/             SK-RAFT client examples (src/main.py)
-├── bram_readback_writeback/           BRAM with built-in ECC under injection (src/main.py)
+├── example1/ .. example5/             SK-RAFT client examples (src/main.py)
 └── hw/                                 Vivado project (create_project.tcl)
     ├── design_examples/                 design files: design_examples.zip and build output
     ├── sources_1/new/                   VHDL sources
@@ -20,7 +19,7 @@ get_started/
 | 2 | [example2](example2/README.md) | [`bscan_adder_top`](hw/sources_1/new/bscan_adder_top.vhd) (simplex adder and TMR adder, each in its own pblock. Input and output are provided via BSCAN) | Showing how to evaluate and compare the soft-error vulnerability of two circuits. |
 | 3 | [example3](example3/README.md) | [`ff_lut_top`](hw/sources_1/new/ff_lut_top.vhd) (flip-flop shift register and LUTRAM) | Showing how to inject faults into the ARAM layer, e.g., flip-flop and LUTRAM contents. |
 | 4 | [example4](example4/README.md) | [`brams_top`](hw/sources_1/new/brams_top.vhd) (one BRAM with a Hamming SEC code for each byte) | Showing how to inject faults into the BRAMs: You corrupt CRAM bits and content data (ARAM). |
-| - | [bram_readback_writeback](bram_readback_writeback/README.md) | [`bram_readback_writeback_top`](hw/sources_1/new/bram_readback_writeback_top.vhd) (one BRAM with the built-in ECC, no output register) | Showing what the BRAM outputs during and after an injection into its content: a wrong word while the clock is stopped, then the flipped bit with no ECC error. |
+| 5 | [example5](example5/README.md) | [`bram_readback_writeback_top`](hw/sources_1/new/bram_readback_writeback_top.vhd) (one BRAM with the built-in ECC, no output register) | Showing what the BRAM outputs during and after an injection into its content: a wrong word while the clock is stopped, then the flipped bit with no ECC error. |
 
 Each example operates with one design. The README of each example shows how to create the files that the SK-RAFT client script uploads to the SK-RAFT server for testing. These files are the bitstream and the EBD, LL and XDC files where necessary. Vivado builds these files from the `sources_1/new/*.vhd` files of that design in [`hw`](hw/).
 
@@ -63,7 +62,7 @@ vivado -mode batch -source create_project.tcl -tclargs <device> <top>
 | `bscan_adder_top` | example2 |
 | `ff_lut_top` | example3 |
 | `brams_top` | example4 |
-| `bram_readback_writeback_top` | bram_readback_writeback |
+| `bram_readback_writeback_top` | example5 |
 
 SolidKosmos tested and supplies only `basys3` and `zedboard` as `<device>`. To add your own board, refer to "Build a bitstream" in [`hw/README.md`](hw/README.md#build-a-bitstream). That section tells you how to:
 
@@ -99,9 +98,9 @@ python main.py
 
 The examples do not use command-line options. To configure an example, change the constants at the top of its `main.py`: `SK_RAFT_SERVER_IP`, `SERIAL_NUMBER`, `BOARD` and the other constants of that example. Then run the script.
 
-Examples 1 to 4 inject faults until you press Enter. Then the example continues to its next step, or it stops. `bram_readback_writeback` injects one fault and runs without input.
+Examples 1 to 4 inject faults until you press Enter. Then the example continues to its next step, or it stops. Example 5 injects one fault and runs without input.
 
-Examples 1 and 2 correct each upset. Examples 3 and 4 and `bram_readback_writeback` program the FPGA again at the end.
+Examples 1 and 2 correct each upset. Examples 3, 4 and 5 program the FPGA again at the end.
 
 Each example programs the FPGA at the start. Thus you can run the examples in any order, also after you stop one with Ctrl+C. If you write your own script, program the FPGA first.
 

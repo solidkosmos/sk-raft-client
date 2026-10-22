@@ -5,7 +5,7 @@
 --
 -- Module Name: bram_readback_writeback_top
 -- Description: One block RAM with the built-in ECC of the BRAM and no
---              output register, for the bram_readback_writeback example.
+--              output register, for example5.
 --              The read port is always enabled. JTAG/BSCAN writes the
 --              words and reads the BRAM outputs (data, ECC parity,
 --              SBITERR) directly.
