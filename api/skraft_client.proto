@@ -4,8 +4,6 @@ package proto;
 
 import "google/protobuf/empty.proto";
 
-option go_package = "bitbucket.org/sk_dev_team/sk-raft-software/cmd/sk_raft/proto";
-
 // SKRaftFpga exposes FPGA connection management, bitstream/auxiliary file
 // configuration, scrubbing, fault injection, BSCAN access and readback.
 service SKRaftFpga {
