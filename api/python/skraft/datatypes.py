@@ -243,6 +243,7 @@ class FpgaFar:
         """The column address field."""
         return self.__column_address
 
+
     @property
     def minor_address(self) -> int:
         """The minor address field."""
@@ -428,6 +429,109 @@ class FpgaPblock:
     def clauses(self) -> list[str]:
         """The range clauses of the pblock."""
         return self.__clauses
+
+class FpgaComponent:
+    """
+    A component of the design hierarchy, with its flip-flops.
+
+    The server finds the components in the nets of the flip-flops in the
+    logic location (LL) file. To inject into the flip-flops of a
+    component, give its path as the component of
+    FpgaDevice.inject_random. Print a component to show it and its sub
+    components as a text tree.
+
+    Attributes:
+        name (str): The name of the component, the last level of its path.
+        path (str): The full path of the component, for example
+            "top_component/sub_component".
+        flip_flop_count (int): The number of flip-flops in the component,
+            together with its sub components.
+        children (list[FpgaComponent]): The sub components, in the order
+            of their names.
+
+    Examples:
+        >>> print(component)
+        top_component (120 flip-flops)
+        |-- other_component (40 flip-flops)
+        `-- sub_component (80 flip-flops)
+            `-- sub_sub_component (16 flip-flops)
+    """
+
+    def __init__(self, name: str, path: str, flip_flop_count: int,
+                 children: list[FpgaComponent]) -> None:
+        """
+        Create a component.
+
+        Parameters:
+            name (str): The name of the component.
+            path (str): The full path of the component.
+            flip_flop_count (int): The number of flip-flops in the
+                component, together with its sub components.
+            children (list[FpgaComponent]): The sub components.
+        """
+        self.__name = name
+        self.__path = path
+        self.__flip_flop_count = flip_flop_count
+        self.__children = children
+
+    @property
+    def name(self) -> str:
+        """The name of the component, the last level of its path."""
+        return self.__name
+
+    @property
+    def path(self) -> str:
+        """The full path of the component, to give as a component."""
+        return self.__path
+
+    @property
+    def flip_flop_count(self) -> int:
+        """The number of flip-flops, together with the sub components."""
+        return self.__flip_flop_count
+
+    @property
+    def children(self) -> list[FpgaComponent]:
+        """The sub components, in the order of their names."""
+        return self.__children
+
+    def __str__(self) -> str:
+        """
+        Show the component and its sub components as a text tree.
+
+        Returns:
+            str: One line for each component, with its name and its number
+                of flip-flops. The sub components are indented under their
+                component.
+        """
+        lines = [self.__line()]
+        self.__add_children(lines, "")
+        return "\n".join(lines)
+
+    def __line(self) -> str:
+        """
+        Get the text of the component, without its sub components.
+
+        Returns:
+            str: The name and the number of flip-flops of the component.
+        """
+        unit = "flip-flop" if self.__flip_flop_count == 1 else "flip-flops"
+        return f"{self.__name} ({self.__flip_flop_count} {unit})"
+
+    def __add_children(self, lines: list[str], prefix: str) -> None:
+        """
+        Add one line for each sub component, at all levels, to the tree.
+
+        Parameters:
+            lines (list[str]): The lines of the tree, to add to.
+            prefix (str): The indentation of the sub components.
+        """
+        for index, child in enumerate(self.__children):
+            last = index == len(self.__children) - 1
+            lines.append(prefix + ("`-- " if last else "|-- ")
+                         + child.__line())
+            child.__add_children(lines,
+                                 prefix + ("    " if last else "|   "))
+
 
 class FpgaWord:
     """
@@ -1486,3 +1590,4 @@ class XadcRegister(int, Enum):
     ALARM13 = 0x5D
     ALARM14 = 0x5E
     ALARM15 = 0x5F
+

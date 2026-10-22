@@ -4,6 +4,8 @@ package proto;
 
 import "google/protobuf/empty.proto";
 
+option go_package = "bitbucket.org/sk_dev_team/sk-raft-software/cmd/sk_raft/proto";
+
 // SKRaftFpga exposes FPGA connection management, bitstream/auxiliary file
 // configuration, scrubbing, fault injection, BSCAN access and readback.
 service SKRaftFpga {
@@ -38,6 +40,10 @@ service SKRaftFpga {
     rpc FpgaFaultInjection(FpgaFiSession) returns (FpgaFiSummary) {}
 
     rpc FpgaConfigureSeed(FpgaSeedOptions) returns (google.protobuf.Empty) {}
+
+    // Lists the tree of the design components, from the flip-flop nets of
+    // the LL file. A component path can be given as an injection component.
+    rpc FpgaGetComponents(google.protobuf.Empty) returns (FpgaComponents) {}
 
     // Programming
     // Programs the device with an uploaded design. The request gives the
@@ -445,6 +451,10 @@ message FpgaInjectionOptions {
     bool include_brams      = 4;
     bool include_pblock     = 5;
     string pblock_name      = 6; // inject only inside this XDC pblock, if set
+    // Inject only into the flip-flops whose LL net path contains one of
+    // these components, as whole hierarchy levels, e.g. "top/sub".
+    // Requires include_flip_flops, without other memory kinds.
+    repeated string components = 7;
 }
 
 message FpgaSingleInjectionReport {
@@ -454,6 +464,17 @@ message FpgaSingleInjectionReport {
 message FpgaExhaustiveInjectionReport {
     repeated FpgaInjectionTarget targets = 1;
     uint32 injected_bit_count            = 2;
+}
+
+message FpgaComponent {
+    string name                    = 1; // the last level of the path
+    string path                    = 2; // e.g. "top/sub", for components
+    uint32 flip_flop_count         = 3; // with the sub components
+    repeated FpgaComponent children = 4; // the sub components, by name
+}
+
+message FpgaComponents {
+    repeated FpgaComponent components = 1; // the top-level components
 }
 
 enum FpgaFaultType {

@@ -20,6 +20,7 @@ from . import skraft_client_pb2_grpc
 from .datatypes import (
     BscanPrimitive,
     Design,
+    FpgaComponent,
     FpgaFar7series,
     FpgaFarUltraScale,
     FpgaFiSession,
@@ -56,7 +57,7 @@ from .exceptions import (
 )
 
 
-SK_RAFT_VERSION = "1.0.0.alpha.29"
+SK_RAFT_VERSION = "1.0.0.alpha.28"
 
 # The size of each chunk that the client streams during a design file upload.
 _UPLOAD_CHUNK_SIZE = 1 << 20
@@ -136,7 +137,8 @@ def _kind_from_area(target: TargetMemory) -> int:
 
 
 def _injection_options(
-    target: TargetMemory, pblock: Optional[str]
+    target: TargetMemory, pblock: Optional[str],
+    component: Optional[str] = None,
 ) -> skraft_client_pb2.FpgaInjectionOptions:
     """
     Build the injection options to send to the server.
@@ -146,6 +148,9 @@ def _injection_options(
             Several memories can be combined.
         pblock (Optional[str]): The name of a pblock from the constraints
             (XDC) file. If given, the injection is limited to that pblock.
+        component (Optional[str]): A component of the design hierarchy,
+            for example "top/sub". If given, the injection is limited to
+            the flip-flops of that component.
 
     Returns:
         skraft_client_pb2.FpgaInjectionOptions: The options message for
@@ -158,6 +163,7 @@ def _injection_options(
         include_brams=bool(target & TargetMemory.BRAM),
         include_pblock=pblock is not None,
         pblock_name=pblock or "",
+        components=[component] if component else [],
     )
 
 
@@ -989,6 +995,7 @@ class FpgaDevice:
         target: TargetMemory,
         pblock: Optional[str] = None,
         exclude_pblock: Optional[Iterable[str]] = None,
+        component: Optional[str] = None,
     ) -> FpgaRandomInjectionReport:
         """
         Inject a single upset at a random location.
@@ -1007,6 +1014,12 @@ class FpgaDevice:
                 from the constraints (XDC) file, for example a set. If
                 given, the upset is not injected into the bits of these
                 pblocks. The exclusion applies to this call only.
+            component (Optional[str]): A component of the design hierarchy,
+                as in the net paths of the logic location (LL) file, for
+                example "top_component/sub_component". If given, the upset
+                is injected into a flip-flop of that component. The
+                component must be one or more whole levels of the path.
+                Use it with TargetMemory.FF only.
 
         Returns:
             FpgaRandomInjectionReport: The location of the injected upset
@@ -1020,7 +1033,9 @@ class FpgaDevice:
                 the pblocks has not been uploaded.
             FrameAddressError: If the server could not exclude the pblocks,
                 or could not include them again.
-            ConnectionFailedError: If the server could not inject the upset.
+            ConnectionFailedError: If the server could not inject the upset,
+                for example because component is given with a target other
+                than TargetMemory.FF, or the component has no flip-flops.
 
         Examples:
             >>> dev.inject_random(TargetMemory.FF, exclude_pblock={"pb_sr"})
@@ -1028,6 +1043,11 @@ class FpgaDevice:
             ...     TargetMemory.FF,
             ...     exclude_pblock={"pb_sr", "pb_sr2", "pb_sr3"},
             ... )
+            >>> report = dev.inject_random(
+            ...     TargetMemory.FF, component="top_component/sub_component",
+            ... )
+            >>> report.net_name
+            'top_component/sub_component/count_reg[3]'
         """
         excluded = _pblock_names(exclude_pblock)
         if pblock is not None and pblock in excluded:
@@ -1041,7 +1061,7 @@ class FpgaDevice:
             self._exclude_pblocks(excluded)
 
         try:
-            request = _injection_options(target, pblock)
+            request = _injection_options(target, pblock, component)
             reply = self._stub.FpgaRandomBitFlip(request)
             return FpgaRandomInjectionReport(
                 reply.target.frame_address,
@@ -1449,6 +1469,63 @@ class FpgaDevice:
             raise FrameAddressError(
                 f"failed to exclude the provided FARs: {_rpc_detail(e)}"
             ) from e
+
+    def components(self) -> list[FpgaComponent]:
+        """
+        List the components of the design hierarchy.
+
+        The server finds the components in the nets of the flip-flops in
+        the logic location (LL) file. Give the path of a component to
+        inject_random, as component, to inject into its flip-flops.
+        Requires the LL file. Uses the FpgaGetComponents RPC.
+
+        Returns:
+            list[FpgaComponent]: The top-level components, each with its
+                sub components, in the order of their names. Empty if no
+                flip-flop net is inside a component.
+
+        Raises:
+            DesignFileError: If the logic location (LL) file has not been
+                uploaded.
+            ConnectionFailedError: If the server could not provide the
+                components.
+
+        Examples:
+            >>> for component in dev.components():
+            ...     print(component)
+            top_component (120 flip-flops)
+            |-- other_component (40 flip-flops)
+            `-- sub_component (80 flip-flops)
+                `-- sub_sub_component (16 flip-flops)
+            >>> dev.inject_random(
+            ...     TargetMemory.FF, component="top_component/sub_component",
+            ... )
+        """
+        self._design.require("ll")
+        try:
+            reply = self._stub.FpgaGetComponents(empty_pb2.Empty())
+        except grpc.RpcError as e:
+            raise ConnectionFailedError(
+                f"failed to get the components: {_rpc_detail(e)}"
+            ) from e
+        return [self._component(message) for message in reply.components]
+
+    @staticmethod
+    def _component(message) -> FpgaComponent:
+        """
+        Convert a component message of the server, with its sub components.
+
+        Parameters:
+            message (skraft_client_pb2.FpgaComponent): The component, as the
+                server sends it.
+
+        Returns:
+            FpgaComponent: The component, with all its sub components.
+        """
+        return FpgaComponent(
+            message.name, message.path, message.flip_flop_count,
+            [FpgaDevice._component(child) for child in message.children],
+        )
 
     def pblocks(self) -> list[FpgaPblock]:
         """

@@ -487,20 +487,22 @@ class FpgaSeedOptions(_message.Message):
     def __init__(self, seed: _Optional[int] = ...) -> None: ...
 
 class FpgaInjectionOptions(_message.Message):
-    __slots__ = ("essentials", "include_flip_flops", "include_lutrams", "include_brams", "include_pblock", "pblock_name")
+    __slots__ = ("essentials", "include_flip_flops", "include_lutrams", "include_brams", "include_pblock", "pblock_name", "components")
     ESSENTIALS_FIELD_NUMBER: _ClassVar[int]
     INCLUDE_FLIP_FLOPS_FIELD_NUMBER: _ClassVar[int]
     INCLUDE_LUTRAMS_FIELD_NUMBER: _ClassVar[int]
     INCLUDE_BRAMS_FIELD_NUMBER: _ClassVar[int]
     INCLUDE_PBLOCK_FIELD_NUMBER: _ClassVar[int]
     PBLOCK_NAME_FIELD_NUMBER: _ClassVar[int]
+    COMPONENTS_FIELD_NUMBER: _ClassVar[int]
     essentials: bool
     include_flip_flops: bool
     include_lutrams: bool
     include_brams: bool
     include_pblock: bool
     pblock_name: str
-    def __init__(self, essentials: bool = ..., include_flip_flops: bool = ..., include_lutrams: bool = ..., include_brams: bool = ..., include_pblock: bool = ..., pblock_name: _Optional[str] = ...) -> None: ...
+    components: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, essentials: bool = ..., include_flip_flops: bool = ..., include_lutrams: bool = ..., include_brams: bool = ..., include_pblock: bool = ..., pblock_name: _Optional[str] = ..., components: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class FpgaSingleInjectionReport(_message.Message):
     __slots__ = ("target",)
@@ -515,6 +517,24 @@ class FpgaExhaustiveInjectionReport(_message.Message):
     targets: _containers.RepeatedCompositeFieldContainer[FpgaInjectionTarget]
     injected_bit_count: int
     def __init__(self, targets: _Optional[_Iterable[_Union[FpgaInjectionTarget, _Mapping]]] = ..., injected_bit_count: _Optional[int] = ...) -> None: ...
+
+class FpgaComponent(_message.Message):
+    __slots__ = ("name", "path", "flip_flop_count", "children")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    FLIP_FLOP_COUNT_FIELD_NUMBER: _ClassVar[int]
+    CHILDREN_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    path: str
+    flip_flop_count: int
+    children: _containers.RepeatedCompositeFieldContainer[FpgaComponent]
+    def __init__(self, name: _Optional[str] = ..., path: _Optional[str] = ..., flip_flop_count: _Optional[int] = ..., children: _Optional[_Iterable[_Union[FpgaComponent, _Mapping]]] = ...) -> None: ...
+
+class FpgaComponents(_message.Message):
+    __slots__ = ("components",)
+    COMPONENTS_FIELD_NUMBER: _ClassVar[int]
+    components: _containers.RepeatedCompositeFieldContainer[FpgaComponent]
+    def __init__(self, components: _Optional[_Iterable[_Union[FpgaComponent, _Mapping]]] = ...) -> None: ...
 
 class FpgaFiSession(_message.Message):
     __slots__ = ("type", "duration_ms", "correction_time_ms", "time_between_faults_ms", "sbu_percent", "mbu_percent", "mcu_percent", "essential", "correct")

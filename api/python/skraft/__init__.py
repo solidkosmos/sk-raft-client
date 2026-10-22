@@ -9,6 +9,7 @@ from .datatypes import (
     BscanPrimitive,
     Design,
     FaultType,
+    FpgaComponent,
     FpgaFiSession,
     FpgaFiSummary,
     FpgaFrame,
@@ -86,6 +87,7 @@ __all__ = [
     "BscanPrimitive",
     "Design",
     "FaultType",
+    "FpgaComponent",
     "FpgaFiSession",
     "FpgaFiSummary",
     "FpgaFrame",
@@ -153,4 +155,3 @@ __all__ = [
     "SkraftError",
     "XadcError",
 ]
-
