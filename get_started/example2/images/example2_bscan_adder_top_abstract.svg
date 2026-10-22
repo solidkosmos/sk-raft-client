@@ -7,10 +7,8 @@
 <text x="147" y="119.0" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">operands</text>
 <path d="M50,110 L64,110.0" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
 <polygon points="78,110 64,115.0 64,105.0" fill="#111111"/>
-<path d="M216,110 L230,110" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
-<circle cx="230" cy="110" r="3.5" fill="#111111"/>
-<path d="M230,110 L230,53 L417.5,53.0" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
-<path d="M230,110 L230,168 L408,168.0" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<path d="M216,98 L230,98 L230,53 L417.5,53.0" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
+<path d="M216,122 L244,122 L244,168 L408,168.0" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="miter"/>
 <rect x="416" y="12" width="147" height="68" fill="#FFFFFF" stroke="#555555" stroke-width="1.5" stroke-dasharray="9 6"/>
 <text x="426" y="22.8" font-size="12" font-weight="400" fill="#333333" text-anchor="start" dominant-baseline="central">pblock</text>
 <rect x="428" y="36.0" width="123" height="34" fill="#D9D9D9" stroke="#111111" stroke-width="1.5"/>
