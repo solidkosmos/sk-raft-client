@@ -4,7 +4,7 @@ This example programs a bitstream. Then it compares a simplex adder with a tripl
 
 The two adders use one operand register (USER1). Each adder has its own result register: USER2 for the simplex adder and USER3 for the TMR adder.
 
-![Block diagram of bscan_adder_top. BSCAN USER1 sends the operands through isolation buffers to a simplex adder and to three adders with a voter (TMR). Each group is in its own pblock. USER2 and USER3 return the results over JTAG.](images/example2_bscan_adder_top_abstract.svg)
+![Block diagram of bscan_adder_top. BSCAN USER1 sends the operands to a simplex adder and to three adders with a voter (TMR). Each group is in its own pblock. USER2 and USER3 return the results over JTAG.](images/example2_bscan_adder_top_abstract.svg)
 
 Each trial does these steps:
 
