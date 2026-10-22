@@ -34,6 +34,22 @@ python main.py
 
 ## Result
 
+Sample output of a run on a Basys 3 (shortened). The frame addresses, the bit counts and the error counts depend on the board, the build and the seed.
+
+```
+Programmed 210183BFD452A.
+Number of Essential Bits in:
+Simplex Adder = 595 | TMR Adder = 3374
+Press Enter to move on.
+--------------------------------------------------------------------------------
+Vulnerability Factor (VF) = observable errors / injected faults
+# of trials = 156  ||  Simplex Correct VF = 66/156 (42.31%)  |  TMR Correct VF = 5/156 (3.21%)
+66 simplex, 5 tmr errors in 156 trials.
+Final Simplex Adder VF = 66/156 (42.31%)
+Final TMR Adder VF     = 5/156 (3.21%)
+Example 2 done.
+```
+
 First, the script prints the number of essential bits in each pblock. Then it updates one status line during the trials. The status line shows:
 
 - The number of trials.

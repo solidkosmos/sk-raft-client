@@ -56,6 +56,48 @@ python main.py
 
 ## Result
 
+Sample output of a run on a Basys 3 (shortened). The frame addresses, the bit counts and the error counts depend on the board, the build and the seed.
+
+```
+Example 4: BRAM injection, config bits, content, and ECC recovery
+Programmed 210183BFD452A.
+Exercising the stock BRAM's own configuration before touching its contents.
+BRAM Config bit count = 3349
+Writing known words in the BRAM...
+Wrote 1024 words into pblock_stock_bram.
+Checking if all words round-trip...
+All 1024 addresses read back correctly.
+Press enter to stop injecting
+Injecting Essential CRAM bit upsets into pblock_stock_bram's configuration frames (block type 0), none corrected.
+     #  FAR       WORD  BIT  BLK_TYPE
+     1  00400311    63   29    0
+...
+Injected 22 Essential CRAM faults.
+896 of 1024 addresses read back wrong.
+Re-programming to clear the config upsets before the content campaign.
+Writing known words in the BRAM...
+Wrote 1024 words into pblock_stock_bram.
+BRAM Content bit count = 36864
+Press enter to stop injecting
+Injecting BRAM Content bit upsets into pblock_stock_bram, none corrected.
+     #  FAR       WORD  BIT  BLK_TYPE
+     1  00c00062    67   10    1
+...
+Injected 29 BRAM Content faults.
+Reading the whole memory with ECC read off.
+ECC off: 16 of 1024 addresses wrong.
+  ADDR  EXPECTED                  READ                      FAULTY BITS
+     1  101001011010010110100100  101001111010010110100100  17
+...
+16 words wrong, 16 faulty bits in total.
+--------------------------------------------------------------------------------
+Reading the whole memory again with ECC read on.
+ECC on: 0 of 1024 addresses wrong.
+ECC on: every word read back correctly. Single flips were corrected; flips in check bits were masked.
+Re-programming to clear the device.
+Example 4 done.
+```
+
 If the first write and read-back pass finds incorrect data, the script stops. It does not inject faults in that case.
 
 After each read-back, the script prints each incorrect word with these data:

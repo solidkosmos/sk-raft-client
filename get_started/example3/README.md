@@ -52,6 +52,39 @@ python main.py
 
 ## Result
 
+Sample output of a run on a Basys 3 (shortened). The frame addresses, the bit counts and the error counts depend on the board, the build and the seed.
+
+```
+Example 3: Flip-flop shift register and LUTRAM injection
+Programmed 210183BFD452A.
+Part 1: 8 flip-flop bits inside pblock_ff_sr_inst.
+Press Enter to move on.
+     #  FAR       WORD  BIT  BEFORE    AFTER
+     1  00400f9f    97   28  00000100  00100100
+     2  00400f9f    97   28  10010000  10110000
+     3  00400f9f    97    4  11000010  11000011
+     4  00400f9f    97   28  00001111  00101111
+Part 1: done after 4 trials.
+Re-programming before Part 2.
+Part 2: all 64 LUTRAM words read back correctly. Injecting random upsets, not corrected - press Enter to move on.
+Part 2: 2048 LUTRAM bits inside pblock_LUTRAM.
+     #  FAR       WORD  BIT
+     1  00000a21     3   27
+     2  00000a23     3    0
+...
+Part 2: 7 upsets injected.
+  ADDR  CORRECT                           READ                              CORRUPTED BITS
+     0  10100101101001011010010110100101  10100101101001011010010110100101  -
+...
+     9  10100101101001011010010110101100  10100101101001011010010110100100  3
+...
+    55  10100101101001011010010110010010  10101101111001011010010110010010  22, 27
+...
+Part 2: 6/64 words are corrupted, 7 bits in total.
+Re-programming to clear the device.
+Example 3 done.
+```
+
 The script runs part 1, programs the FPGA again, and runs part 2. Then it programs the FPGA one more time, to make sure that the configuration is clean.
 
 If you stop the script with Ctrl+C during a campaign, the configuration of the device can stay incorrect. In that case, program the FPGA again before you do other work.

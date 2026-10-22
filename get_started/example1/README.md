@@ -46,4 +46,33 @@ python main.py
 
 ## Result
 
+Sample output of a run on a Basys 3 (shortened). The frame addresses, the bit counts and the error counts depend on the board, the build and the seed.
+
+```
+programmed 210183BFD452A with ../../hw/design_examples/basys3/targeted_top/targeted_top.bit
+
+Step 1: random bits, anywhere. Press Enter to move on.
+frames read back: 5568
+  1: far 0x00c000cb word  14 bit  1
+  2: far 0x00020a14 word  31 bit 14
+...
+
+Step 2: essential bits only (18563) . Press Enter to move on.
+  1: far 0x00001400 word  50 bit 31
+  2: far 0x0000110d word  87 bit 27
+...
+
+Step 3: one pblock at a time.
+
+pblock_slow_heartbeat: essential bits (7166). Press Enter to move on.
+  1: far 0x00001423 word  20 bit  4
+...
+
+pblock_fast_heartbeat: essential bits (6740). Press Enter to move on.
+  1: far 0x00001214 word  86 bit 26
+...
+
+Example 1 done.
+```
+
 The script corrects each upset. Thus, the device configuration is clean at the end. If you stop the script with Ctrl+C during an upset, the upset can remain in the device. In that case, reprogram the FPGA before you do any other work.

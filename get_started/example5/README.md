@@ -60,3 +60,18 @@ python main.py
 ```
 
 The script prints a table with one row for each stage: the data, the ECC parity, `SBITERR` and the data bits that differ from the written word 0. At the end, it programs the FPGA again to clear the upset.
+
+## Result
+
+Sample output of a run on a Basys 3 (shortened). The frame addresses, the bit counts and the error counts depend on the board, the build and the seed.
+
+```
+Programmed 210183BFD452A
+Word 0 is written as 0x0000000000000000.
+
+Stage                              Data                Parity  SBITERR  Data bits that differ from word 0
+1  clock on, BRAM filled           0x0000000000000000  0x00    0        none
+2  clock stopped                   0x0000000000000000  0x00    0        none
+3  bit 0 injected, clock stopped   0x0000000000000003  0x06    0        0, 1
+4  clock on                        0x0000000000000001  0x83    0        0
+```
