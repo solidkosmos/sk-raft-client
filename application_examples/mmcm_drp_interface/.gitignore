@@ -1,0 +1,19 @@
+# The Vivado project that create_project.tcl creates (default name:
+# mmcm_drp_interface). Everything in it is generated from hw/ and
+# create_project.tcl.
+/mmcm_drp_interface/
+
+# Vivado projects with another name (first argument of create_project.tcl),
+# and the project created by hand next to this file
+*.xpr
+*.cache/
+*.gen/
+*.hw/
+*.ip_user_files/
+*.runs/
+*.sim/
+*.srcs/
+.Xil/
+
+# Local copies of the AMD documents (not redistributed)
+/sources/
