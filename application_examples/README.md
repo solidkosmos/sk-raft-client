@@ -4,6 +4,7 @@ Examples of SK-RAFT for specific use cases. Each folder has a README with the re
 
 ```
 application_examples/
+├── mmcm_drp_interface/   Changes the MMCM output clocks over BSCAN through the DRP (Basys 3)
 ├── readback_scrubbing/   A CRAM readback scrubber that runs in the client script
 ├── sem_arbitration/      SK-RAFT injects into the CRAM, the SEM IP detects and corrects (Basys 3, TE0841)
 ├── test_neo_hardened/    A NEORV32 RISC-V SoC with SECDED/parity hardening, and its fault-injection campaign
