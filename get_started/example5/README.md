@@ -25,6 +25,16 @@ During part 2, only the slow LED changes. The fast LED blinks as before, because
 - `slow_heartbeat/heartbeat_count_reg[N]` with a high `N`: a high bit of the counter. The slow LED toggles too early, or stays on or off for longer.
 - `slow_heartbeat/heartbeat_count_reg[N]` with a low `N`: a low bit of the counter. The toggle moves by less than you can see.
 
+## The calls of the example
+
+| Call | Use in the example |
+| --- | --- |
+| `SkraftFpga.connect(ip=..., port=...)`, `client.attach(SERIAL_NUMBER)` | Connect to the SK-RAFT server and attach to the device, in `with` statements that release the device and close the connection. |
+| `Design(bit, ll)`, `dev.uploadDesignToServer(design)`, `dev.programFPGA(design)` | Give the design files, upload them to the server and program the FPGA. |
+| `dev.configure_seed(0)` | Set the seed of the random injections. The same seed gives the same upsets in each run. |
+| `dev.components()` | Part 1: get the components of the design as a tree, with the number of flip-flops in each component. |
+| `dev.inject_random(TargetMemory.FF, component=COMPONENT)` | Part 2: inject one upset into a random flip-flop of one component. The report gives the net of the flip-flop (`net_name`). |
+
 ## Run the example
 
 1. Make sure that the design files are in `hw/design_examples/<board>/targeted_top/`, and set `BOARD` in `src/main.py` to your board. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files).

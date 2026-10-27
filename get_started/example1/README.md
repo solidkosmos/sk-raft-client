@@ -27,6 +27,19 @@ A pblock keeps the cells of its instance in the given area. Two more properties 
 
 The examples do not use `CONTAIN_ROUTING`, to keep them simple.
 
+## The calls of the example
+
+| Call | Use in the example |
+| --- | --- |
+| `SkraftFpga.connect(ip=..., port=...)`, `client.attach(SERIAL_NUMBER)` | Connect to the SK-RAFT server and attach to the device, in `with` statements that release the device and close the connection. |
+| `Design(bit, ebd, xdc)`, `dev.uploadDesignToServer(design)`, `dev.programFPGA(design)` | Give the design files, upload them to the server and program the FPGA. |
+| `dev.configure_seed(0)` | Set the seed of the random injections. The same seed gives the same upsets in each run. |
+| `dev.readback(ReadbackOption.READBACK)` | Step 1: read back all the CRAM frames. The script selects a random bit of these frames. |
+| `dev.inject_at(far, word, bit, TargetMemory.CRAM)` | Step 1: flip the selected bit. In all steps: flip the bit again after 100 ms, to correct the upset. |
+| `dev.bit_count(TargetMemory.ESSENTIAL_CRAM)`, `dev.bit_count(TargetMemory.ESSENTIAL_CRAM, pblock=pblock)` | Steps 2 and 3: get the number of essential bits of the device, and of each pblock. |
+| `dev.inject_random(TargetMemory.ESSENTIAL_CRAM)` | Step 2: inject one upset into a random essential bit. |
+| `dev.inject_random(TargetMemory.ESSENTIAL_CRAM, pblock=pblock)` | Step 3: inject one upset into a random essential bit of one pblock. |
+
 ## Run the example
 
 1. Make sure that the design files are in `hw/design_examples/<board>/targeted_top/`, and set `BOARD` in `src/main.py` to your board. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files).

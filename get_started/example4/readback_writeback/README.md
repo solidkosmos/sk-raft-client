@@ -38,6 +38,15 @@ Two consequences for SK-RAFT campaigns:
 - A design that reads a BRAM with `DO_REG = 0` can take the wrong word of stage 3 after a freeze. The BRAM hold register pass ([`auxiliary_components/bram_hold_pass`](../../../auxiliary_components/bram_hold_pass/README.md)) protects against this. This example builds without the pass to show the effect.
 - `TargetMemory.BRAM` injection into a BRAM with `EN_ECC_WRITE = TRUE` does not test the built-in ECC. It gives a valid word with wrong data.
 
+## The calls of the example
+
+| Call | Use in the example |
+| --- | --- |
+| `SkraftFpga.connect(ip=..., port=...)`, `client.attach(SERIAL_NUMBER)` | Connect to the SK-RAFT server and attach to the device, in `with` statements that release the device and close the connection. |
+| `Design(bit, ll)`, `dev.uploadDesignToServer(design)`, `dev.programFPGA(design)` | Give the design files, upload them to the server and program the FPGA. |
+| `BscanPrimitive(user, length)`, `dev.write_bscan(primitive, value)`, `dev.read_bscan(primitive)` | Start and stop the clock (USER1), select the address (USER2), write the words and read the BRAM outputs (USER3). |
+| `dev.inject_at(far, word, bit, TargetMemory.BRAM)` | Stage 3: inject into word 0, bit 0. The script finds the location of the bit (`Ram=B:BIT0`) in the LL file. |
+
 ## Requirements
 
 - Python 3.9 or a later version, with the `skraft` package installed.

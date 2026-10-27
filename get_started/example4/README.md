@@ -33,6 +33,19 @@ When SK-RAFT reads or writes BRAM content frames (part 2 injects into them), the
 | USER3 | 24 bits | read/write (check auxiliary_components/bscan/bscan_user_register_io.vhd to see how reads are performed) | The data at the selected address |
 | USER4 | 1 bit | write | ECC correction enable. It applies to the BRAM read path only. The reset value is 0. |
 
+## The calls of the example
+
+| Call | Use in the example |
+| --- | --- |
+| `SkraftFpga.connect(ip=..., port=...)`, `client.attach(SERIAL_NUMBER)` | Connect to the SK-RAFT server and attach to the device, in `with` statements that release the device and close the connection. |
+| `Design(bit, ebd, ll, xdc)`, `dev.uploadDesignToServer(design)`, `dev.programFPGA(design)` | Give the design files, upload them to the server and program the FPGA. |
+| `dev.configure_seed(0)` | Set the seed of the random injections. The same seed gives the same upsets in each run. |
+| `BscanPrimitive(user, length)`, `dev.write_bscan(primitive, value)`, `dev.read_bscan(primitive)` | Start and stop the clock (USER1), select the address (USER2), write and read the data (USER3), and enable the ECC correction (USER4). |
+| `dev.bit_count(TargetMemory.ESSENTIAL_CRAM, pblock=PBLOCK_BRAM)`, `dev.bit_count(TargetMemory.BRAM, pblock=PBLOCK_BRAM)` | Get the number of essential CRAM bits and of content bits of the BRAM pblock. |
+| `dev.inject_random(TargetMemory.ESSENTIAL_CRAM, pblock=PBLOCK_BRAM)` | Part 1: inject one upset into a random essential bit of the BRAM pblock. |
+| `dev.inject_random(TargetMemory.BRAM, pblock=PBLOCK_BRAM)` | Part 2: inject one upset into a random content bit of the BRAM. |
+| `dev.decode_far(far)` | Get the block type of the frame of each upset (0: configuration, 1: BRAM content). |
+
 ## Requirements
 
 - Python 3.9 or a later version, with the `skraft` package installed.

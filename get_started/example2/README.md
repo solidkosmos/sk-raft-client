@@ -15,6 +15,18 @@ Each trial does these steps:
 
 The trials continue until you press Enter.
 
+## The calls of the example
+
+| Call | Use in the example |
+| --- | --- |
+| `SkraftFpga.connect(ip=..., port=...)`, `client.attach(SERIAL_NUMBER)` | Connect to the SK-RAFT server and attach to the device, in `with` statements that release the device and close the connection. |
+| `Design(bit, ebd, xdc)`, `dev.uploadDesignToServer(design)`, `dev.programFPGA(design)` | Give the design files, upload them to the server and program the FPGA. |
+| `dev.configure_seed(0)` | Set the seed of the random injections. The same seed gives the same upsets in each run. |
+| `BscanPrimitive(user, length)`, `dev.write_bscan(primitive, value)`, `dev.read_bscan(primitive)` | Write the operands through USER1, and read the results of the simplex adder (USER2) and of the TMR adder (USER3). |
+| `dev.bit_count(TargetMemory.ESSENTIAL_CRAM, pblock=...)` | Get the number of essential bits of each adder pblock. |
+| `dev.inject_random(TargetMemory.ESSENTIAL_CRAM, pblock=...)` | Inject one upset into a random essential bit of each adder pblock. |
+| `dev.inject_at(far, word, bit, TargetMemory.CRAM)` | Flip the two bits again after the trial, to correct the upsets. |
+
 ## Run the example
 
 1. Make sure that the design files are in `hw/design_examples/<board>/bscan_adder_top/`, and set `BOARD` in `src/main.py` to your board. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files).

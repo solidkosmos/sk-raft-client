@@ -32,6 +32,18 @@ Part 2 injects faults into the LUTRAM in `pblock_LUTRAM` (`TargetMemory.LUTRAM`)
 3. It starts the clock again and reads back the full array.
 4. It prints each word with the positions of its incorrect bits.
 
+## The calls of the example
+
+| Call | Use in the example |
+| --- | --- |
+| `SkraftFpga.connect(ip=..., port=...)`, `client.attach(SERIAL_NUMBER)` | Connect to the SK-RAFT server and attach to the device, in `with` statements that release the device and close the connection. |
+| `Design(bit, ll, xdc)`, `dev.uploadDesignToServer(design)`, `dev.programFPGA(design)` | Give the design files, upload them to the server and program the FPGA. |
+| `dev.configure_seed(0)` | Set the seed of the random injections. The same seed gives the same upsets in each run. |
+| `BscanPrimitive(user, length)`, `dev.write_bscan(primitive, value)`, `dev.read_bscan(primitive)` | Start and stop the clock (USER1), read the shift register (USER2), and select, write and read a LUTRAM word (USER3, USER4). |
+| `dev.bit_count(TargetMemory.FF, pblock=PBLOCK_SR)`, `dev.bit_count(TargetMemory.LUTRAM, pblock=PBLOCK_LUTRAM)` | Get the number of flip-flop bits and LUTRAM bits of each pblock. |
+| `dev.inject_random(TargetMemory.FF, pblock=PBLOCK_SR)` | Part 1: inject one upset into a random flip-flop of the shift register. |
+| `dev.inject_random(TargetMemory.LUTRAM, pblock=PBLOCK_LUTRAM)` | Part 2: inject one upset into a random bit of the LUTRAM. |
+
 ## Run the example
 
 1. Make sure that the design files are in `hw/design_examples/<board>/ff_lut_top/`, and set `BOARD` in `src/main.py` to your board. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files).
