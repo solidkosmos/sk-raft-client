@@ -1,6 +1,6 @@
-# SK-RAFT injection setup cheat sheet
+# SK-RAFT injection setup: general guidelines
 
-The rules that a design must obey for correct fault injection with SK-RAFT, and the reasons for them. For the general concepts (CRAM, ARAM, essential bits), refer to [`concepts.md`](concepts.md).
+The rules that a design must obey for correct fault injection with SK-RAFT, and the reasons for them. For the general concepts (CRAM, ARAM, essential bits), refer to [`concepts.md`](concepts.md). For code snippets of the common routines, refer to [`cheatsheet.md`](cheatsheet.md).
 
 ## 1. Use a safe-startup clock source
 

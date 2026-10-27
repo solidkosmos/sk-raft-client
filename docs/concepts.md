@@ -1,6 +1,6 @@
 # SK-RAFT concepts
 
-For the rules of the injection setup (safe-startup clock, clock stop during application memory injection, BRAM output latch), refer to [`injection_cheatsheet.md`](injection_cheatsheet.md).
+For the rules of the injection setup (safe-startup clock, clock stop during application memory injection, BRAM output latch), refer to [`general_guidelines.md`](general_guidelines.md). For code snippets, refer to [`cheatsheet.md`](cheatsheet.md).
 
 ## Conceptual model of an SRAM-based FPGA
 

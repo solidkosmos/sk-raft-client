@@ -58,7 +58,7 @@ with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
         print(f"far {report.far:#010x} word {report.word_index} bit {report.bit_index}")
 ```
 
-Before you inject into the application memory (flip-flops, LUTRAM, BRAM), read the setup rules in [`docs/injection_cheatsheet.md`](docs/injection_cheatsheet.md). For the concepts, refer to [`docs/concepts.md`](docs/concepts.md).
+Before you inject into the application memory (flip-flops, LUTRAM, BRAM), read the setup rules in [`docs/general_guidelines.md`](docs/general_guidelines.md). For the concepts, refer to [`docs/concepts.md`](docs/concepts.md). For code snippets of the common routines, refer to [`docs/cheatsheet.md`](docs/cheatsheet.md).
 
 ## Folder structure
 
