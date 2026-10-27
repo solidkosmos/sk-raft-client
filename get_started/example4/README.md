@@ -22,6 +22,8 @@ When SK-RAFT reads or writes BRAM content frames (part 2 injects into them), the
 
 `hw/create_project.tcl` builds `brams_top` with the BRAM hold register pass ([`auxiliary_components/bram_hold_pass`](../../auxiliary_components/bram_hold_pass/README.md)). The pass adds a falling-edge register behind the BRAM output, which keeps the word read before the freeze. Thus a wrong word in the results comes from the injected content, not from the latch. The build prints the report of the pass.
 
+[`readback_writeback/`](readback_writeback/README.md) shows the effect without the pass, on a BRAM with the built-in ECC: the wrong word while the clock is stopped, and the flipped bit that the ECC does not detect.
+
 ## BSCAN register map
 
 | Register | Width | Access | Contents |

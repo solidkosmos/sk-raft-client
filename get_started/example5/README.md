@@ -1,77 +1,54 @@
-# Example 5: BRAM readback and writeback, a BRAM with built-in ECC under SK-RAFT injection
+# Component injection: the components of a design, and random flip-flop upsets in one component
 
-This example shows two effects of an SK-RAFT injection into the content of a block RAM that uses the built-in ECC of the BRAM and has no output register (`DO_REG = 0`):
+This example shows the components of the design hierarchy as a tree, with the number of flip-flops in each component. Then it injects upsets only into the flip-flops of one of these components, and the LEDs show the effect. It uses the design of [example 1](../example1/README.md) (`targeted_top`): the two heartbeats, `slow_heartbeat` and `fast_heartbeat`, are components, and each heartbeat drives an LED.
 
-1. The configuration access overwrites the output latch of the BRAM. While the clock is stopped, the BRAM outputs a wrong word.
-2. When the clock starts, the BRAM reads the word again. The word has the injected bit flipped, and the ECC does not detect it (`SBITERR = 0`).
+A component is one or more whole levels of the net paths in the LL file. For example, the net `slow_heartbeat/heartbeat_count_reg[26]` is inside the component `slow_heartbeat`. The last level, `heartbeat_count_reg[26]`, is the net. It is not a component. A part of a name is not a component: `slow` does not select this net.
 
-## Design
+## Sequence
 
-`bram_readback_writeback_top` ([`hw/sources_1/new/bram_readback_writeback_top.vhd`](../hw/sources_1/new/bram_readback_writeback_top.vhd)) has one RAMB36 in simple dual-port mode, 512 x 72 (64 data bits and 8 ECC bits). The built-in ECC encoder makes the ECC bits on each write (`EN_ECC_WRITE = TRUE`). The built-in decoder checks each read (`EN_ECC_READ = TRUE`). The read port is always enabled, so the BRAM reads the word at the address on each clock edge. The BRAM outputs go directly to USER3, with no register in between.
+1. The script uploads the bitstream and the LL file, and programs the FPGA. The server reads the LL file when it programs the FPGA. Thus, `dev.components()` needs a programmed design.
+2. **Part 1.** The script gets the components with `dev.components()`. The result is a list of the top-level components. Each component holds its sub components.
+3. The script prints each top-level component with `print(component)`. This shows the component and all its sub components as a tree. Then the script prints the full path of each component, with its number of flip-flops.
+4. **Part 2.** The script finds `COMPONENT` (`slow_heartbeat`) in the components. If the design has no such component, the script stops. If it has, the script prints the number of flip-flops in the component.
+5. The script injects one upset each 0.5 s with `dev.inject_random(TargetMemory.FF, component=COMPONENT)`, until you press Enter. The server selects a random flip-flop of the component, also in its sub components.
+6. The script programs the FPGA again, to clear the upsets.
 
-| Register | Width | Access | Contents |
-| --- | --- | --- | --- |
-| USER1 | 1 bit | write | Clock enable of the BRAM (a BUFGCE). 0 after programming. |
-| USER2 | 16 bits | write | Address (only the low 9 bits have an effect). |
-| USER3 | 80 bits | write | Bits 63:0 are written to the word at the address. |
-| USER3 | 80 bits | read | Bits 63:0: data. Bits 71:64: ECC parity. Bit 72: `SBITERR`. |
+For each upset, the script prints the location of the flip-flop (FAR, word and bit) and the net that the flip-flop drives. The net is always inside `COMPONENT`.
 
-The XDC excludes the BRAM from power optimization (`set_power_opt -exclude_cells`). Without it, `opt_design` gates the read enable, and the BRAM does not read again in stage 4.
+## The LEDs
 
-## Stages
+The slow heartbeat toggles its LED every 1 s, the fast heartbeat every 0.25 s. On the Basys 3 and the ZedBoard, LD1 is the slow LED and LD0 is the fast LED.
 
-The script writes the address as the word: word 0 holds 0, word 1 holds 1, and so on. The script reads word 0 after each stage.
+During part 2, only the slow LED changes. The fast LED blinks as before, because the upsets stay inside `slow_heartbeat`. The net in each line tells you which flip-flop the upset hit:
 
-| Stage | Action | Result |
-| --- | --- | --- |
-| 1 | Start the clock, fill the BRAM, select word 0. | The word is correct, `SBITERR = 0`. |
-| 2 | Stop the clock. | The word is still correct. The output latch holds the last read. |
-| 3 | Inject into word 0, bit 0 (`Ram=B:BIT0` in the LL file). The clock is still stopped. | A wrong word. |
-| 4 | Start the clock. | Bit 0 is flipped, `SBITERR = 0`. |
-
-**Stage 3.** To flip one bit, SK-RAFT reads the content frame, changes the bit and writes the frame back. This access to a content frame overwrites the output latch of the BRAM port. The BRAM has no output register, so its outputs show the latch directly: data, parity and `SBITERR` are not the values of word 0. The same occurs for each readback and each revert of a content frame.
-
-**Stage 4.** The BRAM reads word 0 again, and the outputs are correct for the stored word. But the frame write went through the ECC encoder of the BRAM, which made new ECC bits for the flipped data. Thus the stored word is a valid ECC word, and the decoder finds no error. The flipped bit is silent data corruption, not an error that the ECC corrects.
-
-Two consequences for SK-RAFT campaigns:
-
-- A design that reads a BRAM with `DO_REG = 0` can take the wrong word of stage 3 after a freeze. The BRAM hold register pass ([`auxiliary_components/bram_hold_pass`](../../auxiliary_components/bram_hold_pass/README.md)) protects against this. This example builds without the pass to show the effect.
-- `TargetMemory.BRAM` injection into a BRAM with `EN_ECC_WRITE = TRUE` does not test the built-in ECC. It gives a valid word with wrong data.
-
-## Requirements
-
-- Python 3.9 or a later version, with the `skraft` package installed.
-- An SK-RAFT server in operation, with the target board connected through USB.
-- The bitstream and the LL file of `bram_readback_writeback_top` in `hw/design_examples/<board>/bram_readback_writeback_top/`. Extract them from `design_examples.zip` (refer to [Prebuilt design files](../README.md#prebuilt-design-files)), or build them:
-
-```bash
-cd ../hw
-vivado -mode batch -source create_project.tcl -tclargs basys3 bram_readback_writeback_top
-```
+- `slow_heartbeat/data_o_OBUF[0]`: the output flip-flop. The slow LED changes state at once.
+- `slow_heartbeat/heartbeat_count_reg[N]` with a high `N`: a high bit of the counter. The slow LED toggles too early, or stays on or off for longer.
+- `slow_heartbeat/heartbeat_count_reg[N]` with a low `N`: a low bit of the counter. The toggle moves by less than you can see.
 
 ## Run the example
 
-1. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP`, `SERIAL_NUMBER` and `BOARD`.
-2. Run the script:
+1. Make sure that the design files are in `hw/design_examples/<board>/targeted_top/`, and set `BOARD` in `src/main.py` to your board. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files).
+2. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP` and `SERIAL_NUMBER`. The design files are `targeted_top.bit` and `targeted_top.ll`. The script uploads them to the server.
+3. Run the script:
 
 ```bash
 cd src
 python main.py
 ```
 
-The script prints a table with one row for each stage: the data, the ECC parity, `SBITERR` and the data bits that differ from the written word 0. At the end, it programs the FPGA again to clear the upset.
+| Constant | Default | Description |
+| --- | --- | --- |
+| `COMPONENT` | `"slow_heartbeat"` | The full path of the component, as part 1 prints it. Set it to `"fast_heartbeat"` to inject into the fast heartbeat. |
+| `INJECTION_PERIOD_S` | `0.5` | The time between two upsets, in seconds. |
 
 ## Result
 
-Sample output of a run on a Basys 3 (shortened). The frame addresses, the bit counts and the error counts depend on the board, the build and the seed.
+The script prints the tree, the full paths, and then one line for each upset: the number of the upset, the FAR, the word, the bit and the net. In `targeted_top`, the top-level components are `clk_gen_inst` (the clock generator), `fast_heartbeat` and `slow_heartbeat`.
 
-```
-Programmed 210183BFD452A
-Word 0 is written as 0x0000000000000000.
+The number of flip-flops and the locations depend on the build of your design. The numbers come from the LL file. If you exclude pblocks or frames, `dev.inject_random()` can select fewer flip-flops of a component than the tree shows. The script sets the seed (`dev.configure_seed(0)`). Thus, with the same design, each run injects into the same sequence of flip-flops.
 
-Stage                              Data                Parity  SBITERR  Data bits that differ from word 0
-1  clock on, BRAM filled           0x0000000000000000  0x00    0        none
-2  clock stopped                   0x0000000000000000  0x00    0        none
-3  bit 0 injected, clock stopped   0x0000000000000003  0x06    0        0, 1
-4  clock on                        0x0000000000000001  0x83    0        0
-```
+If no flip-flop of the LL file is inside a component, the script prints a message and stops.
+
+The script does not correct the upsets, and it does not stop the clock of the design during the injection. If your design must not run during the injection, stop its clock first, as [example 3](../example3/README.md) does. At the end, the script programs the FPGA again to clear the upsets.
+
+If you stop the script with Ctrl+C, the configuration of the device can stay incorrect. In that case, program the FPGA again before you do other work.

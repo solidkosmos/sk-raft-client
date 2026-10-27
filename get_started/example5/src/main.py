@@ -1,23 +1,43 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (C) 2026 SOLIDKOSMOS S.A.
 
-"""Example 5: BRAM readback and writeback. What a BRAM with the built-in ECC and no
-output register outputs when SK-RAFT injects into its content.
+"""Component injection: the components of a design, and random flip-flop
+upsets in one component.
 
-The design has one RAMB36 (512 x 72: 64 data bits, 8 ECC bits) with the
-built-in ECC encoder and decoder, and no output register. The read port
-is always enabled. USER3 reads the BRAM outputs directly. Refer to
-README.md for the register map.
+This example has two parts:
 
-Stage 1: fill the BRAM, select word 0, read. The word is correct.
-Stage 2: stop the clock, read. The word is still correct.
-Stage 3: inject into word 0, bit 0 (the clock is still stopped), read.
-         The output is a wrong word.
-Stage 4: start the clock, read. The word has bit 0 flipped, and SBITERR
-         is 0.
+1. It shows the components of the design hierarchy, with
+   ``dev.components()``. The server finds the components in the nets of
+   the flip-flops in the LL file. The server reads the LL file when it
+   programs the FPGA. Thus, the script uploads the design and programs
+   the FPGA first. The script prints each top-level component as a tree,
+   with its sub components and the number of flip-flops in each
+   component. Then the script prints the full path of each component.
+2. It injects upsets only into the flip-flops of one of these components,
+   with ``dev.inject_random(TargetMemory.FF, component=COMPONENT)``. The
+   server selects a random flip-flop of that component, in all its sub
+   components too. The script injects one upset every 0.5 s until you
+   press Enter. For each upset, the script shows the location (FAR, word,
+   bit) and the net of the flip-flop that the upset hit. At the end, the
+   script programs the FPGA again to remove all the upsets.
+
+The design is targeted_top, the design of example 1. Its two heartbeats,
+slow_heartbeat and fast_heartbeat, are components. The script injects
+into slow_heartbeat: the slow LED shows the upsets, and the fast LED
+blinks as before.
+
+A component is one or more whole levels of the net paths in the LL file,
+for example ``top_component/sub_component``.
 """
 
-from skraft import BscanPrimitive, Design, SkraftError, SkraftFpga, TargetMemory
+from __future__ import annotations
+
+import threading
+import time
+from typing import Iterator, Optional
+
+from skraft import (Design, FpgaComponent, SkraftError, SkraftFpga,
+                    TargetMemory)
 
 # --------------------------------------------------------------------------- #
 # Configuration. Set these values for your setup.
@@ -28,111 +48,142 @@ SK_RAFT_SERVER_PORT = 50051
 # use the get_devices() call to find it.
 SERIAL_NUMBER = "210183BFD452A"
 
-# BOARD is the board of your target device: "basys3" or "zedboard". The
-# script reads the design files from
-# hw/design_examples/<BOARD>/bram_readback_writeback_top/. Build them with
-# create_project.tcl (see README.md). The paths are relative to src/. Run
-# the script from that folder.
+# The design: targeted_top, the design of example 1. Its two heartbeats
+# are components, and each heartbeat drives an LED.
+# The script gives two files:
+#   The bitstream (.bit): to program the device.
+#   The LL file (.ll): to find the flip-flops and the nets that they drive.
+# uploadDesignToServer() sends the files to the server. The client sends
+# only the file name of each path, not the directory.
+#
+# BOARD is the board of your target device: "basys3" or "zedboard", or
+# the name of your own board (see hw/README.md). The script reads the
+# design files from hw/design_examples/<BOARD>/targeted_top/. Extract
+# design_examples.zip there, or build the design with create_project.tcl.
+# The paths are relative to src/. Run the script from that folder.
 BOARD = "basys3"
-DESIGN_DIR = f"../../hw/design_examples/{BOARD}/bram_readback_writeback_top"
+DESIGN_DIR = f"../../hw/design_examples/{BOARD}/targeted_top"
 
-# The bitstream programs the device. The LL file gives the location of
-# each BRAM content bit.
-LL_FILE = f"{DESIGN_DIR}/bram_readback_writeback_top.ll"
 design = Design(
-    bit=f"{DESIGN_DIR}/bram_readback_writeback_top.bit",
-    ll =LL_FILE,
+    bit=f"{DESIGN_DIR}/targeted_top.bit",
+    ll=f"{DESIGN_DIR}/targeted_top.ll",
 )
 
-# BSCAN registers: (USER number, width in bits)
-USER_CLK_EN = BscanPrimitive(1, 1)
-USER_ADDRESS = BscanPrimitive(2, 16)
-USER_DATA = BscanPrimitive(3, 80)
+# The component to test: the full path of a component, as part 1 shows
+# it. This one is the slow heartbeat (its counter and its output).
+COMPONENT = "slow_heartbeat"
 
-# The BRAM has 512 words of 64 data bits.
-DEPTH = 512
+# The time between two upsets, in seconds.
+INJECTION_PERIOD_S = 0.5
 
-
-# The word that the script writes at each address is the address: word 0
-# holds 0, word 1 holds 1, and so on.
-def pattern(address: int) -> int:
-    return address
+# A background thread monitors the Enter key. Thus, the injection loop
+# below does not wait for input. Press Enter at any time to stop.
+stop = threading.Event()
 
 
-# Find the location of a BRAM content bit in the LL file, for example
-# "BIT0" (data bit 0 of word 0). Return the frame address (FAR), the word
-# in the frame and the bit in the word.
-def ll_bit(name: str) -> tuple[int, int, int]:
-    with open(LL_FILE, encoding="ascii") as file:
-        for line in file:
-            fields = line.split()
-            if fields[:1] == ["Bit"] and f"Ram=B:{name}" in fields:
-                offset = int(fields[3])
-                return int(fields[2], 16), offset // 32, offset % 32
-    raise ValueError(f"Ram=B:{name} is not in {LL_FILE}")
+def watch_for_enter() -> None:
+    stop.clear()
+    threading.Thread(target=lambda: (input(), stop.set()), daemon=True).start()
 
 
-# The table header and the format of each row.
-ROW = "{:<34} {:<18}  {:<6}  {:<7}  {}"
+# Go through all the components of the tree, each component before its
+# sub components.
+def all_components(
+        components: list[FpgaComponent]) -> Iterator[FpgaComponent]:
+    for component in components:
+        yield component
+        yield from all_components(component.children)
 
 
-def print_header() -> None:
-    print(ROW.format("Stage", "Data", "Parity", "SBITERR",
-                     "Data bits that differ from word 0"))
-
-
-# Read the BRAM outputs through USER3 and print one row: the data, the
-# ECC parity, SBITERR and the data bits that differ from the written word
-# 0.
-def read_word_0(dev, label: str) -> None:
-    value = int.from_bytes(dev.read_bscan(USER_DATA), "big")
-    data = value & (2**64 - 1)
-    parity = (value >> 64) & 0xFF
-    sbiterr = (value >> 72) & 1
-    diff = [i for i in range(64) if ((data ^ pattern(0)) >> i) & 1]
-    bits = ", ".join(str(i) for i in diff) if diff else "none"
-    print(ROW.format(label, f"{data:#018x}", f"{parity:#04x}", sbiterr,
-                     bits))
+# Find a component by its full path in the tree of the components.
+def find_component(components: list[FpgaComponent],
+                   path: str) -> Optional[FpgaComponent]:
+    for component in all_components(components):
+        if component.path == path:
+            return component
+    return None
 
 
 def main() -> None:
-    far, word, bit = ll_bit("BIT0")
+    print("Component injection: the components of the design, and random "
+          "flip-flop upsets in one component")
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
             with client.attach(SERIAL_NUMBER) as dev:
+                # Setup the SEED for deterministic behaviour.
+                dev.configure_seed(0)
+
                 dev.uploadDesignToServer(design)
                 dev.programFPGA(design)
-                print(f"Programmed {SERIAL_NUMBER}")
-                print(f"Word 0 is written as {pattern(0):#018x}.")
-                print()
-                print_header()
+                print(f"Programmed {SERIAL_NUMBER}.")
 
-                # Stage 1: start the clock, fill the BRAM, select word 0
-                dev.write_bscan(USER_CLK_EN, 1)
-                for address in range(DEPTH):
-                    dev.write_bscan(USER_ADDRESS, address)
-                    dev.write_bscan(USER_DATA, pattern(address))
-                dev.write_bscan(USER_ADDRESS, 0)
-                read_word_0(dev, "1  clock on, BRAM filled")
+                # Part 1. SK-RAFT: get the tree of the components.
+                components = dev.components()
+                if not components:
+                    print("No flip-flop of the LL file is inside a "
+                          "component. The design has its flip-flops at "
+                          "the top level only.")
+                    return
 
-                # Stage 2: stop the clock
-                dev.write_bscan(USER_CLK_EN, 0)
-                read_word_0(dev, "2  clock stopped")
+                # print() shows a component and all its sub components.
+                print(f"\n{len(components)} top-level components:\n")
+                for component in components:
+                    print(component)
 
-                # Stage 3: inject into word 0, bit 0. SK-RAFT reads the
-                # content frame, flips the bit and writes the frame back.
-                dev.inject_at(far, word, bit, TargetMemory.BRAM)
-                read_word_0(dev, "3  bit 0 injected, clock stopped")
+                # The full paths, to copy into COMPONENT.
+                print("\nComponent paths for "
+                      "inject_random(TargetMemory.FF, component=<path>):\n")
+                width = max(len(component.path)
+                            for component in all_components(components))
+                for component in all_components(components):
+                    count = component.flip_flop_count
+                    unit = "flip-flop" if count == 1 else "flip-flops"
+                    print(f"  {component.path:<{width}}  {count:>6} {unit}")
 
-                # Stage 4: start the clock. The BRAM reads word 0 again.
-                dev.write_bscan(USER_CLK_EN, 1)
-                read_word_0(dev, "4  clock on")
+                # Part 2. Make sure that the component exists and holds
+                # flip-flops.
+                component = find_component(components, COMPONENT)
+                if component is None:
+                    print(f"\nNo component {COMPONENT!r} in the LL file. "
+                          f"Set COMPONENT to one of the paths above.")
+                    return
+                print(f"\n{component.path}: {component.flip_flop_count} "
+                      f"flip-flops.")
 
-                # Program the FPGA again to clear the upset.
+                print("Injecting random upsets, not corrected. Press Enter "
+                      "to stop.")
+                print("     #  FAR       WORD  BIT  NET")
+                watch_for_enter()
+
+                n = 0
+                while not stop.is_set():
+                    # Injection guideline (application memory): each upset
+                    # is a readback-modify-writeback of full frames. If your
+                    # design runs, stop its clock during the injection, as
+                    # example 3 does.
+                    # SK-RAFT: flip one flip-flop bit of the component.
+                    report = dev.inject_random(TargetMemory.FF,
+                                               component=COMPONENT)
+                    # net_name is the net that the flip-flop drives, from
+                    # the LL file. It is always inside COMPONENT.
+                    print(f"{n + 1:>6}  {report.far:08x}  "
+                          f"{report.word_index:>4}  {report.bit_index:>3}  "
+                          f"{report.net_name}")
+                    n += 1
+                    # Wait to control the number of injections.
+                    time.sleep(INJECTION_PERIOD_S)
+
+                print(f"{n} upsets injected into {COMPONENT}.")
+
+                print("Re-programming to clear the device.")
                 dev.programFPGA(design)
     except SkraftError as e:
-        print(f"failed: {e}")
+        print(f"Component injection failed: {e}")
+    except KeyboardInterrupt:
+        print("Interrupted.")
+
+    print("\nComponent injection done.")
 
 
 if __name__ == "__main__":
