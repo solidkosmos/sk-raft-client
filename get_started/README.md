@@ -13,10 +13,10 @@ get_started/
 
 ## Examples
 
-| # | Example | Design | Description |
+| # | Example | Design | Purpose |
 | --- | --- | --- | --- |
 | 1 | [example1](example1/README.md) | [`targeted_top`](hw/sources_1/new/targeted_top.vhd) (fast and slow heartbeat counters, each in its own pblock) | Showing how to perform fault injection (FI) into random CRAM bits, random essential CRAM bits, and targeted FI into a Pblock. |
-| 2 | [example2](example2/README.md) | [`bscan_adder_top`](hw/sources_1/new/bscan_adder_top.vhd) (simplex adder and TMR adder, each in its own pblock. Input and output are provided via BSCAN) | Showing how to evaluate and compare the soft-error vulnerability of two circuits. |
+| 2 | [example2](example2/README.md) | [`bscan_adder_top`](hw/sources_1/new/bscan_adder_top.vhd) (simplex adder and TMR adder, each in its own pblock. Input and output are provided via BSCAN) | Showing how to set up and control a design during fault campaigns through BSCAN. |
 | 3 | [example3](example3/README.md) | [`ff_lut_top`](hw/sources_1/new/ff_lut_top.vhd) (flip-flop shift register and LUTRAM) | Showing how to inject faults into the ARAM layer, e.g., flip-flop and LUTRAM contents. |
 | 4 | [example4](example4/README.md) | [`brams_top`](hw/sources_1/new/brams_top.vhd) (one BRAM with a Hamming SEC code for each byte) | Showing how to inject faults into the BRAMs: You corrupt CRAM bits and content data (ARAM). |
 | 5 | [example5](example5/README.md) | [`bram_readback_writeback_top`](hw/sources_1/new/bram_readback_writeback_top.vhd) (one BRAM with the built-in ECC, no output register) | Showing what the BRAM outputs during and after an injection into its content: a wrong word while the clock is stopped, then the flipped bit with no ECC error. |
