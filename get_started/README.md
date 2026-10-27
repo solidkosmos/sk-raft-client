@@ -4,7 +4,7 @@
 
 ```
 get_started/
-├── example1/ .. example7/             SK-RAFT client examples (src/main.py)
+├── example1/ .. example6/             SK-RAFT client examples (src/main.py)
 └── hw/                                 Vivado project (create_project.tcl)
     ├── design_examples/                 design files: design_examples.zip and build output
     ├── sources_1/new/                   VHDL sources
@@ -20,8 +20,7 @@ get_started/
 | 3 | [example3](example3/README.md) | [`ff_lut_top`](hw/sources_1/new/ff_lut_top.vhd) (flip-flop shift register and LUTRAM) | Showing how to inject faults into the ARAM layer, e.g., flip-flop and LUTRAM contents. |
 | 4 | [example4](example4/README.md) | [`brams_top`](hw/sources_1/new/brams_top.vhd) (one BRAM with a Hamming SEC code for each byte) | Showing how to inject faults into the BRAMs: You corrupt CRAM bits and content data (ARAM). |
 | 5 | [example5](example5/README.md) | [`bram_readback_writeback_top`](hw/sources_1/new/bram_readback_writeback_top.vhd) (one BRAM with the built-in ECC, no output register) | Showing what the BRAM outputs during and after an injection into its content: a wrong word while the clock is stopped, then the flipped bit with no ECC error. |
-| 6 | [example6](example6/README.md) | [`brams_top`](hw/sources_1/new/brams_top.vhd) (the design of example 4: four BSCAN interfaces and a clock generator, each a component of the design hierarchy) | Showing how to list the components of a design as a tree, from the flip-flop nets of the LL file, with the number of flip-flops in each component. |
-| 7 | [example7](example7/README.md) | [`brams_top`](hw/sources_1/new/brams_top.vhd) (the design of example 4) | Showing how to perform random fault injection into the flip-flops of one component of the design hierarchy, and how to find the net of each flip-flop that an upset hits. |
+| 6 | [example6](example6/README.md) | [`targeted_top`](hw/sources_1/new/targeted_top.vhd) (the design of example 1: the two heartbeats are components of the design hierarchy) | Showing how to list the components of a design as a tree, from the flip-flop nets of the LL file, and how to perform random fault injection into the flip-flops of one component, with the net of each flip-flop that an upset hits. |
 
 Each example operates with one design. The README of each example shows how to create the files that the SK-RAFT client script uploads to the SK-RAFT server for testing. These files are the bitstream and the EBD, LL and XDC files where necessary. Vivado builds these files from the `sources_1/new/*.vhd` files of that design in [`hw`](hw/).
 
@@ -60,10 +59,10 @@ vivado -mode batch -source create_project.tcl -tclargs <device> <top>
 
 | `<top>` | Example |
 | --- | --- |
-| `targeted_top` | example1 |
+| `targeted_top` | example1, example6 |
 | `bscan_adder_top` | example2 |
 | `ff_lut_top` | example3 |
-| `brams_top` | example4, example6, example7 |
+| `brams_top` | example4 |
 | `bram_readback_writeback_top` | example5 |
 
 SolidKosmos tested and supplies only `basys3` and `zedboard` as `<device>`. To add your own board, refer to "Build a bitstream" in [`hw/README.md`](hw/README.md#build-a-bitstream). That section tells you how to:
@@ -100,9 +99,9 @@ python main.py
 
 The examples do not use command-line options. To configure an example, change the constants at the top of its `main.py`: `SK_RAFT_SERVER_IP`, `SERIAL_NUMBER`, `BOARD` and the other constants of that example. Then run the script.
 
-Examples 1 to 4 and example 7 inject faults until you press Enter. Then the example continues to its next step, or it stops. Example 5 injects one fault and runs without input. Example 6 does not inject faults: it shows the components of the design and stops.
+Examples 1 to 4 and example 6 inject faults until you press Enter. Then the example continues to its next step, or it stops. Example 5 injects one fault and runs without input.
 
-Examples 1 and 2 correct each upset. Examples 3, 4, 5 and 7 program the FPGA again at the end.
+Examples 1 and 2 correct each upset. Examples 3, 4, 5 and 6 program the FPGA again at the end.
 
 Each example programs the FPGA at the start. Thus you can run the examples in any order, also after you stop one with Ctrl+C. If you write your own script, program the FPGA first.
 
