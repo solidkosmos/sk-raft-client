@@ -60,6 +60,46 @@ with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
 
 Before you inject into the application memory (flip-flops, LUTRAM, BRAM), read the setup rules in [`docs/general_guidelines.md`](docs/general_guidelines.md). For the concepts, refer to [`docs/concepts.md`](docs/concepts.md). For code snippets of the common routines, refer to [`docs/cheatsheet.md`](docs/cheatsheet.md).
 
+## Quick start
+
+1. Install the SK-RAFT server with its licence. Connect the FPGA board to the server computer through its USB JTAG cable.
+2. Start the server. On Windows, run the launcher in the `bin` folder of the server installation:
+
+   ```bat
+   bin\sk-raft.bat
+   ```
+
+   On Linux, run the server executable of the installation. It takes the same options as on Windows.
+
+   The server is ready when it prints:
+
+   ```
+   SK-RAFT grpcServer listening | addr=[::]:50051 tls=false client-key=false
+   ```
+
+   Keep the server running while you use it. The server serves one client at a time. Another client that connects in the meantime gets the error `the server serves only one client and another client is connected`.
+
+   | Option | Description |
+   | --- | --- |
+   | `-port <number>` | The TCP port of the server. The default is `50051`. |
+   | `-tls-cert <file>`, `-tls-key <file>` | The TLS certificate and private key (PEM) of the server. With them, the server accepts only TLS connections. |
+   | `-tls-public-key <file>` | The public key (or certificate) of the clients that the server accepts. Refer to [`application_examples/tls_program`](application_examples/tls_program/README.md). |
+
+   `bin\sk-raft.bat -v` prints the version of the server. On Windows, the launcher runs the server in `%LOCALAPPDATA%\SolidKosmos\sk-raft`. The server writes its log, `skraft.log`, and its cache there.
+3. Install the `skraft` Python client. Refer to [Installation](#installation).
+4. Find the serial number of your board:
+
+   ```python
+   from skraft import SkraftFpga
+
+   with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
+       for d in client.get_devices():
+           print(d.serial_number, d.part_number)
+   ```
+
+   For a server on another computer, use the address of that computer in place of `127.0.0.1`.
+5. Run an example. Start with [`get_started`](get_started/README.md). It has prebuilt design files for the Basys 3 and the ZedBoard. Set `SERIAL_NUMBER` and `BOARD` at the top of the `main.py` of the example.
+
 ## Folder structure
 
 ```
