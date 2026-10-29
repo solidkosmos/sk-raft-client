@@ -123,7 +123,7 @@ def read_tmr_result(dev) -> int:
     return int.from_bytes(data, "big") & RESULT_MASK
 
 
-def main() -> None:
+def main() -> int:
     try:
         # SK-RAFT: open the connection. Then attach to the target device.
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
@@ -219,7 +219,7 @@ def main() -> None:
                 # You pressed Enter before the first trial started.
                 if n == 0:
                     print("\nNo trials completed.")
-                    return
+                    return 0
                 print(f"\n{simplex_error} simplex, "
                       f"{tmr_error} tmr errors in {n} trials.")
                 print(f"Final Simplex Adder VF = {simplex_error}/{n} "
@@ -230,13 +230,14 @@ def main() -> None:
                 
     except SkraftError as e:
         print(f"Example 2 failed: {e}")
-        return
+        return 1
     except KeyboardInterrupt:
         print(f"Interrupted")
-        return
+        return 130
 
     print(f"Example 2 done.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -9,7 +9,7 @@ To show the scrubber at work, the script injects one random upset into the CRAM 
 The output has this form (the values are only an example):
 
 ```
-Device: serial number 210183BA251CA, part number XC7A35T
+Device: serial number 210183BFD452A, part number XC7A35T
 Golden frames: 9200, checked frames: 9000
 --------------------------------------------------------------------------------
 Cycle  1: 1 upset(s) corrected | correction 0.012 s | cycle 2.100 s | idle 5.000 s
@@ -64,7 +64,7 @@ python main.py
 | Constant | Default | Description |
 | --- | --- | --- |
 | `SK_RAFT_SERVER_IP` / `SK_RAFT_SERVER_PORT` | `"127.0.0.1"` / `50051` | The address of the SK-RAFT server. |
-| `SERIAL_NUMBER` | `"210183BA251CA"` | The serial number of the target board. `get_devices()` gives the connected boards. |
+| `SERIAL_NUMBER` | `"210183BFD452A"` | The serial number of the target board. `get_devices()` gives the connected boards. |
 | `SCRUB_CYCLES` | `10` | The number of scrub cycles. |
 | `SCRUB_PERIOD_S` | `5.0` | The time from the start of one scrub cycle to the start of the next, in seconds. |
 | `INJECT_UPSETS` | `True` | If `True`, the script injects one upset before each scrub cycle. |

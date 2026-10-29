@@ -104,7 +104,7 @@ def find_component(components: list[FpgaComponent],
     return None
 
 
-def main() -> None:
+def main() -> int:
     print("Component injection: the components of the design, and random "
           "flip-flop upsets in one component")
     try:
@@ -124,7 +124,7 @@ def main() -> None:
                     print("No flip-flop of the LL file is inside a "
                           "component. The design has its flip-flops at "
                           "the top level only.")
-                    return
+                    return 1
 
                 # print() shows a component and all its sub components.
                 print(f"\n{len(components)} top-level components:\n")
@@ -147,7 +147,7 @@ def main() -> None:
                 if component is None:
                     print(f"\nNo component {COMPONENT!r} in the LL file. "
                           f"Set COMPONENT to one of the paths above.")
-                    return
+                    return 1
                 print(f"\n{component.path}: {component.flip_flop_count} "
                       f"flip-flops.")
 
@@ -180,11 +180,14 @@ def main() -> None:
                 dev.programFPGA(design)
     except SkraftError as e:
         print(f"Component injection failed: {e}")
+        return 1
     except KeyboardInterrupt:
         print("Interrupted.")
+        return 130
 
     print("\nComponent injection done.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

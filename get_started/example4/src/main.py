@@ -190,7 +190,7 @@ def print_hit(dev, n: int, report) -> None:
 
 
 
-def main() -> None:
+def main() -> int:
     print("Example 4: BRAM injection, config bits, content, and ECC "
           "recovery")
     try:
@@ -234,7 +234,7 @@ def main() -> None:
                 if wrong:
                     print(f"{wrong} of {DEPTH} addresses did not "
                           f"round-trip; not injecting anything.")
-                    return
+                    return 1
                 print(f"All {DEPTH} addresses read back correctly.")
 
                 print("Press enter to stop injecting")
@@ -364,10 +364,13 @@ def main() -> None:
              
     except SkraftError as e:
         print(f"Example 4 failed: {e}")
+        return 1
     except KeyboardInterrupt:
         print(f"Interrupted.")
+        return 130
 
-    print(f"Example 4 done.")  
+    print(f"Example 4 done.")
+    return 0
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

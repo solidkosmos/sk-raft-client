@@ -5,6 +5,7 @@
 ```
 get_started/
 ├── example1/ .. example5/             SK-RAFT client examples (src/main.py)
+├── list_devices.py                     lists the boards connected to the server
 └── hw/                                 Vivado project (create_project.tcl)
     ├── design_examples/                 design files: design_examples.zip and build output
     ├── sources_1/new/                   VHDL sources
@@ -38,7 +39,7 @@ SolidKosmos supplies prebuilt design files for the Basys 3 (`basys3`) and the Ze
 ```bash
 cd hw/design_examples
 ./unzip_designs.sh        # Linux
-unzip_designs.bat         # Windows
+.\unzip_designs.bat       # Windows
 ```
 
 The script extracts the bitstream and the EBD, LL and XDC files of each design to `hw/design_examples/<board>/<top>/`. Then set `BOARD` in the `main.py` of the example to your board.
@@ -96,7 +97,9 @@ cd exampleN/src
 python main.py
 ```
 
-The examples do not use command-line options. To configure an example, change the constants at the top of its `main.py`: `SK_RAFT_SERVER_IP`, `SERIAL_NUMBER`, `BOARD` and the other constants of that example. Then run the script.
+The examples do not use command-line options. To configure an example, change the constants at the top of its `main.py`: `SK_RAFT_SERVER_IP`, `SERIAL_NUMBER`, `BOARD` and the other constants of that example. Then run the script. To find the serial number of your board, run `python list_devices.py` in this folder.
+
+Each example ends with exit code 0 when it is done, 1 on an error and 130 after Ctrl+C.
 
 Examples 1 to 5 inject faults until you press Enter. Then the example continues to its next step, or it stops. The `readback_writeback` script of example 4 injects one fault and runs without input.
 
