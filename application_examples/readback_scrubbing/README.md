@@ -10,7 +10,7 @@ The output has this form (the values are only an example):
 
 ```
 Device: serial number 210183BFD452A, part number XC7A35T
-Golden frames: 9200, checked frames: 9000
+Golden frames: 5568, checked frames: 5542
 --------------------------------------------------------------------------------
 Cycle  1: 1 upset(s) corrected | correction 0.012 s | cycle 2.100 s | idle 5.000 s
     far 0x00401f00 word  12 bit  7 (golden 0x00000000, read 0x00000080)

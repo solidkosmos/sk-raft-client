@@ -35,6 +35,8 @@ XDC lines and the Python calls.
   safe clock, and the hold pass.
 - `application_examples/sem_arbitration/` (SEM IP, Basys 3 and TE0841):
   BSCAN registers and safe clock.
+- `application_examples/mmcm_drp_interface/` (MMCM reconfiguration through
+  the DRP): BSCAN registers and safe clock.
 
 The examples do not keep copies of these VHDL files. Their
 `create_project.tcl` scripts add the files from this folder.
