@@ -214,6 +214,6 @@ def run_to_end(dev: FpgaDevice) -> bytes:
         counter = read_cnt_reg(dev)
         # Timeout after 5 s. Return the last value. The caller checks it.
         if time.time() - start_time >= 5:
-            print(f"Benchmark timeout. Last counter: {counter}")
+            print(f"Benchmark timeout. Last counter: 0x{counter.hex()}")
             return counter
     return counter
