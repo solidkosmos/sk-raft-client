@@ -5,16 +5,17 @@
 # Script Name: create_project.tcl
 #
 # Usage: vivado -mode batch -source create_project.tcl
-#            -tclargs [project_name] [project_dir]
+#            -tclargs [project_name] [project_dir] [-gui]
 # Example: vivado -mode batch -source create_project.tcl
 #
 # The script creates the Vivado project of the NEORV32 hardening example for
-# the Digilent Basys 3 and opens it in the Vivado GUI. It uses the sources and
-# the constraints in hw/ and sets neorv32_test_setup_bootloader as
-# the top. It does not build the project: run Generate Bitstream in the GUI.
-# The bitstream run also writes the EBD and LL files. The default project is
-# test_neo/test_neo.xpr, and neorv_fi_example/run_injection.py reads the
-# .bit, .ebd and .ll files from test_neo/test_neo.runs/impl_1/.
+# the Digilent Basys 3 and builds it, from synthesis to bitstream. It uses the
+# sources and the constraints in hw/ and sets neorv32_test_setup_bootloader as
+# the top. The bitstream run also writes the EBD and LL files. The default
+# project is test_neo/test_neo.xpr, and neorv_fi_example/run_injection.py
+# reads the .bit, .ebd and .ll files from test_neo/test_neo.runs/impl_1/.
+# Add -gui (at any position in the arguments) to open the built project in
+# the Vivado GUI at the end. The script then does not exit.
 #
 # Notes:
 #   1. The sem_0 IP (Soft Error Mitigation controller) is not part of the
@@ -39,9 +40,25 @@ set part_name  xc7a35tcpg236-1
 set top        neorv32_test_setup_bootloader
 set lib_name   neorv32
 
-# Leave the Vivado GUI open on success; exit with an error code on failure
+# Optional -gui flag (at any position in tclargs): open the project in the
+# Vivado GUI at the end, and do not exit. You can then examine or change the
+# project. The script removes the flag before it parses the positional
+# arguments.
+set gui_requested 0
+set filtered_argv {}
+foreach a $argv {
+    if { $a eq "-gui" } {
+        set gui_requested 1
+    } else {
+        lappend filtered_argv $a
+    }
+}
+set argv $filtered_argv
+
+# Exit with the code, or open the Vivado GUI if -gui was given
 proc finish {code} {
-    if { $code == 0 } {
+    global gui_requested
+    if { $gui_requested } {
         puts [string repeat "-" 70]
         puts "Opening the project in the Vivado GUI..."
         puts [string repeat "-" 70]
@@ -55,7 +72,7 @@ proc finish {code} {
 if { [llength $argv] > 2 } {
     puts "ERROR: too many arguments."
     puts "Usage: vivado -mode batch -source create_project.tcl\
-        -tclargs \[project_name\] \[project_dir\]"
+        -tclargs \[project_name\] \[project_dir\] \[-gui\]"
     exit 1
 }
 
@@ -250,8 +267,49 @@ if { ![file exists $hold_hook] } {
 }
 set_property STEPS.OPT_DESIGN.TCL.PRE $hold_hook [get_runs impl_1]
 
-puts "Run Generate Bitstream in the GUI. The .bit, .ebd, .ll and"
-puts "bram_hold_pass.rpt files go to"
-puts "  $proj_dir/$proj_name.runs/impl_1/"
+launch_runs synth_1 -jobs 4
+wait_on_run synth_1
+if { [get_property PROGRESS [get_runs synth_1]] != "100%" } {
+    puts "ERROR: synth_1 did not complete -- see\
+        $proj_dir/$proj_name.runs/synth_1/runme.log"
+    finish 1
+    return
+}
+
+launch_runs impl_1 -to_step write_bitstream -jobs 4
+wait_on_run impl_1
+if { [get_property PROGRESS [get_runs impl_1]] != "100%" } {
+    puts "ERROR: impl_1 did not complete -- see\
+        $proj_dir/$proj_name.runs/impl_1/runme.log"
+    finish 1
+    return
+}
+
+set impl_dir "$proj_dir/$proj_name.runs/impl_1"
+if { [file exists "$impl_dir/bram_hold_pass.rpt"] } {
+    set f [open "$impl_dir/bram_hold_pass.rpt"]
+    puts [read $f]
+    close $f
+}
+
+# run_injection.py uploads these three files
+set missing_outputs {}
+foreach ext {bit ebd ll} {
+    if { ![file exists "$impl_dir/$top.$ext"] } {
+        lappend missing_outputs "$impl_dir/$top.$ext"
+    }
+}
+if { [llength $missing_outputs] > 0 } {
+    puts "ERROR: the build did not write these files:"
+    foreach f $missing_outputs { puts "  - $f" }
+    finish 1
+    return
+}
+
+puts "----------------------------------------------------------------------"
+puts "Bitstream, EBD and LL files written to"
+puts "  $impl_dir/"
+puts "Run the campaign: cd neorv_fi_example; python run_injection.py"
+puts "----------------------------------------------------------------------"
 
 finish 0

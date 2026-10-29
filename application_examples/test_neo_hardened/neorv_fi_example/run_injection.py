@@ -15,7 +15,11 @@ these steps:
   4. Compare the CRCs and the UART message with the golden run.
 
 The script writes the results to a CSV file. It writes the UART data of
-each run that has a different CRC to a raw-data file.
+each run that has a different CRC to a raw-data file. Set TARGET and RUNS
+at the top. A progress line shows every PROGRESS_EVERY runs. Ctrl+C stops
+the campaign: the script prints and saves the results of the runs that
+completed. The exit code is 0 when the campaign is done, 1 on an error and
+130 after Ctrl+C.
 """
 
 from __future__ import annotations
@@ -24,6 +28,7 @@ import csv
 import os
 import random
 import re
+import sys
 import time
 
 import serial
@@ -56,7 +61,23 @@ RESULTS_DIR = "injection_results"
 UART_PORT = "COM5"
 # This value must be equal to BAUD_RATE of the firmware (see README).
 UART_BAUD = 500000
+# The memory type of the campaign: "EBITS" (essential CRAM bits), "BRAM",
+# "FF" or "LUT".
+TARGET = "EBITS"
+# The number of campaign runs. One run takes about SECONDS_PER_RUN, so 200
+# runs take about 6 min. A campaign for a statistically useful AVF needs
+# thousands of runs (hours). Ctrl+C stops the campaign at any time: the
+# script prints and saves the results of the runs that completed.
+RUNS = 200
+# Print a progress line after this number of runs.
+PROGRESS_EVERY = 25
 # -------------------------------------------------------------
+
+# The memory types that TARGET can select
+TARGETS = ("EBITS", "BRAM", "FF", "LUT")
+# The time of one campaign run on the Basys 3 (EBITS, measured), in seconds.
+# Used only for the time estimate at the start.
+SECONDS_PER_RUN = 1.8
 
 # Cycle counts of the benchmark (clock cycles of the NEORV32)
 # The cycles in which the script injects a fault.
@@ -158,9 +179,11 @@ def read_uart_until_quiet(ser: serial.Serial) -> bytearray:
     return data
 
 
-def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
+def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> bool:
     """Upload and program the design, do the golden run, then the injection
-    campaign."""
+    campaign. Returns True if Ctrl+C stopped the campaign before the last
+    run. The results of the runs that completed are printed and saved in
+    both cases."""
 
     # Give the paths of the design files. The next call uploads them from
     # this computer to the server.
@@ -220,23 +243,17 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
     golden_hw_crc         = bscan.read_crc(dev).hex()
     golden_crcfinal       = crcfinal_of(data)
 
-    print(f"Golden CRCs  MSG: {golden_msg_crc}  "
+    found = golden_crcfinal.decode() if golden_crcfinal else "missing"
+    print(f"Golden CRCs  MSG: {golden_msg_crc.decode(errors='replace')}  "
           f"CALC: {golden_calculated_crc:04x}  HW: {golden_hw_crc}  "
-          f"crcfinal: {golden_crcfinal}")
+          f"crcfinal: {found}")
     if golden_crcfinal is None:
         raise SystemExit("The golden run has no crcfinal line in its UART "
                          "output.")
 
-    # Injection campaign configuration
-    # Set target_idx to select the target memory type for this campaign
-    categories  = ["EBITS", "BRAM", "FF", "LUT"]
-    run_counts  = [14000, 14000, 14000, 14000]
-    # 0=EBITS (essential CRAM bits)  1=BRAM  2=FF  3=LUT
-    target_idx = 0
-
-    category_list              = [False, False, False, False]
-    category_list[target_idx]  = True
-    injection_type             = categories[target_idx]
+    # Injection campaign configuration (TARGET and RUNS at the top)
+    category_list  = [category == TARGET for category in TARGETS]
+    injection_type = TARGET
 
     csv_filename      = (f"{RESULTS_DIR}/csvs/csvs_{injection_type}/"
                          f"injection_results_{injection_type}_{date}.csv")
@@ -247,11 +264,18 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
     os.makedirs(os.path.dirname(csv_filename), exist_ok=True)
     os.makedirs(os.path.dirname(raw_data_filename), exist_ok=True)
 
-    print(f"Target: {injection_type}  Runs: {run_counts[target_idx]}")
+    print(f"Target: {injection_type}  Runs: {RUNS}  "
+          f"(about {RUNS * SECONDS_PER_RUN / 60:.0f} min, "
+          f"Ctrl+C stops early and keeps the results)")
     print(f"CSV: {csv_filename}")
 
     observed_error = restarts = done = not_done = 0
-    hw_error = uart_error = corrections = 0
+    hw_error = uart_error = corrections = mismatches = 0
+    # The number of runs that completed. A run that Ctrl+C stops does
+    # not count.
+    completed = 0
+    interrupted = False
+    campaign_start = time.time()
     # Errors by kind (ERROR = exception, DETECTED = flagged by the
     # hardening, SDC = silent, HUNG)
     status_counts = {"ERROR": 0, "DETECTED": 0, "SDC": 0, "HUNG": 0}
@@ -262,226 +286,260 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> None:
         writer = csv.writer(csv_file)
         writer.writerow(["RUN #", "FAR_Address", "Word_Index", "Bit_Index",
                          "Status"])
-        for run in range(run_counts[target_idx]):
+        try:
+            for run in range(RUNS):
 
-            calculated_crc = CRC_INIT
-            # Random split of the benchmark cycles. The script injects the
-            # fault after steps[0] cycles.
-            steps = random_step_start()
+                calculated_crc = CRC_INIT
+                # Random split of the benchmark cycles. The script injects the
+                # fault after steps[0] cycles.
+                steps = random_step_start()
 
-            # Inject the fault: reset the DUT, run to a random cycle, inject,
-            # then finish the benchmark. If a step does not go correctly,
-            # program the FPGA again and do the run again. Thus each run has
-            # one fault.
-            retry = True
-            while retry:
-                # Flush the UART before each attempt.
-                flush_uart(dev, ser)
-                # Do not inject into the harness pblock: a fault there
-                # disturbs the clock-cycle controller.
-                flag, inject_report, bscan_counter = bscan.start_run_n_inject(
-                    dev, steps[0], *category_list,
-                    exclude_pblock={HARNESS_PBLOCK},
-                )
+                # Inject the fault: reset the DUT, run to a random cycle,
+                # inject, then finish the benchmark. If a step does not go
+                # correctly, program the FPGA again and do the run again.
+                # Thus each run has one fault.
+                retry = True
+                while retry:
+                    # Flush the UART before each attempt.
+                    flush_uart(dev, ser)
+                    # Do not inject into the harness pblock: a fault there
+                    # disturbs the clock-cycle controller.
+                    flag, inject_report, bscan_counter = (
+                        bscan.start_run_n_inject(
+                            dev, steps[0], *category_list,
+                            exclude_pblock={HARNESS_PBLOCK},
+                        ))
 
-                if flag != 0:
-                    print(f"[ERROR] r-{run+1}: injection failed, "
-                          f"reprogramming.")
-                    dev.programFPGA(design)
-                    restarts += 1
-                    continue
-
-                # Run the remaining step counts to the end of the benchmark.
-                for idx in range(len(steps) - 1):
-                    if bscan.send_steps(dev, steps[idx + 1]) == 0:
-                        bscan_counter = bscan.run_to_end(dev)
-                        retry = False
-                    else:
-                        print(f"[ERROR] r-{run+1}: step send failed, "
+                    if flag != 0:
+                        print(f"[ERROR] r-{run+1}: injection failed, "
                               f"reprogramming.")
+                        dev.programFPGA(design)
+                        restarts += 1
+                        continue
+
+                    # Run the remaining step counts to the end of the
+                    # benchmark.
+                    for idx in range(len(steps) - 1):
+                        if bscan.send_steps(dev, steps[idx + 1]) == 0:
+                            bscan_counter = bscan.run_to_end(dev)
+                            retry = False
+                        else:
+                            print(f"[ERROR] r-{run+1}: step send failed, "
+                                  f"reprogramming.")
+                            dev.programFPGA(design)
+                            retry = True
+                            restarts += 1
+                            break
+
+                    # At the end of a correct run, the counter shows zero or
+                    # the UART drain sentinel. Another value shows a failed
+                    # run. Then program the FPGA and do the run again.
+                    if bscan_counter not in (TX_DRAIN_SENTINEL, COUNT_ZERO):
+                        print(f"[ERROR] r-{run+1}: unexpected counter "
+                              f"0x{bscan_counter.hex()}, reprogramming.")
                         dev.programFPGA(design)
                         retry = True
                         restarts += 1
+
+                # Read the UART bytes that remain, for 0.5 s at most. The
+                # classification below uses these bytes.
+                start_time = time.time()
+                while ser.in_waiting:
+                    chunk = ser.read_all()
+                    data.extend(chunk)
+                    if not chunk or time.time() - start_time > 0.5:
                         break
+                ser.reset_input_buffer()
 
-                # At the end of a correct run, the counter shows zero or the
-                # UART drain sentinel. Another value shows a failed run. Then
-                # program the FPGA and do the run again.
-                if bscan_counter not in (TX_DRAIN_SENTINEL, COUNT_ZERO):
-                    print(f"[ERROR] r-{run+1}: unexpected counter "
-                          f"{bscan_counter}, reprogramming.")
-                    dev.programFPGA(design)
-                    retry = True
-                    restarts += 1
+                # Inject a fault at the same bit again. This sets the bit to
+                # its correct value, so the next run starts with a correct
+                # configuration.
+                dev.inject_at(inject_report.far, inject_report.word_index,
+                              inject_report.bit_index, inject_report.target)
 
-            # Read the UART bytes that remain, for 0.5 s at most. The
-            # classification below uses these bytes.
-            start_time = time.time()
-            while ser.in_waiting:
-                chunk = ser.read_all()
-                data.extend(chunk)
-                if not chunk or time.time() - start_time > 0.5:
-                    break
-            ser.reset_input_buffer()
+                # Parse the benchmark report from the UART buffer
+                final_msg_bytes = msg_crc = b""
+                if msg_start_marker in data and msg_end_marker in data:
+                    try:
+                        final_msg_bytes = (data.split(msg_start_marker)[1]
+                                           .split(msg_end_marker)[0])
+                    except Exception:
+                        pass
+                    try:
+                        if b"MSG CRC : " in data:
+                            msg_crc = (data.split(b"MSG CRC : ")[1]
+                                       .strip().split()[0])[2:7]
+                    except Exception:
+                        pass
 
-            # Inject a fault at the same bit again. This sets the bit to its
-            # correct value, so the next run starts with a correct
-            # configuration.
-            dev.inject_at(inject_report.far, inject_report.word_index,
-                          inject_report.bit_index, inject_report.target)
+                for byte in final_msg_bytes:
+                    calculated_crc = python_crcu8(byte, calculated_crc)
+                hw_crc = bscan.read_crc(dev).hex()
 
-            # Parse the benchmark report from the UART buffer
-            final_msg_bytes = msg_crc = b""
-            if msg_start_marker in data and msg_end_marker in data:
-                try:
-                    final_msg_bytes = (data.split(msg_start_marker)[1]
-                                       .split(msg_end_marker)[0])
-                except Exception:
-                    pass
-                try:
-                    if b"MSG CRC : " in data:
-                        msg_crc = (data.split(b"MSG CRC : ")[1]
-                                   .strip().split()[0])[2:7]
-                except Exception:
-                    pass
-
-            for byte in final_msg_bytes:
-                calculated_crc = python_crcu8(byte, calculated_crc)
-            hw_crc = bscan.read_crc(dev).hex()
-
-            # If hw_crc starts with "8", the DUT finished the benchmark.
-            finished      = hw_crc[0] == "8"
-            crc_deviated  = (msg_crc        != golden_msg_crc        and
-                             hw_crc         != golden_hw_crc         and
-                             calculated_crc != golden_calculated_crc)
+                # If hw_crc starts with "8", the DUT finished the benchmark.
+                finished      = hw_crc[0] == "8"
+                crc_deviated  = (msg_crc        != golden_msg_crc        and
+                                 hw_crc         != golden_hw_crc         and
+                                 calculated_crc != golden_calculated_crc)
 
 
-            # All three CRCs deviate: classify the run by the message it
-            # sent
-            #   exception in the message -> ERROR
-            #     (the runtime reported a trap)
-            #   ALERT and crcfinal correct -> no error
-            #     (the hardening handled the fault)
-            #   ALERT and crcfinal wrong or missing -> DETECTED
-            #     (error, flagged by the hardening)
-            #   no ALERT and crcfinal wrong or missing -> SDC
-            #     (silent data corruption)
-            #   otherwise (crcfinal correct, only other lines changed)
-            #     -> no error
-            error_kind = None
-            reason     = ""
-            if crc_deviated:
-                crcfinal    = crcfinal_of(data)
-                crcfinal_ok = crcfinal == golden_crcfinal
-                alert       = ALERT_MARK in data
-                if EXCEPTION_MARK in data:
-                    error_kind, reason = "ERROR", "exception"
-                elif alert and crcfinal_ok:
-                    reason = "ALERT, crcfinal correct"
-                elif not crcfinal_ok:
-                    error_kind = "DETECTED" if alert else "SDC"
-                    found = crcfinal.decode() if crcfinal else "missing"
-                    reason     = (f"{'ALERT, ' if alert else 'no ALERT, '}"
-                                  f"crcfinal {found} "
-                                  f"(golden {golden_crcfinal.decode()})")
+                # All three CRCs deviate: classify the run by the message it
+                # sent
+                #   exception in the message -> ERROR
+                #     (the runtime reported a trap)
+                #   ALERT and crcfinal correct -> no error
+                #     (the hardening handled the fault)
+                #   ALERT and crcfinal wrong or missing -> DETECTED
+                #     (error, flagged by the hardening)
+                #   no ALERT and crcfinal wrong or missing -> SDC
+                #     (silent data corruption)
+                #   otherwise (crcfinal correct, only other lines changed)
+                #     -> no error
+                error_kind = None
+                reason     = ""
+                if crc_deviated:
+                    crcfinal    = crcfinal_of(data)
+                    crcfinal_ok = crcfinal == golden_crcfinal
+                    alert       = ALERT_MARK in data
+                    if EXCEPTION_MARK in data:
+                        error_kind, reason = "ERROR", "exception"
+                    elif alert and crcfinal_ok:
+                        reason = "ALERT, crcfinal correct"
+                    elif not crcfinal_ok:
+                        error_kind = "DETECTED" if alert else "SDC"
+                        found = crcfinal.decode() if crcfinal else "missing"
+                        reason     = (f"{'ALERT, ' if alert else 'no ALERT, '}"
+                                      f"crcfinal {found} "
+                                      f"(golden {golden_crcfinal.decode()})")
+                    else:
+                        reason = "message changed, crcfinal correct"
+
+                # An error where the DUT did not finish is HUNG.
+                status = (None if error_kind is None
+                          else error_kind if finished else "HUNG")
+
+                # The CRCs of this run next to the golden CRCs
+                golden_msg = golden_msg_crc.decode(errors="replace")
+                crc_line = (f"MSG CRC: {msg_crc.decode(errors='replace')} "
+                            f"(golden {golden_msg})  "
+                            f"CALC CRC: {calculated_crc:04x} "
+                            f"(golden {golden_calculated_crc:04x})  "
+                            f"HW CRC: {hw_crc} (golden {golden_hw_crc})")
+                any_deviation = (msg_crc        != golden_msg_crc or
+                                 hw_crc         != golden_hw_crc  or
+                                 calculated_crc != golden_calculated_crc)
+
+                # If one or more CRCs deviate: print the CRCs, and save the
+                # UART data of the run with a RUN tag above it
+                if any_deviation:
+                    label = status or "MISMATCH"
+                    why = reason + "  " if reason else ""
+                    print(f"[{label}] r-{run+1}: {why}{crc_line}")
+                    with open(raw_data_filename, mode='ab') as raw_data_file:
+                        raw_data_file.write(
+                            f"\n---------------- RUN {run+1} "
+                            f"----------------\n".encode())
+                        raw_data_file.write(
+                            f"{label}  {why}{crc_line}\n".encode())
+                        raw_data_file.write(
+                            f"INJECTION CYCLE: {steps[0]}  "
+                            f"FAR: {inject_report.far}  "
+                            f"WORD: {inject_report.word_index}  "
+                            f"BIT: {inject_report.bit_index}  "
+                            f"NET: {inject_report.net_name}\n".encode())
+                        raw_data_file.write(data)
+
+                # Count the runs with a correction message (BRAM and FF
+                # campaigns only). This count shows the ECC hardening in
+                # DMEM, the register file and the execute engine. Do not
+                # subtract these runs from the AVF. A run with a correction
+                # and a correct crcfinal is not an error.
+                if injection_type in ("BRAM", "FF"):
+                    corrections += 1 if b"correction" in data else 0
+
+                if status:
+                    observed_error += 1
+                    status_counts[status] += 1
+                    writer.writerow([run+1, inject_report.far,
+                                     inject_report.word_index,
+                                     inject_report.bit_index, status])
+                    if not finished:
+                        dev.programFPGA(design)
+                        not_done += 1
+                    else:
+                        dev.programFPGA(design)
+                        done += 1
                 else:
-                    reason = "message changed, crcfinal correct"
-
-            # An error where the DUT did not finish is HUNG.
-            status = (None if error_kind is None
-                      else error_kind if finished else "HUNG")
-
-            # The CRCs of this run next to the golden CRCs
-            golden_msg = golden_msg_crc.decode(errors="replace")
-            crc_line = (f"MSG CRC: {msg_crc.decode(errors='replace')} "
-                        f"(golden {golden_msg})  "
-                        f"CALC CRC: {calculated_crc:04x} "
-                        f"(golden {golden_calculated_crc:04x})  "
-                        f"HW CRC: {hw_crc} (golden {golden_hw_crc})")
-            any_deviation = (msg_crc        != golden_msg_crc or
-                             hw_crc         != golden_hw_crc  or
-                             calculated_crc != golden_calculated_crc)
-
-            # If one or more CRCs deviate: print the CRCs, and save the UART
-            # data of the run with a RUN tag above it
-            if any_deviation:
-                label = status or "MISMATCH"
-                why = reason + "  " if reason else ""
-                print(f"[{label}] r-{run+1}: {why}{crc_line}")
-                with open(raw_data_filename, mode='ab') as raw_data_file:
-                    raw_data_file.write(
-                        f"\n---------------- RUN {run+1} "
-                        f"----------------\n".encode())
-                    raw_data_file.write(
-                        f"{label}  {why}{crc_line}\n".encode())
-                    raw_data_file.write(
-                        f"INJECTION CYCLE: {steps[0]}  "
-                        f"FAR: {inject_report.far}  "
-                        f"WORD: {inject_report.word_index}  "
-                        f"BIT: {inject_report.bit_index}  "
-                        f"NET: {inject_report.net_name}\n".encode())
-                    raw_data_file.write(data)
-
-            # Count the runs with a correction message (BRAM and FF
-            # campaigns only). This count shows the ECC hardening in DMEM,
-            # the register file and the execute engine. Do not subtract
-            # these runs from the AVF. A run with a correction and a correct
-            # crcfinal is not an error.
-            if categories[target_idx] in ("BRAM", "FF"):
-                corrections += 1 if b"correction" in data else 0
-
-            if status:
-                observed_error += 1
-                status_counts[status] += 1
-                writer.writerow([run+1, inject_report.far,
-                                 inject_report.word_index,
-                                 inject_report.bit_index, status])
-                if not finished:
-                    dev.programFPGA(design)
-                    not_done += 1
-                else:
-                    dev.programFPGA(design)
+                    # Run without an error. A CRC that differs here is a
+                    # MISMATCH: it is not an error and not in the AVF.
+                    if any_deviation:
+                        mismatches += 1
+                    # Count the small differences of the hardware CRC and of
+                    # the UART CRCs separately. Do not count them for a run
+                    # where all three CRCs are different. The
+                    # classification above examines that run.
+                    if not crc_deviated:
+                        if golden_hw_crc != hw_crc:
+                            hw_error += 1
+                        if (golden_calculated_crc != calculated_crc
+                                and msg_crc != golden_msg_crc):
+                            uart_error += 1
                     done += 1
-            else:
-                # Run without an error: count the small differences of the
-                # hardware CRC and of the UART CRCs separately. Do not count
-                # them for a run where all three CRCs are different. The
-                # classification above examines that run.
-                if not crc_deviated:
-                    if golden_hw_crc != hw_crc:
-                        hw_error += 1
-                    if (golden_calculated_crc != calculated_crc
-                            and msg_crc != golden_msg_crc):
-                        uart_error += 1
-                done += 1
 
-            data = bytearray()
+                data = bytearray()
+                completed += 1
 
-        avf = observed_error / (run + 1) * 100
+                # Progress line, so that a long campaign shows that it runs
+                if completed % PROGRESS_EVERY == 0 and completed < RUNS:
+                    elapsed = time.time() - campaign_start
+                    left = elapsed / completed * (RUNS - completed)
+                    print(f"Progress: {completed}/{RUNS} runs  "
+                          f"errors: {observed_error}  "
+                          f"AVF: {observed_error / completed * 100:.2f}%  "
+                          f"elapsed: {elapsed / 60:.1f} min  "
+                          f"left: about {left / 60:.1f} min")
+        except KeyboardInterrupt:
+            # Ctrl+C: keep the results of the runs that completed. The run
+            # that was in progress is not counted.
+            interrupted = True
+            print(f"\nInterrupted after {completed} completed runs.")
+
+        avf = observed_error / completed * 100 if completed else 0.0
         writer.writerow(["OBSERVED ERROR RATE:",
                          f"Observed errors: {observed_error}",
-                         f"Total runs: {run+1}",
+                         f"Total runs: {completed}",
                          f"AVF: {avf:.2f}",
                          f"Corrections : {corrections}",
                          *(f"{kind}: {count}"
-                           for kind, count in status_counts.items())])
+                           for kind, count in status_counts.items()),
+                         f"MISMATCH: {mismatches}",
+                         *(["Interrupted"] if interrupted else [])])
 
-    print(f"\nCompleted: {run+1}  Done: {done}  Hung: {not_done}  "
+    print(f"\nCompleted: {completed}  Done: {done}  Hung: {not_done}  "
           f"Restarts: {restarts}")
     print(f"AVF: {avf:.2f}%")
     print("Errors by kind: " + "  ".join(
         f"{kind}: {count}" for kind, count in status_counts.items()))
+    print(f"MISMATCH (a CRC differs, not an error, not in the AVF): "
+          f"{mismatches}")
     print(f"HW CRC mismatches: {hw_error}  UART mismatches: {uart_error}")
-    if categories[target_idx] in ("BRAM", "FF"):
+    if injection_type in ("BRAM", "FF"):
         print(f"Corrected faults : {corrections}")
+    return interrupted
 
 
-def main() -> None:
+def main() -> int:
     """Connect to the server, attach the device, open the UART and run the
     campaign. The with statements close the UART port, release the device
     and close the server connection. They also do this if an error or
     Ctrl+C stops the script. Thus the server and the device stay usable
-    for the next run."""
+    for the next run.
+
+    Returns the exit code: 0 when the campaign is done, 1 on an error, 130
+    when Ctrl+C stopped the script."""
+    if TARGET not in TARGETS:
+        print(f"TARGET must be one of {', '.join(TARGETS)}, not {TARGET!r}.")
+        return 1
     try:
         # SK-RAFT: open the connection. Then attach to the target device.
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
@@ -493,21 +551,26 @@ def main() -> None:
                 # Open the UART connection to the DUT.
                 with serial.Serial(port=UART_PORT, baudrate=UART_BAUD,
                                    bytesize=8, timeout=0.1) as ser:
-                    run_campaign(dev, ser)
+                    interrupted = run_campaign(dev, ser)
     except SkraftError as e:
         print(f"NEORV32 injection campaign failed: {e}")
-        return
+        return 1
     except serial.SerialException as e:
         print(f"UART error: {e}")
-        return
+        return 1
     except KeyboardInterrupt:
+        interrupted = True
+
+    if interrupted:
         # An injected fault can remain in the FPGA. Program the FPGA again
         # before you use the design.
-        print("\nInterrupted")
-        return
+        print("Interrupted. Program the FPGA again before you use the "
+              "design: an injected fault can remain in it.")
+        return 130
 
     print("NEORV32 injection campaign done.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

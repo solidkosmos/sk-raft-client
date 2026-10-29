@@ -20,18 +20,20 @@ firmware, and you do not upload it separately.
 
 ## Build and run the example
 
-1. From this folder, create the project:
+1. From this folder, in the Vivado Tcl shell (or after `settings64.bat` /
+   `settings64.sh` of Vivado), build the design:
    ```
    vivado -mode batch -source create_project.tcl
    ```
-   The script creates `test_neo/test_neo.xpr` from `hw/` and opens it in the
-   GUI. The optional arguments are `-tclargs [project_name] [project_dir]`.
-2. Run **Generate Bitstream**. Vivado writes the `.bit`, `.ebd` and `.ll`
-   files to `test_neo/test_neo.runs/impl_1/`. The implementation run also
-   runs the BRAM hold register pass (refer to "BRAM output latch
-   protection"). The pass writes its report, `bram_hold_pass.rpt`, to the
-   same folder.
-3. Run the campaign with `neorv_fi_example/run_injection.py`. Refer to its
+   The script creates `test_neo/test_neo.xpr` from `hw/` and builds it, from
+   synthesis to bitstream (about 11 min on a laptop). Vivado writes the
+   `.bit`, `.ebd` and `.ll` files to `test_neo/test_neo.runs/impl_1/`. The
+   implementation run also runs the BRAM hold register pass (refer to "BRAM
+   output latch protection"). The script prints the report of the pass,
+   `bram_hold_pass.rpt`, which is in the same folder. The optional arguments
+   are `-tclargs [project_name] [project_dir] [-gui]`. With `-gui`, the
+   project opens in the Vivado GUI after the build.
+2. Run the campaign with `neorv_fi_example/run_injection.py`. Refer to its
    [README](neorv_fi_example/README.md). The script programs the FPGA and
    reads the UART at 500000 baud.
 
