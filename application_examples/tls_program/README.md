@@ -81,11 +81,23 @@ To use RSA keys instead of EC keys, replace `-algorithm EC -pkeyopt ec_paramgen_
 
 ## Start the server with TLS
 
-```bash
-./skraft-<version> -port 50051 \
-    -tls-cert certs/server.crt -tls-key certs/server.key \
-    -tls-public-key certs/client_public.pem
+Give the server the full paths of the TLS files. On Windows, the launcher runs the server in `%LOCALAPPDATA%\SolidKosmos\sk-raft`, not in the current folder. With a relative path, the server does not find the file and stops with `failed to load TLS files: open certs\server.crt: The system cannot find the path specified.`
+
+On Windows, run the launcher from the folder of the server installation. The paths are an example:
+
+```bat
+bin\sk-raft.bat -port 50051 -tls-cert C:\sk-raft\certs\server.crt -tls-key C:\sk-raft\certs\server.key -tls-public-key C:\sk-raft\certs\client_public.pem
 ```
+
+On Linux, give the same options to the server executable of the installation, for example with the files in `~/sk-raft/certs/`:
+
+```bash
+<server executable> -port 50051 \
+    -tls-cert ~/sk-raft/certs/server.crt -tls-key ~/sk-raft/certs/server.key \
+    -tls-public-key ~/sk-raft/certs/client_public.pem
+```
+
+For the other options of the server, refer to the quick start in the [README](../../README.md#quick-start).
 
 The server prints `tls=true client-key=true`. The server then refuses connections without TLS, and connections from clients that do not hold `client.key`. `-tls-public-key` also accepts `client.crt`, because the server uses only the public key in it.
 

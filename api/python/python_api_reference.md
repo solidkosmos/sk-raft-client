@@ -877,6 +877,48 @@ FpgaExcludeFars RPC.
 
 - `FrameAddressError` - If the server could not exclude the frames.
 
+<a id="skraft.skraft_fpga.FpgaDevice.components"></a>
+
+#### components
+
+```python
+def components() -> list[FpgaComponent]
+```
+
+List the components of the design hierarchy.
+
+The server finds the components in the nets of the flip-flops in
+the logic location (LL) file. Give the path of a component to
+inject_random, as component, to inject into its flip-flops.
+Requires the LL file. Uses the FpgaGetComponents RPC.
+
+**Returns**:
+
+- `list[FpgaComponent]` - The top-level components, each with its
+  sub components, in the order of their names. Empty if no
+  flip-flop net is inside a component.
+  
+
+**Raises**:
+
+- `DesignFileError` - If the logic location (LL) file has not been
+  uploaded.
+- `ConnectionFailedError` - If the server could not provide the
+  components.
+  
+
+**Examples**:
+
+  >>> for component in dev.components():
+  ...     print(component)
+  top_component (120 flip-flops)
+  |-- other_component (40 flip-flops)
+  `-- sub_component (80 flip-flops)
+      `-- sub_sub_component (16 flip-flops)
+  >>> dev.inject_random(
+  ...     TargetMemory.FF, component="top_component/sub_component",
+  ... )
+
 <a id="skraft.skraft_fpga.FpgaDevice.pblocks"></a>
 
 #### pblocks
