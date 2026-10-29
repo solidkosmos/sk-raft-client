@@ -192,7 +192,7 @@ def stage(text: str) -> None:
     print(text)
 
 
-def main() -> None:
+def main() -> int:
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
@@ -223,7 +223,12 @@ def main() -> None:
                 print("Done.")
     except SkraftError as e:
         print(f"failed: {e}")
+        return 1
+    except KeyboardInterrupt:
+        print("Interrupted.")
+        return 130
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

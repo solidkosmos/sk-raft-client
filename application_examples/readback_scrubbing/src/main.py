@@ -40,7 +40,7 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 # If you do not know the serial number of your target device,
 # use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA251CA"
+SERIAL_NUMBER = "210183BFD452A"
 
 # The number of scrub cycles.
 SCRUB_CYCLES = 10
@@ -156,7 +156,7 @@ def inject_upset(dev, scrubber: ReadbackScrubber):
                       injected.bit_index, TargetMemory.CRAM)
 
 
-def main() -> None:
+def main() -> int:
     injected_total = 0
     injected_corrected = 0
     corrected_total = 0
@@ -222,10 +222,10 @@ def main() -> None:
                               f"{'corrected' if found else 'NOT corrected'}")
     except SkraftError as e:
         print(f"Example failed: {e}")
-        return
+        return 1
     except KeyboardInterrupt:
         print("Interrupted.")
-        return
+        return 130
 
     print("-" * 80)
     print(f"Upsets corrected: {corrected_total}")
@@ -233,7 +233,8 @@ def main() -> None:
         print(f"Injected upsets corrected: {injected_corrected} of "
               f"{injected_total}")
     print("Example done.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

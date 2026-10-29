@@ -89,15 +89,11 @@ Before you inject into the application memory (flip-flops, LUTRAM, BRAM), read t
 3. Install the `skraft` Python client. Refer to [Installation](#installation).
 4. Find the serial number of your board:
 
-   ```python
-   from skraft import SkraftFpga
-
-   with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
-       for d in client.get_devices():
-           print(d.serial_number, d.part_number)
+   ```bash
+   python get_started/list_devices.py
    ```
 
-   For a server on another computer, use the address of that computer in place of `127.0.0.1`.
+   The script prints the serial number and the part number of each board that is connected to the server. For a server on another computer, set `SK_RAFT_SERVER_IP` at the top of the script to the address of that computer. In your own scripts, `client.get_devices()` gives the same list.
 5. Run an example. Start with [`get_started`](get_started/README.md). It has prebuilt design files for the Basys 3 and the ZedBoard. Set `SERIAL_NUMBER` and `BOARD` at the top of the `main.py` of the example.
 
 ## Folder structure

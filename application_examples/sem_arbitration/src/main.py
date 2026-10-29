@@ -399,7 +399,7 @@ def run(dev: FpgaDevice, sem: SemUart, number: int) -> None:
     print(f"Expected: {experiment.expected}")
 
 
-def main() -> None:
+def main() -> int:
     """Run the experiments."""
     print(f"SEM arbitration experiments ({BOARD.folder})")
     try:
@@ -420,9 +420,12 @@ def main() -> None:
             print("\nProgrammed the design again: the CRAM is clean.")
     except (SkraftError, RuntimeError, serial.SerialException) as e:
         print(f"\nStopped: {e}")
+        return 1
     except KeyboardInterrupt:
         print("Interrupted.")
+        return 130
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

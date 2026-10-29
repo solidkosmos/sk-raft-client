@@ -5,7 +5,7 @@ This example sets off and clears the temperature alarm (ALM0) of the XADC. The s
 The example has five stages. Each stage waits for Enter. During a stage, the script reads the temperature, the thresholds and the alarm twice per second, and writes the line again in place:
 
 ```
-Device: serial number 210183BA251CA, part number XC7A35T
+Device: serial number 210183BFD452A, part number XC7A35T
 Original values: CONFIG0 = 0000h, CONFIG1 = 0000h, lower = -273.1C, upper = -273.1C
 Temperature at the start: 46.4C. The thresholds move around this value.
 --------------------------------------------------------------------------------
@@ -121,7 +121,7 @@ python main.py
 | Constant | Default | Description |
 | --- | --- | --- |
 | `SK_RAFT_SERVER_IP` / `SK_RAFT_SERVER_PORT` | `"127.0.0.1"` / `50051` | The address of the SK-RAFT server. |
-| `SERIAL_NUMBER` | `"210183BA251CA"` | The serial number of the target board. `get_devices()` gives the connected boards. |
+| `SERIAL_NUMBER` | `"210183BFD452A"` | The serial number of the target board. `get_devices()` gives the connected boards. |
 | `MARGIN_C` | `5.0` | The distance between the thresholds and the temperature at the start, in degrees Celsius. The temperature must change by less than this value during the example. |
 | `READ_PERIOD_S` | `0.5` | The time between two reads, in seconds. |
 
@@ -137,7 +137,7 @@ While the example runs, a design that uses the XADC sees the changes: only the t
 from skraft import SkraftFpga, TEMPERATURE_UPPER, VCCINT_LOWER
 
 with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
-    with client.attach("210183BA251CA") as dev:
+    with client.attach("210183BFD452A") as dev:
         print(dev.xadc_alarm(TEMPERATURE_UPPER).value)  # degrees Celsius
         dev.set_xadc_alarm(TEMPERATURE_UPPER, 85.0)     # degrees Celsius
         dev.set_xadc_alarm(VCCINT_LOWER, 0.97)          # volts

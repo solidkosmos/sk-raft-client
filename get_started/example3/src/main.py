@@ -43,7 +43,7 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 # If you do not know the serial number of your target device,
 # use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA251CA"
+SERIAL_NUMBER = "210183BFD452A"
 
 # The design for both parts: a flip-flop shift register and a LUTRAM.
 # The script gives all three files at the start:
@@ -132,7 +132,7 @@ def read_word(dev) -> int:
     return int.from_bytes(data, "big") & LUT_DATA_MASK
 
 
-def main() -> None:
+def main() -> int:
     print("Example 3: Flip-flop shift register and LUTRAM injection")
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
@@ -155,7 +155,7 @@ def main() -> None:
                           "the LL file falls inside the pblock. Check "
                           "that the XDC, the LL and the bitstream "
                           "belong together.")
-                    return
+                    return 1
 
                 print(f"Press Enter to move on.")
                 print("     #  FAR       WORD  BIT  BEFORE    AFTER")
@@ -228,7 +228,7 @@ def main() -> None:
                               f"{word:#010x}, expected {expected_word:#010x}; "
                               f"not injecting anything. Check USER3/USER4 "
                               f"register ids and widths.")
-                        return
+                        return 1
                 
 
                 print(f"Part 2: all {LUT_DEPTH} LUTRAM words read back "
@@ -287,11 +287,14 @@ def main() -> None:
                 dev.programFPGA(design)
     except SkraftError as e:
         print(f"Example 3 failed: {e}")
+        return 1
     except KeyboardInterrupt:
         print(f"Interrupted.")
+        return 130
 
     print(f"Example 3 done.")
+    return 0
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
  

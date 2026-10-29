@@ -95,7 +95,7 @@ def read_word_0(dev, label: str) -> None:
                      bits))
 
 
-def main() -> None:
+def main() -> int:
     far, word, bit = ll_bit("BIT0")
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
@@ -133,7 +133,12 @@ def main() -> None:
                 dev.programFPGA(design)
     except SkraftError as e:
         print(f"failed: {e}")
+        return 1
+    except KeyboardInterrupt:
+        print("Interrupted.")
+        return 130
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

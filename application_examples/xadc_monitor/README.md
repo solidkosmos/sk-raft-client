@@ -3,7 +3,7 @@
 This example reads the temperature and voltage sensors of the FPGA once per second. Each sensor has one line, with its current value and its highest and lowest values. The script writes the lines again after each read, so the values update in place:
 
 ```
-Device: serial number 210183BA251CA, part number XC7A35T
+Device: serial number 210183BFD452A, part number XC7A35T
 Reading the XADC once per second. Press Enter to stop.
 max/min: the highest and lowest values since power-up or the last XADC reset.
 --------------------------------------------------------------------------------
@@ -70,7 +70,7 @@ python main_zuboard_1cg.py   # ZUBoard 1CG
 | Constant | Default | Description |
 | --- | --- | --- |
 | `SK_RAFT_SERVER_IP` / `SK_RAFT_SERVER_PORT` | `"127.0.0.1"` / `50051` | The address of the SK-RAFT server. |
-| `SERIAL_NUMBER` | `"210183BA251CA"` | The serial number of the target board. `get_devices()` gives the connected boards. |
+| `SERIAL_NUMBER` | `"210183BFD452A"` | The serial number of the target board. `get_devices()` gives the connected boards. |
 | `ZYNQ` | `True` in `main_zedboard.py`, `False` in the other scripts | `True` adds the PS supplies (`vpint`, `vpaux`, `vddr`). Set it only for a Zynq-7000 device. The server reads these sensors only in Zynq-7000 devices: on other devices, the script stops with an error. |
 | `READ_PERIOD_S` | `1.0` | The time between two reads, in seconds. |
 
@@ -84,7 +84,7 @@ The script only reads the sensors. It does not change the configuration of the F
 from skraft import SkraftFpga, TEMPERATURE, VCCINT, MAX_VCCINT
 
 with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
-    with client.attach("210183BA251CA") as dev:
+    with client.attach("210183BFD452A") as dev:
         print(dev.serial_number, dev.part_number)
         print(dev.xadc(TEMPERATURE).value)  # degrees Celsius
         print(dev.xadc(VCCINT).value)       # volts

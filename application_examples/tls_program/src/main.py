@@ -34,7 +34,7 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 # If you do not know the serial number of your target device,
 # use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA251CA"
+SERIAL_NUMBER = "210183BFD452A"
 
 # The TLS files of the client. The paths are relative to src/. Run the
 # script from that folder.
@@ -82,6 +82,9 @@ def main() -> int:
     except (SkraftError, OSError) as e:
         print(f"error: {e}")
         return 1
+    except KeyboardInterrupt:
+        print("Interrupted.")
+        return 130
     return 0
 
 

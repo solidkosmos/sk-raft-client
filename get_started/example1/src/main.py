@@ -33,7 +33,7 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 # If you do not know the serial number of your target device,
 # use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA251CA"
+SERIAL_NUMBER = "210183BFD452A"
 
 # The design for all steps: two heartbeat counters (LD0, LD1).
 # The script gives all three files at the start:
@@ -71,7 +71,7 @@ def watch_for_enter() -> None:
     stop.clear()
     threading.Thread(target=lambda: (input(), stop.set()), daemon=True).start()
 
-def main() -> None:
+def main() -> int:
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
@@ -201,12 +201,14 @@ def main() -> None:
                                     report.bit_index, 
                                     TargetMemory.CRAM)
     except SkraftError as e:
-            print(f"Example 1 failed: {e}")
+        print(f"Example 1 failed: {e}")
+        return 1
     except KeyboardInterrupt:
         print(f"Interrupted")
-        return
+        return 130
     print("\nExample 1 done.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

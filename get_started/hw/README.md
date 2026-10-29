@@ -19,7 +19,7 @@ Each design is a full top-level design. The project has no default synthesis top
 ```
 cd design_examples
 ./unzip_designs.sh        # Linux
-unzip_designs.bat         # Windows
+.\unzip_designs.bat       # Windows
 ```
 
 The script extracts the files to `design_examples/<board>/<top>/`. For other boards, build the designs as described below.

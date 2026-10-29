@@ -129,7 +129,7 @@ def sensor_lines(dev, voltages) -> list[str]:
     return lines
 
 
-def main() -> None:
+def main() -> int:
     voltages = VOLTAGES + PS_VOLTAGES if ZYNQ else VOLTAGES
     try:
         # SK-RAFT: open the connection. Then attach to the target device.
@@ -161,13 +161,14 @@ def main() -> None:
                         break
     except SkraftError as e:
         print(f"Example failed: {e}")
-        return
+        return 1
     except KeyboardInterrupt:
         print("Interrupted.")
-        return
+        return 130
 
     print("Example done.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
