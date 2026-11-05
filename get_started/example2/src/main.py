@@ -35,7 +35,7 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 # If you do not know the serial number of your target device,
 # use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BFD452A"
+SERIAL_NUMBER = "210183BA252EA"
 
 # The design for all trials: a simplex adder and a TMR adder.
 # The script gives all three files at the start:

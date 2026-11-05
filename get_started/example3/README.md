@@ -11,7 +11,7 @@ USER1 starts and stops the clock of the shift register and of the LUTRAM. The sc
 
 ## Part 1: flip-flops
 
-Part 1 injects faults into the flip-flops in `pblock_ff_sr_inst` (`TargetMemory.FF`). The server finds the flip-flops from the LL file. If the pblock contains no flip-flops, the script stops.
+Part 1 injects faults into the flip-flops inside the shift-register's pblock area (`pblock_ff_sr_inst`) (`TargetMemory.FF`). The server finds the flip-flops from the LL file. If the pblock contains no flip-flops, the script stops.
 
 Each trial does these steps:
 

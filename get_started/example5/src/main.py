@@ -46,7 +46,7 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 # If you do not know the serial number of your target device,
 # use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BFD452A"
+SERIAL_NUMBER = "210183BA252EA"
 
 # The design: targeted_top, the design of example 1. Its two heartbeats
 # are components, and each heartbeat drives an LED.
@@ -58,20 +58,20 @@ SERIAL_NUMBER = "210183BFD452A"
 #
 # BOARD is the board of your target device: "basys3" or "zedboard", or
 # the name of your own board (see hw/README.md). The script reads the
-# design files from hw/design_examples/<BOARD>/targeted_top/. Extract
+# design files from hw/design_examples/<BOARD>/bscan_adder_top/. Extract
 # design_examples.zip there, or build the design with create_project.tcl.
 # The paths are relative to src/. Run the script from that folder.
 BOARD = "basys3"
-DESIGN_DIR = f"../../hw/design_examples/{BOARD}/targeted_top"
+DESIGN_DIR = f"../../hw/design_examples/{BOARD}/bscan_adder_top"
 
 design = Design(
-    bit=f"{DESIGN_DIR}/targeted_top.bit",
-    ll=f"{DESIGN_DIR}/targeted_top.ll",
+    bit=f"{DESIGN_DIR}/bscan_adder_top.bit",
+    ll=f"{DESIGN_DIR}/bscan_adder_top.ll",
 )
 
 # The component to test: the full path of a component, as part 1 shows
 # it. This one is the slow heartbeat (its counter and its output).
-COMPONENT = "slow_heartbeat"
+COMPONENT = "bscan_u1_operands"
 
 # The time between two upsets, in seconds.
 INJECTION_PERIOD_S = 0.5

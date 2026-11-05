@@ -37,7 +37,7 @@ from skraft import BscanPrimitive, Design, SkraftError, SkraftFpga
 
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-SERIAL_NUMBER = "210183BFD452A"  # use get_devices() if you do not know it
+SERIAL_NUMBER = "210183BA252EA"  # use get_devices() if you do not know it
 
 # The design file that create_project.tcl writes (default project
 # mmcm_drp_interface/ next to create_project.tcl)

@@ -42,7 +42,7 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 # The port of the SK-RAFT server.
 SK_RAFT_SERVER_PORT = 50051
 # The serial number of the target board.
-SERIAL_NUMBER = "210183BFD452A"
+SERIAL_NUMBER = "210183BA252EA"
 # The design files (paths relative to this folder). The script uploads them
 # to the server. The Generate Bitstream run of the project from
 # create_project.tcl writes the .bit, .ebd and .ll files to IMPL_DIR. Change
@@ -58,7 +58,7 @@ HARNESS_PBLOCK = "harness_pblock"
 # Campaign results, relative to this folder (created if missing)
 RESULTS_DIR = "injection_results"
 # The serial port of the UART of the DUT.
-UART_PORT = "COM5"
+UART_PORT = "/dev/ttyUSB1"
 # This value must be equal to BAUD_RATE of the firmware (see README).
 UART_BAUD = 500000
 # The memory type of the campaign: "EBITS" (essential CRAM bits), "BRAM",
