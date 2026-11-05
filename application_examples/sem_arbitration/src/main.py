@@ -104,8 +104,8 @@ BOARDS = {
         folder="basys3",
         top="sem_arbitration_7series",
         xdc="basys3.xdc",
-        serial_number="210183BFD452A",
-        uart_port="COM5",
+        serial_number="210183BA252EA",
+        uart_port="/dev/ttyUSB1",
         # USER2 bit 0 = icap_grant
         grant_bits=1,
         # PG036

@@ -34,11 +34,11 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 # If you do not know the serial number of your target device,
 # use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BFD452A"
+SERIAL_NUMBER = "210183BA252EA"
 
 # The TLS files of the client. The paths are relative to src/. Run the
 # script from that folder.
-CERTS_DIR = "../certs"
+CERTS_DIR = "certs"
 # The certificate of the server. It holds the public key of the server.
 # The client uses it to verify the server.
 SERVER_CERT = f"{CERTS_DIR}/server.crt"

@@ -2,7 +2,7 @@
 
 ## The problem
 
-SK-RAFT reads and writes the BRAM content through the configuration interface (readback, inject and revert). Each access to a BRAM content frame changes the **output latch** of the BRAMs in that frame. The value on `DO` changes. The stored content and the FIFO pointers do not change.
+SK-RAFT reads and writes the BRAM content through the configuration interface (readback, inject and revert). Each access to a BRAM content frame changes the **output latch** of the BRAMs in that frame. The value on Data Output port (`DO`) changes. The stored content and the FIFO pointers do not change.
 
 A design reads the latch each time it uses `DO` after the read cycle. If a freeze, an injection and a resume occur between the read and that use, the design gets the changed value. It does not get the word that it read.
 
