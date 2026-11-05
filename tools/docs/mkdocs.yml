@@ -1,0 +1,65 @@
+# Settings of the documentation site. build_docs.py adds docs_dir, site_dir
+# and nav, and the path of the client source for the API reference.
+
+site_name: SK-RAFT Python client
+
+theme:
+  name: material
+  # Do not load fonts from Google, so that the site works offline.
+  font: false
+  features:
+    - navigation.indexes
+    - search.highlight
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Use the dark theme
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Use the light theme
+
+extra:
+  # Search on file:// pages needs the iframe-worker shim. Use the copy in
+  # vendor/, so that the offline plugin does not load it from unpkg.com.
+  polyfills:
+    - vendor/iframe-worker/shim.js
+
+plugins:
+  - search
+  # Put the search index in the pages and link to index.html files, so
+  # that the site also works when it is opened from the disk (file://).
+  - offline
+  # Make the API reference from the docstrings of the client.
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            docstring_options:
+              # Some docstrings give no type for *args. Do not stop on it.
+              warn_missing_types: false
+            heading_level: 2
+            members_order: source
+            show_source: false
+            show_root_heading: true
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - tables
+  - toc:
+      permalink: true
+
+# Stop the build (in strict mode) on a broken link or a missing anchor.
+validation:
+  links:
+    not_found: warn
+    anchors: warn
+    unrecognized_links: warn

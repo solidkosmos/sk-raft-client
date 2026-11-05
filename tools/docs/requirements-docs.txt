@@ -1,0 +1,6 @@
+# The packages that build_docs.py needs.
+# Install them with: pip install -r requirements-docs.txt
+mkdocs==1.6.1
+mkdocs-material==9.8.0
+mkdocstrings[python]==1.0.8
+mkdocstrings-python==2.0.10
