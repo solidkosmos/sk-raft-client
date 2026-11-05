@@ -328,7 +328,9 @@ def write_output(site: Path) -> tuple[Path, Path]:
     Write the site to the output folder and to a zip file.
 
     The script adds an empty .nojekyll file. It tells GitHub Pages to
-    publish the files as they are.
+    publish the files as they are. It also adds the files of the launcher
+    folder: a README.txt and a script that serves the site on this
+    computer, for browsers that cannot open the site from the disk.
 
     Parameters:
         site (Path): The folder of the built site.
@@ -337,6 +339,7 @@ def write_output(site: Path) -> tuple[Path, Path]:
         tuple[Path, Path]: The site folder and the zip file.
     """
     (site / ".nojekyll").touch()
+    shutil.copytree(HERE / "launcher", site, dirs_exist_ok=True)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     folder = OUTPUT_DIR / "docs"
