@@ -4,9 +4,9 @@
 
 ```
 get_started/
-├── example1/ .. example5/             SK-RAFT client examples (src/main.py)
-├── list_devices.py                     lists the boards connected to the server
-└── hw/                                 Vivado project (create_project.tcl)
+├── example1/ .. example5/               SK-RAFT client examples (src/main.py)
+├── list_devices.py                      lists the boards connected to the server
+└── hw/                                  Vivado project (create_project.tcl)
     ├── design_examples/                 design files: design_examples.zip and build output
     ├── sources_1/new/                   VHDL sources
     └── xdc/                             basys3/, zedboard/, custom_template/
