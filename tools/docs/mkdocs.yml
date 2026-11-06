@@ -1,7 +1,12 @@
 # Settings of the documentation site. build_docs.py adds docs_dir, site_dir
 # and nav, and the path of the client source for the API reference.
+# build_docs.py then joins the pages of the site into one HTML file.
 
 site_name: SK-RAFT Python client
+
+# Link to page.html files, not to folders. build_docs.py finds the pages
+# by these names.
+use_directory_urls: false
 
 theme:
   name: material
@@ -22,17 +27,9 @@ theme:
         icon: material/brightness-4
         name: Use the light theme
 
-extra:
-  # Search on file:// pages needs the iframe-worker shim. Use the copy in
-  # vendor/, so that the offline plugin does not load it from unpkg.com.
-  polyfills:
-    - vendor/iframe-worker/shim.js
-
 plugins:
+  # Write the search index. build_docs.py puts it in the HTML file.
   - search
-  # Put the search index in the pages and link to index.html files, so
-  # that the site also works when it is opened from the disk (file://).
-  - offline
   # Make the API reference from the docstrings of the client.
   - mkdocstrings:
       handlers:

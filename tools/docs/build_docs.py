@@ -2,16 +2,16 @@
 # Copyright (C) 2026 SOLIDKOSMOS S.A.
 
 """
-Build the documentation site of the SK-RAFT Python client.
+Build the documentation of the SK-RAFT Python client as one HTML file.
 
-The script makes a static HTML site from the Markdown files of the
+The script makes the documentation from the Markdown files of the
 repository. The folders of the repository become the sections of the
 navigation. The README.md of a folder is the first page of its section.
 The API reference is made from the docstrings of the client.
 
-The site works on a web server and also from the disk (file://), with
-search. The script writes the site to a folder and to a zip file. The
-contents of the folder and of the zip file are the same.
+The result is one HTML file that contains all the pages, the styles, the
+images and a search. It needs no other file and no internet, so a
+browser can open it from the disk, also from a sandbox (Flatpak, Snap).
 
 The steps are:
 
@@ -19,23 +19,30 @@ The steps are:
    temporary folder.
 2. Make the navigation from the folders.
 3. Run "mkdocs build --strict". A broken link stops the build.
-4. Write the site folder and the zip file.
+4. Join the pages of the site, with the files of template/, into one
+   HTML file.
 
 Usage: python build_docs.py
 """
 
 from __future__ import annotations
 
+import base64
+import json
+import mimetypes
+import posixpath
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import tomllib
-import zipfile
-from pathlib import Path
+from html import escape
+from pathlib import Path, PurePosixPath
+from urllib.parse import unquote
 
 import yaml
+from bs4 import BeautifulSoup, Tag
 
 # --------------------------------------------------------------------------- #
 # Configuration
@@ -50,8 +57,20 @@ REPO = HERE.parent.parent
 # The directory of the skraft project. It contains pyproject.toml.
 CLIENT_DIR = REPO / "api" / "python"
 
-# The directory for the site folder and the zip file. Git ignores it.
+# The directory for the HTML file. Git ignores it.
 OUTPUT_DIR = CLIENT_DIR / "dist"
+
+# The folder of the template of the HTML file: page.html, page.css and
+# page.js.
+TEMPLATE_DIR = HERE / "template"
+
+# The stylesheets of the site that the HTML file contains, relative to
+# the site folder.
+THEME_CSS = (
+    "assets/stylesheets/main.*.min.css",
+    "assets/stylesheets/palette.*.min.css",
+    "assets/_mkdocstrings.css",
+)
 
 # Folders that do not contain documentation.
 EXCLUDED_DIRS = {".git", ".github", ".venv", "venv", "build", "dist"}
@@ -86,6 +105,17 @@ SECTION_TITLES = {"docs": "Guides", "api": "API reference"}
 # A relative link in Markdown, ](target), or in HTML, src="target" or
 # href="target". The anchor (#...) is not a part of the target.
 LINK = re.compile(r'(\]\(|src="|href=")([^)"#\s]+)')
+
+# A link to another web site: with a scheme (https:, mailto:, data:) or
+# with a host (//host/path).
+EXTERNAL = re.compile(r"^([a-z][a-z0-9+.-]*:|//)", re.IGNORECASE)
+
+# The link from a stylesheet to its source map. The HTML file has no
+# source maps.
+SOURCE_MAP = re.compile(r"/\*# sourceMappingURL=[^*]*\*/")
+
+# A {{name}} in the template.
+PLACEHOLDER = re.compile(r"\{\{(\w+)\}\}")
 
 
 # --------------------------------------------------------------------------- #
@@ -281,7 +311,7 @@ def make_nav(pages: list[Path], folder: Path = Path(".")) -> list[object]:
 
 
 # --------------------------------------------------------------------------- #
-# Steps 3 and 4: build the site, and write the folder and the zip file
+# Step 3: build the site
 # --------------------------------------------------------------------------- #
 
 def build_site(work: Path, nav: list[object]) -> Path:
@@ -317,49 +347,338 @@ def build_site(work: Path, nav: list[object]) -> Path:
     return work / "site"
 
 
+# --------------------------------------------------------------------------- #
+# Step 4: join the pages into one HTML file
+# --------------------------------------------------------------------------- #
+
+def md_to_html(page: str) -> str:
+    """
+    Get the name of the HTML page that mkdocs makes from a Markdown page.
+
+    Parameters:
+        page (str): The Markdown page, relative to the docs folder.
+
+    Returns:
+        str: The HTML page, relative to the site folder.
+    """
+    path = PurePosixPath(page)
+    stem = "index" if path.name in ("README.md", "index.md") else path.stem
+    return str(path.with_name(stem + ".html"))
+
+
+def data_uri(path: Path) -> str:
+    """
+    Get a data: address that contains a file.
+
+    Parameters:
+        path (Path): The file.
+
+    Returns:
+        str: The address.
+    """
+    media_type = mimetypes.guess_type(path.name)[0]
+    if path.suffix == ".svg":
+        media_type = "image/svg+xml"
+    data = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"data:{media_type or 'application/octet-stream'};base64,{data}"
+
+
+def plain_text(html: str) -> str:
+    """
+    Get the text of an HTML fragment, without the tags.
+
+    Parameters:
+        html (str): The HTML fragment.
+
+    Returns:
+        str: The text, with single spaces between the words.
+    """
+    text = BeautifulSoup(html, "html.parser").get_text(" ")
+    return " ".join(text.split())
+
+
+class SiteJoiner:
+    """
+    Join the pages of a built site into one HTML file.
+
+    Each page becomes a <section> of the file. The id of the section comes
+    from the address of the page, for example "get_started-index" for
+    get_started/index.html. The ids in a page get the id of the page as a
+    prefix ("get_started-index--quick-start"), because two pages can have
+    the same id. The links change to these ids. The images become data:
+    addresses. A file that a page links to and that is not a page, for
+    example a VHDL source, becomes a section that shows its text.
+
+    Parameters:
+        site (Path): The folder of the built site.
+        nav (list[object]): The navigation, in the format of the "nav"
+            setting of mkdocs.
+    """
+
+    def __init__(self, site: Path, nav: list[object]) -> None:
+        self.site = site
+        self.nav = nav
+        self.pages = {
+            path.relative_to(site).as_posix(): ""
+            for path in sorted(site.rglob("*.html"))
+            if path.relative_to(site).as_posix() != "404.html"
+        }
+        for url in self.pages:
+            self.pages[url] = url.removesuffix(".html").replace("/", "-")
+        self.titles: dict[str, str] = {}
+        self.sources: dict[str, str] = {}
+
+    def source_id(self, url: str) -> str:
+        """Get the section id of a file that is not a page."""
+        if url not in self.sources:
+            self.sources[url] = "file-" + url.replace("/", "-")
+        return self.sources[url]
+
+    def resolve(self, base: str, href: str) -> str | None:
+        """
+        Get the new target of a link.
+
+        Parameters:
+            base (str): The page that contains the link, relative to the
+                site folder.
+            href (str): The target of the link.
+
+        Returns:
+            str | None: The new target, or None if the link does not
+                change: it goes to another web site, or to a file that
+                does not exist.
+        """
+        if EXTERNAL.match(href):
+            return None
+        path, _, anchor = href.partition("#")
+        url = base
+        if path:
+            url = posixpath.normpath(
+                posixpath.join(posixpath.dirname(base), unquote(path)))
+        if url in self.pages:
+            page = self.pages[url]
+            return f"#{page}--{anchor}" if anchor else f"#{page}"
+        if (self.site / url).is_file():
+            return "#" + self.source_id(url)
+        print(f"Warning: {base}: no target for the link {href}",
+              file=sys.stderr)
+        return None
+
+    def page_section(self, url: str) -> str:
+        """
+        Get the section of a page.
+
+        Parameters:
+            url (str): The page, relative to the site folder.
+
+        Returns:
+            str: The HTML of the section.
+
+        Raises:
+            RuntimeError: If the page has no content.
+        """
+        page = self.pages[url]
+        soup = BeautifulSoup((self.site / url).read_text(encoding="utf-8"),
+                             "html.parser")
+        article = soup.find("article")
+        if not isinstance(article, Tag):
+            raise RuntimeError(f"{url} has no <article> element")
+
+        for tag in article.find_all(id=True):
+            tag["id"] = f"{page}--{tag['id']}"
+        for tag in article.find_all("a", href=True):
+            target = self.resolve(url, str(tag["href"]))
+            if target is not None:
+                tag["href"] = target
+        for tag in article.find_all("img", src=True):
+            src = str(tag["src"])
+            path = posixpath.normpath(
+                posixpath.join(posixpath.dirname(url), unquote(src)))
+            if not EXTERNAL.match(src) and (self.site / path).is_file():
+                tag["src"] = data_uri(self.site / path)
+
+        heading = article.find("h1")
+        title = heading.get_text().rstrip("¶").strip() if heading else ""
+        self.titles[page] = title or url
+        return (f'<section class="sk-page" id="{page}" '
+                f'data-title="{escape(self.titles[page])}">\n'
+                f'<div class="md-typeset">\n{article.decode_contents()}\n'
+                "</div>\n</section>")
+
+    def source_section(self, url: str) -> tuple[str, str]:
+        """
+        Get the section of a file that is not a page.
+
+        A text file shows its text. An image shows the image. Another file
+        has a link that saves it.
+
+        Parameters:
+            url (str): The file, relative to the site folder.
+
+        Returns:
+            tuple[str, str]: The HTML of the section, and the text of the
+                file for the search ("" if it is not text).
+        """
+        path = self.site / url
+        text = ""
+        name = escape(path.name)
+        media_type = mimetypes.guess_type(path.name)[0] or ""
+        if path.suffix == ".svg" or media_type.startswith("image/"):
+            body = f'<p><img src="{data_uri(path)}" alt="{name}"></p>'
+        else:
+            try:
+                text = path.read_text(encoding="utf-8")
+                body = f"<pre><code>{escape(text)}</code></pre>"
+            except UnicodeDecodeError:
+                body = (f'<p><a href="{data_uri(path)}" '
+                        f'download="{name}">Save the file</a></p>')
+        section = (f'<section class="sk-page" id="{self.sources[url]}" '
+                   f'data-title="{name}">\n'
+                   f'<div class="md-typeset">\n<h1>{name}</h1>\n'
+                   f'<p class="sk-source-path">{escape(url)}</p>\n{body}\n'
+                   "</div>\n</section>")
+        return section, text
+
+    def nav_html(self, items: list[object]) -> str:
+        """
+        Get the HTML of the navigation.
+
+        Parameters:
+            items (list[object]): The items of a level of the navigation.
+
+        Returns:
+            str: The HTML list.
+        """
+        lines = ["<ul>"]
+        for item in items:
+            if isinstance(item, str):
+                page = self.pages[md_to_html(item)]
+                lines.append(f'<li><a href="#{page}">'
+                             f"{escape(self.titles[page])}</a></li>")
+            elif isinstance(item, dict):
+                for title, children in item.items():
+                    lines.append(f"<li><details><summary>{escape(title)}"
+                                 f"</summary>{self.nav_html(children)}"
+                                 "</details></li>")
+        lines.append("</ul>")
+        return "\n".join(lines)
+
+    def search_index(self, source_texts: dict[str, str]) -> str:
+        """
+        Get the search index, as JSON for a <script> element.
+
+        Parameters:
+            source_texts (dict[str, str]): The text of each file that is
+                not a page, by section id.
+
+        Returns:
+            str: A JSON list of [target id, title, page title, text].
+        """
+        with (self.site / "search" / "search_index.json").open(
+                encoding="utf-8") as f:
+            docs = json.load(f)["docs"]
+        index = []
+        for doc in docs:
+            location = doc["location"] or "index.html"
+            target = self.resolve("index.html", location)
+            if target is None:
+                continue
+            page = target[1:].split("--")[0]
+            index.append([target[1:], plain_text(doc["title"]),
+                          self.titles.get(page, ""), plain_text(doc["text"])])
+        for url, section in self.sources.items():
+            index.append([section, PurePosixPath(url).name, url,
+                          " ".join(source_texts[section].split())])
+        # "</" would end the <script> element.
+        return json.dumps(index, ensure_ascii=False).replace("</", "<\\/")
+
+    def theme_css(self) -> str:
+        """Get the stylesheets of the theme, without the source map links."""
+        parts = []
+        for pattern in THEME_CSS:
+            for path in sorted(self.site.glob(pattern)):
+                parts.append(path.read_text(encoding="utf-8"))
+        return SOURCE_MAP.sub("", "\n".join(parts))
+
+    def join(self) -> str:
+        """
+        Join the pages.
+
+        Returns:
+            str: The HTML file.
+        """
+        nav_order = []
+        stack = list(reversed(self.nav))
+        while stack:
+            item = stack.pop()
+            if isinstance(item, str):
+                nav_order.append(md_to_html(item))
+            elif isinstance(item, dict):
+                for children in reversed(list(item.values())):
+                    stack.extend(reversed(children))
+        order = nav_order + [url for url in self.pages if url not in nav_order]
+        sections = [self.page_section(url) for url in order]
+
+        source_texts = {}
+        for url in list(self.sources):
+            section, text = self.source_section(url)
+            sections.append(section)
+            source_texts[self.sources[url]] = text
+
+        values = {
+            "site_name": escape(site_name()),
+            "version": escape(client_version()),
+            "home_id": self.pages["index.html"],
+            "theme_css": self.theme_css(),
+            "page_css": (TEMPLATE_DIR / "page.css").read_text("utf-8"),
+            "page_js": (TEMPLATE_DIR / "page.js").read_text("utf-8"),
+            "nav": self.nav_html(self.nav),
+            "pages": "\n".join(sections),
+            "search_index": self.search_index(source_texts),
+        }
+        template = (TEMPLATE_DIR / "page.html").read_text(encoding="utf-8")
+        return PLACEHOLDER.sub(lambda m: values[m.group(1)], template)
+
+
+def site_name() -> str:
+    """Get the name of the documentation from mkdocs.yml."""
+    with (HERE / "mkdocs.yml").open(encoding="utf-8") as f:
+        return str(yaml.safe_load(f)["site_name"])
+
+
 def client_version() -> str:
     """Get the version of the client from its pyproject.toml."""
     with (CLIENT_DIR / "pyproject.toml").open("rb") as f:
         return str(tomllib.load(f)["project"]["version"])
 
 
-def write_output(site: Path) -> tuple[Path, Path]:
+def write_output(html: str) -> Path:
     """
-    Write the site to the output folder and to a zip file.
+    Write the HTML file to the output folder.
 
-    The script adds an empty .nojekyll file. It tells GitHub Pages to
-    publish the files as they are. It also adds the files of the launcher
-    folder: a README.txt and a script that serves the site on this
-    computer, for browsers that cannot open the site from the disk.
+    The script writes a temporary file first, so that a failed write
+    does not leave a part of the file.
 
     Parameters:
-        site (Path): The folder of the built site.
+        html (str): The HTML file.
 
     Returns:
-        tuple[Path, Path]: The site folder and the zip file.
+        Path: The file.
     """
-    (site / ".nojekyll").touch()
-    shutil.copytree(HERE / "launcher", site, dirs_exist_ok=True)
-
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    folder = OUTPUT_DIR / "docs"
-    shutil.rmtree(folder, ignore_errors=True)
-    shutil.copytree(site, folder)
-
-    archive = OUTPUT_DIR / f"skraft-docs-{client_version()}.zip"
-    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zf:
-        for path in sorted(site.rglob("*")):
-            if path.is_file():
-                zf.write(path, path.relative_to(site).as_posix())
-    return folder, archive
+    output = OUTPUT_DIR / f"skraft-docs-{client_version()}.html"
+    temporary = output.with_suffix(".html.tmp")
+    temporary.write_text(html, encoding="utf-8")
+    temporary.replace(output)
+    return output
 
 
 def main() -> int:
     """
-    Build the documentation site.
+    Build the documentation file.
 
     Returns:
-        int: The exit code. 0 if the site was built.
+        int: The exit code. 0 if the file was built.
     """
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
@@ -374,17 +693,17 @@ def main() -> int:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(fix_links(page, text, docs), encoding="utf-8")
         write_api_page(docs)
-        shutil.copytree(HERE / "vendor", docs / "vendor")
 
+        nav = make_nav(pages)
         try:
-            site = build_site(work, make_nav(pages))
+            site = build_site(work, nav)
+            html = SiteJoiner(site, nav).join()
         except RuntimeError as e:
             print(f"Cannot build the documentation: {e}", file=sys.stderr)
             return 1
-        folder, archive = write_output(site)
+        output = write_output(html)
 
-    print(f"Site:     {folder / 'index.html'}")
-    print(f"Zip file: {archive}")
+    print(f"Documentation: {output}")
     return 0
 
 

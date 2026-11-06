@@ -1,0 +1,49 @@
+<!doctype html>
+<!--
+  The template of the documentation file. build_docs.py replaces each
+  name in double braces with its value. The file needs no other file and
+  no internet.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="SK-RAFT build_docs.py">
+<title>{{site_name}}</title>
+<script>document.documentElement.classList.add("js");</script>
+<style>
+{{theme_css}}
+</style>
+<style>
+{{page_css}}
+</style>
+</head>
+<body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+<header class="sk-header">
+  <button class="sk-menu" type="button" aria-label="Show the navigation" aria-controls="sk-nav" aria-expanded="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+  </button>
+  <a class="sk-title" href="#{{home_id}}">{{site_name}}</a>
+  <span class="sk-version">{{version}}</span>
+  <div class="sk-search" role="search">
+    <input id="sk-query" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-label="Search the documentation" aria-controls="sk-results">
+    <div id="sk-results" class="sk-results" hidden></div>
+  </div>
+  <button class="sk-theme" type="button" aria-label="Change the colour theme" title="Change the colour theme">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18V4a8 8 0 0 1 0 16z"/></svg>
+  </button>
+</header>
+<div class="sk-body">
+  <nav id="sk-nav" class="sk-nav" aria-label="Navigation">
+{{nav}}
+  </nav>
+  <main class="sk-main">
+{{pages}}
+  </main>
+</div>
+<script id="sk-index" type="application/json">{{search_index}}</script>
+<script>
+{{page_js}}
+</script>
+</body>
+</html>
