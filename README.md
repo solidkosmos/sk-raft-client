@@ -104,7 +104,8 @@ sk-raft-client/
 ├── application_examples/                 Example designs and scripts for specific use cases
 ├── auxiliary_components/                 Reusable BSCAN registers, safe clock, BRAM hold pass
 ├── docs/                                 Concepts and reference documents
-└── get_started/                          Example designs and scripts
+├── get_started/                          Example designs and scripts
+└── tools/                                Documentation builder and offline bundle
 ```
 
 ## Installation
@@ -136,6 +137,18 @@ python tools/offline_bundle/make_bundle.py --target linux-x86_64 --target window
 You can also run `tools/offline_bundle/bundler.sh` on Linux or `tools\offline_bundle\bundler.bat` on Windows. Without options, these scripts make a bundle for `linux-x86_64` and `windows-amd64`. They give other options to `make_bundle.py`, and they find a Python with pip for you.
 
 The script writes an archive to `api/python/dist`. Copy the archive to the computer without internet access and extract it. Then run `./install.sh` on Linux or `install.bat` on Windows. The installer does not use the network. It installs the client and `pyserial`, which some examples use, into the active virtual environment, or else into `.venv` in the current directory. For more options, run `python install.py --help`.
+
+## Documentation
+
+To read all the documents of this repository, and the API reference of the client, in a web browser, build the documentation:
+
+```bash
+tools/docs/build_docs.sh         # tools\docs\build_docs.bat on Windows
+```
+
+The script writes one HTML file, `api/python/dist/skraft-docs-<version>.html`. The file contains all the pages, the images and a search. It needs no other file and no internet. Open it in a web browser, or send it to another person.
+
+On the first run, the script creates a virtual environment in `tools/docs/.venv` and installs the packages of `tools/docs/requirements-docs.txt`. This needs internet access and Python 3.11 or later.
 
 ## Report a problem
 
