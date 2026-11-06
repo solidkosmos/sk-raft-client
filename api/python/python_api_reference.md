@@ -215,6 +215,22 @@ Uses the FpgaReadBackRange RPC.
 - `FrameAddressError` - If the start address comes after the end
   address, or if the server could not read the frames.
 
+<a id="skraft.skraft_fpga.FpgaDevice.configure_jtag_frequency"></a>
+
+#### configure\_jtag\_frequency
+
+```python
+def configure_jtag_frequency(frequency: JtagFrequency) -> None
+```
+
+Configure the frequency of the JTAG interface.
+
+Uses the FpgaConfigureFrequency RPC.
+
+**Raises**
+
+- `JtagError` - if the device fails to configure the jtag frequency. 
+
 <a id="skraft.skraft_fpga.FpgaDevice.shutdown"></a>
 
 #### shutdown

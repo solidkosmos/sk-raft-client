@@ -1,7 +1,5 @@
 <img alt="SK-RAFT by SolidKosmos" src="docs/images/sk-raft-logo-light-bg.svg">
 
-**Getting-started examples for SK-RAFT.** 
-
 SK-RAFT is an EDA software tool for fault injection in AMD-Xilinx FPGAs. It emulates single-event upsets (SEUs).
 
 This repository contains open-source getting-started examples for the SK-RAFT server. The SK-RAFT server is proprietary SolidKosmos software and requires a valid trial or commercial licence.
@@ -74,7 +72,20 @@ Before you inject into the application memory (flip-flops, LUTRAM, BRAM), read t
    The server is ready when it prints:
 
    ```
-   SK-RAFT grpcServer listening | addr=[::]:50051 tls=false client-key=false
+    ================================================================
+    SK-RAFT - Reliability Assessment Fault-emulation Toolkit
+    Server 1.x.x (build ef71872, 2026-11-06T13:03:58Z)
+    Copyright (c) 2026 SolidKosmos. All rights reserved.
+    Use is subject to the SK-RAFT End User License Agreement.
+    ----------------------------------------------------------------
+    SK-RAFT licence: FULL (Dinkey dongle XXXXXXXXXX)
+      Features: application memory injections, pblock injections
+    ----------------------------------------------------------------
+    Host       windows/amd64, go1.27.3, PID XXXXX
+    Log file   C:\path\to\skraft.log
+    Designs    C:\path\to\designs
+    Listening  [::]:50051, TLS false, client key false
+    ================================================================
    ```
 
    Keep the server running while you use it. The server serves one client at a time. Another client that connects in the meantime gets the error `the server serves only one client and another client is connected`.

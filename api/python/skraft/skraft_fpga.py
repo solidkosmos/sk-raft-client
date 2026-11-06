@@ -992,7 +992,7 @@ class FpgaDevice:
                 f"failed to configure the seed {seed}: {_rpc_detail(e)}"
             ) from e
 
-    def configure_frequency(self, frequency: JtagFrequency) -> None:
+    def configure_jtag_frequency(self, frequency: JtagFrequency) -> None:
         """
         Set the JTAG clock (TCK) frequency of the FTDI that accesses the
         device.
@@ -1011,8 +1011,8 @@ class FpgaDevice:
             JtagError: If the server could not set the frequency.
 
         Examples:
-            >>> dev.configure_frequency(JTAG_10_MHZ)
-            >>> dev.configure_frequency(
+            >>> dev.configure_jtag_frequency(JTAG_10_MHZ)
+            >>> dev.configure_jtag_frequency(
             ...     JtagFrequency(750, FrequencyUnit.KHZ)
             ... )
         """
