@@ -97,6 +97,11 @@ service SKRaftFpga {
     rpc FpgaXadcReadRegister(FpgaXadcReadRegisterRequest) returns (FpgaXadcRegisterContent) {}
     rpc FpgaXadcWriteRegister(FpgaXadcWriteRegisterRequest) returns (google.protobuf.Empty) {}
 
+    // JTAG clock (TCK) frequency of the FTDI, from 460 kHz up to 15 MHz.
+    rpc FpgaConfigureFrequency(FpgaFrequencyOptions) returns (google.protobuf.Empty) {}
+    // Latency timer of the FTDI, in milliseconds.
+    rpc FpgaConfigureLatency(FpgaLatencyOptions) returns (google.protobuf.Empty) {}
+
     rpc Version(google.protobuf.Empty) returns (VersionDetails) {}
 }
 
@@ -415,6 +420,24 @@ message FpgaXadcWriteRegisterRequest {
 
 message FpgaXadcRegisterContent {
     uint32 value = 1; // 16-bit content of the control register
+}
+
+// ---------------------------------------------------------------------------
+// JTAG
+// ---------------------------------------------------------------------------
+
+enum FpgaFrequencyUnit {
+    FPGA_FREQUENCY_UNIT_MHZ = 0;
+    FPGA_FREQUENCY_UNIT_KHZ = 1;
+}
+
+message FpgaFrequencyOptions {
+    uint32 frequency       = 1; // TCK frequency, from 460 kHz up to 15 MHz
+    FpgaFrequencyUnit unit = 2; // unit of the frequency, MHz by default
+}
+
+message FpgaLatencyOptions {
+    uint32 latency_ms = 1; // latency timer of the FTDI, up to 255 ms
 }
 
 // ---------------------------------------------------------------------------

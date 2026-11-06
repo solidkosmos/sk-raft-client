@@ -37,6 +37,7 @@ from .datatypes import (
     FpgaScrubWordSummary,
     FpgaWord,
     FpgaFiWordSummary,
+    JtagFrequency,
     TargetMemory,
     ScrubbingType,
     ReadbackOption,
@@ -53,6 +54,7 @@ from .exceptions import (
     DesignFileError,
     DeviceReservationError,
     FrameAddressError,
+    JtagError,
     XadcError,
 )
 
@@ -988,6 +990,88 @@ class FpgaDevice:
         except grpc.RpcError as e:
             raise ConnectionFailedError(
                 f"failed to configure the seed {seed}: {_rpc_detail(e)}"
+            ) from e
+
+    def configure_frequency(self, frequency: JtagFrequency) -> None:
+        """
+        Set the JTAG clock (TCK) frequency of the FTDI that accesses the
+        device.
+
+        The frequency is from 460 kHz to 15 MHz. The FTDI makes only the
+        frequencies 30 MHz / n, for an integer n. Thus, use one of the
+        JTAG_* constants, for example JTAG_10_MHZ, to get the frequency
+        without change. See JtagFrequency. Uses the FpgaConfigureFrequency
+        RPC.
+
+        Parameters:
+            frequency (JtagFrequency): The TCK frequency.
+
+        Raises:
+            TypeError: If the frequency is not a JtagFrequency.
+            JtagError: If the server could not set the frequency.
+
+        Examples:
+            >>> dev.configure_frequency(JTAG_10_MHZ)
+            >>> dev.configure_frequency(
+            ...     JtagFrequency(750, FrequencyUnit.KHZ)
+            ... )
+        """
+        if not isinstance(frequency, JtagFrequency):
+            raise TypeError(
+                f"expected a JtagFrequency, got {type(frequency).__name__}"
+            )
+
+        try:
+            request = skraft_client_pb2.FpgaFrequencyOptions(
+                frequency=frequency.value, unit=frequency.unit,
+            )
+            self._stub.FpgaConfigureFrequency(request)
+        except grpc.RpcError as e:
+            raise JtagError(
+                f"failed to configure the TCK frequency {frequency}: "
+                f"{_rpc_detail(e)}"
+            ) from e
+
+    def configure_latency(self, latency_ms: int) -> None:
+        """
+        Set the latency timer of the FTDI that accesses the device.
+
+        The FTDI sends the data that it holds to the host when the latency
+        timer expires, if its buffer is not full. Uses the
+        FpgaConfigureLatency RPC.
+
+        Parameters:
+            latency_ms (int): The latency, in milliseconds (ms), from 0 to
+                255. The FTDI driver can refuse low values.
+
+        Raises:
+            TypeError: If the latency is not an integer.
+            ValueError: If the latency does not fit in 8 bits.
+            JtagError: If the server could not set the latency.
+
+        Examples:
+            >>> dev.configure_latency(2)
+        """
+        if not isinstance(latency_ms, int) or isinstance(latency_ms, bool):
+            raise TypeError(
+                f"expected the latency as int, got "
+                f"{type(latency_ms).__name__}"
+            )
+        # The FTDI keeps the latency in an 8-bit register.
+        if not 0 <= latency_ms <= 0xFF:
+            raise ValueError(
+                f"the latency must be from 0 to {0xFF} ms, got {latency_ms}"
+            )
+
+        try:
+            request = skraft_client_pb2.FpgaLatencyOptions(
+                latency_ms=latency_ms,
+            )
+            self._stub.FpgaConfigureLatency(request)
+        except grpc.RpcError as e:
+            raise JtagError(
+                f"failed to configure the latency {latency_ms} ms: "
+                f"{_rpc_detail(e)}"
             ) from e
 
     def inject_random(

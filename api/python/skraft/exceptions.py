@@ -40,3 +40,6 @@ class BscanError(SkraftError):
 class XadcError(SkraftError):
     """The read of an XADC sensor failed."""
 
+
+class JtagError(SkraftError):
+    """The configuration of the JTAG programmer (FTDI) failed."""

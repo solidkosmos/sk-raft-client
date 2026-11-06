@@ -34,6 +34,11 @@ class FpgaBitCategory(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     FPGA_BIT_CATEGORY_PBLOCK: _ClassVar[FpgaBitCategory]
     FPGA_BIT_CATEGORY_ESSENTIAL_PBLOCK: _ClassVar[FpgaBitCategory]
 
+class FpgaFrequencyUnit(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    FPGA_FREQUENCY_UNIT_MHZ: _ClassVar[FpgaFrequencyUnit]
+    FPGA_FREQUENCY_UNIT_KHZ: _ClassVar[FpgaFrequencyUnit]
+
 class FpgaTargetKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     FPGA_TARGET_KIND_UNSPECIFIED: _ClassVar[FpgaTargetKind]
@@ -63,6 +68,8 @@ FPGA_BIT_CATEGORY_FLIP_FLOP: FpgaBitCategory
 FPGA_BIT_CATEGORY_LUTRAM: FpgaBitCategory
 FPGA_BIT_CATEGORY_PBLOCK: FpgaBitCategory
 FPGA_BIT_CATEGORY_ESSENTIAL_PBLOCK: FpgaBitCategory
+FPGA_FREQUENCY_UNIT_MHZ: FpgaFrequencyUnit
+FPGA_FREQUENCY_UNIT_KHZ: FpgaFrequencyUnit
 FPGA_TARGET_KIND_UNSPECIFIED: FpgaTargetKind
 FPGA_TARGET_KIND_CRAM: FpgaTargetKind
 FPGA_TARGET_KIND_FLIP_FLOP: FpgaTargetKind
@@ -465,6 +472,20 @@ class FpgaXadcRegisterContent(_message.Message):
     VALUE_FIELD_NUMBER: _ClassVar[int]
     value: int
     def __init__(self, value: _Optional[int] = ...) -> None: ...
+
+class FpgaFrequencyOptions(_message.Message):
+    __slots__ = ("frequency", "unit")
+    FREQUENCY_FIELD_NUMBER: _ClassVar[int]
+    UNIT_FIELD_NUMBER: _ClassVar[int]
+    frequency: int
+    unit: FpgaFrequencyUnit
+    def __init__(self, frequency: _Optional[int] = ..., unit: _Optional[_Union[FpgaFrequencyUnit, str]] = ...) -> None: ...
+
+class FpgaLatencyOptions(_message.Message):
+    __slots__ = ("latency_ms",)
+    LATENCY_MS_FIELD_NUMBER: _ClassVar[int]
+    latency_ms: int
+    def __init__(self, latency_ms: _Optional[int] = ...) -> None: ...
 
 class FpgaInjectionTarget(_message.Message):
     __slots__ = ("frame_address", "word_index", "bit_index", "kind", "net_name")

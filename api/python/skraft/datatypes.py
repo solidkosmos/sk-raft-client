@@ -1591,3 +1591,106 @@ class XadcRegister(int, Enum):
     ALARM14 = 0x5E
     ALARM15 = 0x5F
 
+
+
+# --------------------------------------------------------------------------- #
+# JTAG
+# --------------------------------------------------------------------------- #
+class FrequencyUnit(int, Enum):
+    """
+    The unit of a JTAG clock (TCK) frequency, for JtagFrequency.
+
+    The values match the frequency units that the server understands.
+
+    Attributes:
+        MHZ (FrequencyUnit): Megahertz (MHz).
+        KHZ (FrequencyUnit): Kilohertz (kHz).
+    """
+
+    MHZ = skraft_client_pb2.FPGA_FREQUENCY_UNIT_MHZ
+    KHZ = skraft_client_pb2.FPGA_FREQUENCY_UNIT_KHZ
+
+
+# The lowest and the highest JTAG clock (TCK) frequency of the FTDI, in kHz.
+_JTAG_MIN_FREQUENCY_KHZ = 460
+_JTAG_MAX_FREQUENCY_KHZ = 15000
+
+# The kHz in one MHz.
+_KHZ_PER_MHZ = 1000
+
+
+@dataclass(frozen=True)
+class JtagFrequency:
+    """
+    A JTAG clock (TCK) frequency of the FTDI, for
+    FpgaDevice.configure_frequency.
+
+    The frequency is from 460 kHz to 15 MHz. The FTDI divides its 30 MHz
+    clock by an integer n, from 2 to 65. Thus, it makes only the
+    frequencies 30 MHz / n. For a different value, the FTDI uses the next
+    higher of these frequencies. For example, 7 MHz gives 7.5 MHz and
+    4 MHz gives 4.29 MHz. The library defines a constant for each frequency
+    that the FTDI makes without change, for example JTAG_15_MHZ or
+    JTAG_500_KHZ.
+
+    Attributes:
+        value (int): The frequency, in the unit.
+        unit (FrequencyUnit): The unit of the frequency. The default is
+            FrequencyUnit.MHZ.
+    """
+
+    value: int
+    unit: FrequencyUnit = FrequencyUnit.MHZ
+
+    def __post_init__(self) -> None:
+        """
+        Check the frequency.
+
+        Raises:
+            TypeError: If the value is not an int, or if the unit is not a
+                FrequencyUnit.
+            ValueError: If the frequency is not from 460 kHz to 15 MHz.
+        """
+        if not isinstance(self.value, int) or isinstance(self.value, bool):
+            raise TypeError(
+                f"expected the frequency as int, got "
+                f"{type(self.value).__name__}"
+            )
+        if not isinstance(self.unit, FrequencyUnit):
+            raise TypeError(
+                f"expected the unit as FrequencyUnit, got "
+                f"{type(self.unit).__name__}"
+            )
+        if not (_JTAG_MIN_FREQUENCY_KHZ <= self.kilohertz
+                <= _JTAG_MAX_FREQUENCY_KHZ):
+            raise ValueError(
+                f"the TCK frequency must be from {_JTAG_MIN_FREQUENCY_KHZ} "
+                f"kHz to {_JTAG_MAX_FREQUENCY_KHZ // _KHZ_PER_MHZ} MHz, got "
+                f"{self}"
+            )
+
+    @property
+    def kilohertz(self) -> int:
+        """The frequency, in kHz."""
+        if self.unit == FrequencyUnit.MHZ:
+            return self.value * _KHZ_PER_MHZ
+        return self.value
+
+    def __str__(self) -> str:
+        """Return the frequency with its unit, for example "15 MHz"."""
+        if self.unit == FrequencyUnit.MHZ:
+            return f"{self.value} MHz"
+        return f"{self.value} kHz"
+
+
+# The JTAG clock (TCK) frequencies that the FTDI makes without change: its
+# 30 MHz clock divided by an integer.
+JTAG_15_MHZ = JtagFrequency(15)
+JTAG_10_MHZ = JtagFrequency(10)
+JTAG_7_5_MHZ = JtagFrequency(7500, FrequencyUnit.KHZ)
+JTAG_6_MHZ = JtagFrequency(6)
+JTAG_5_MHZ = JtagFrequency(5)
+JTAG_3_MHZ = JtagFrequency(3)
+JTAG_2_MHZ = JtagFrequency(2)
+JTAG_1_MHZ = JtagFrequency(1)
+JTAG_500_KHZ = JtagFrequency(500, FrequencyUnit.KHZ)

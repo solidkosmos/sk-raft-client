@@ -242,6 +242,16 @@ class SKRaftFpgaStub(object):
                 request_serializer=skraft__client__pb2.FpgaXadcWriteRegisterRequest.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 _registered_method=True)
+        self.FpgaConfigureFrequency = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaConfigureFrequency',
+                request_serializer=skraft__client__pb2.FpgaFrequencyOptions.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
+        self.FpgaConfigureLatency = channel.unary_unary(
+                '/proto.SKRaftFpga/FpgaConfigureLatency',
+                request_serializer=skraft__client__pb2.FpgaLatencyOptions.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
         self.Version = channel.unary_unary(
                 '/proto.SKRaftFpga/Version',
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
@@ -527,6 +537,20 @@ class SKRaftFpgaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def FpgaConfigureFrequency(self, request, context):
+        """JTAG clock (TCK) frequency of the FTDI, from 460 kHz up to 15 MHz.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FpgaConfigureLatency(self, request, context):
+        """Latency timer of the FTDI, in milliseconds.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def Version(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -739,6 +763,16 @@ def add_SKRaftFpgaServicer_to_server(servicer, server):
             'FpgaXadcWriteRegister': grpc.unary_unary_rpc_method_handler(
                     servicer.FpgaXadcWriteRegister,
                     request_deserializer=skraft__client__pb2.FpgaXadcWriteRegisterRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'FpgaConfigureFrequency': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaConfigureFrequency,
+                    request_deserializer=skraft__client__pb2.FpgaFrequencyOptions.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'FpgaConfigureLatency': grpc.unary_unary_rpc_method_handler(
+                    servicer.FpgaConfigureLatency,
+                    request_deserializer=skraft__client__pb2.FpgaLatencyOptions.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
             'Version': grpc.unary_unary_rpc_method_handler(
@@ -1855,6 +1889,60 @@ class SKRaftFpga(object):
             target,
             '/proto.SKRaftFpga/FpgaXadcWriteRegister',
             skraft__client__pb2.FpgaXadcWriteRegisterRequest.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaConfigureFrequency(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaConfigureFrequency',
+            skraft__client__pb2.FpgaFrequencyOptions.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FpgaConfigureLatency(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/proto.SKRaftFpga/FpgaConfigureLatency',
+            skraft__client__pb2.FpgaLatencyOptions.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,
             channel_credentials,
