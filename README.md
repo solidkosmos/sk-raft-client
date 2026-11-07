@@ -149,6 +149,19 @@ You can also run `tools/offline_bundle/bundler.sh` on Linux or `tools\offline_bu
 
 The script writes an archive to `api/python/dist`. Copy the archive to the computer without internet access and extract it. Then run `./install.sh` on Linux or `install.bat` on Windows. The installer does not use the network. It installs the client and `pyserial`, which some examples use, into the active virtual environment, or else into `.venv` in the current directory. For more options, run `python install.py --help`.
 
+## Compatibility
+
+The client and the SK-RAFT server have separate versions. The table gives the server versions that the current client supports:
+
+| Client (`skraft`) | Supported SK-RAFT server versions |
+| --- | --- |
+| 1.0.0 | 1.0.0 |
+
+- The version of the client: `pip show skraft`.
+- The version of the server: `bin\sk-raft.bat -v`, or `client.version()` from a script.
+
+The changes of each version are in [`CHANGELOG.md`](CHANGELOG.md).
+
 ## Documentation
 
 To read all the documents of this repository, and the API reference of the client, in a web browser, build the documentation:

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2024-2026 SOLIDKOSMOS S.A.
+
 """
 Data types used by the SK-RAFT client.
 

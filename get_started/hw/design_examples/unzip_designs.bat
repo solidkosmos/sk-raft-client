@@ -1,4 +1,7 @@
 @echo off
+rem SPDX-License-Identifier: Apache-2.0
+rem Copyright (C) 2026 SOLIDKOSMOS S.A.
+rem
 rem Unpack the prebuilt design files (bitstream, EBD, LL and XDC files).
 rem The ZIP file must be in the same directory as this script.
 rem The result is basys3\<top>\ and zedboard\<top>\ in this directory.
