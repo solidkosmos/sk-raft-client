@@ -111,12 +111,11 @@ Before you inject into the application memory (flip-flops, LUTRAM, BRAM), read t
 
 ```
 sk-raft-client/
-├── api/python/                           Python client (skraft package)
+├── api/python/                           Python client (skraft package) and offline bundle
 ├── application_examples/                 Example designs and scripts for specific use cases
 ├── auxiliary_components/                 Reusable BSCAN registers, safe clock, BRAM hold pass
-├── docs/                                 Concepts and reference documents
-├── get_started/                          Example designs and scripts
-└── tools/                                Documentation builder and offline bundle
+├── docs/                                 Concepts, reference documents and documentation builder
+└── get_started/                          Example designs and scripts
 ```
 
 ## Installation
@@ -154,12 +153,12 @@ The changes of each version are in [`CHANGELOG.md`](CHANGELOG.md).
 To read all the documents of this repository, and the API reference of the client, in a web browser, build the documentation:
 
 ```bash
-tools/docs/build_docs.sh         # tools\docs\build_docs.bat on Windows
+docs/html-gen/build_docs.sh      # docs\html-gen\build_docs.bat on Windows
 ```
 
 The script writes one HTML file, `api/python/dist/skraft-docs-<version>.html`. The file contains all the pages, the images and a search. It needs no other file and no internet. Open it in a web browser, or send it to another person.
 
-On the first run, the script creates a virtual environment in `tools/docs/.venv` and installs the packages of `tools/docs/requirements-docs.txt`. This needs internet access and Python 3.11 or later.
+On the first run, the script creates a virtual environment in `docs/html-gen/.venv` and installs the packages of `docs/html-gen/requirements-docs.txt`. This needs internet access and Python 3.11 or later.
 
 ## Report a problem
 

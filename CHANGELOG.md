@@ -2,7 +2,7 @@
 
 The changes of each release of the SK-RAFT client. For the SK-RAFT server versions that the client supports, refer to [Compatibility](README.md#compatibility) in the README.
 
-## 1.0.0 (not released yet)
+## 1.0.0 (2026-11-09)
 
 The first release.
 
@@ -33,5 +33,5 @@ The first release.
 ### Documents and tools
 
 - `docs/`: concepts, general guidelines and cheat sheet.
-- `tools/docs`: builds all the documents and the API reference into one HTML file.
-- `tools/offline_bundle`: an installation bundle for computers without internet access.
+- `docs/html-gen`: builds all the documents and the API reference into one HTML file.
+- `api/python/offline_bundle`: an installation bundle for computers without internet access.

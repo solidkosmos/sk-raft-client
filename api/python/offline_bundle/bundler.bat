@@ -25,7 +25,7 @@ rem environment and deletes it at the end.
 
 setlocal EnableExtensions
 set "HERE=%~dp0"
-set "ROOT=%HERE%..\.."
+set "ROOT=%HERE%..\..\.."
 set "BUNDLER=%HERE%make_bundle.py"
 set "PY="
 set "PYARGS="

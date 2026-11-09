@@ -25,7 +25,7 @@
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
-root=$(cd "$here/../.." && pwd)
+root=$(cd "$here/../../.." && pwd)
 bundler="$here/make_bundle.py"
 
 if [ -n "${PYTHON:-}" ]; then

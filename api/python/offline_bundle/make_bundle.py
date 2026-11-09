@@ -44,7 +44,7 @@ from typing import Optional, Sequence
 _HERE = Path(__file__).resolve().parent
 
 # The directory of the skraft project. It contains pyproject.toml.
-_PROJECT_DIR = _HERE.parent.parent / "api" / "python"
+_PROJECT_DIR = _HERE.parent
 
 # The directory that contains the installer files of the bundle.
 _INSTALLER_DIR = _HERE / "installer"
