@@ -4,7 +4,7 @@ SK-RAFT is an EDA software tool for fault injection in AMD-Xilinx FPGAs. It emul
 
 This repository contains open-source getting-started examples for the SK-RAFT server. The SK-RAFT server is proprietary SolidKosmos software and requires a valid trial or commercial licence.
 
-**Get a trial licence:** contact us at [info@solidkosmos.gr](mailto:info@solidkosmos.gr) or [www.solidkosmos.gr](www.solidkosmos.gr).
+**Get a trial licence:** contact us at [info@solidkosmos.gr](mailto:info@solidkosmos.gr) or [www.solidkosmos.gr](https://www.solidkosmos.gr).
 
 ## Main functions
 
