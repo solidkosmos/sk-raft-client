@@ -48,8 +48,7 @@ SK_RAFT_SERVER_PORT = 50051
 # use the get_devices() call to find it.
 SERIAL_NUMBER = "210183BA252EA"
 
-# The design: targeted_top, the design of example 1. Its two heartbeats
-# are components, and each heartbeat drives an LED.
+# The design: bscan_adder_top, the design of example 2. 
 # The script gives two files:
 #   The bitstream (.bit): to program the device.
 #   The LL file (.ll): to find the flip-flops and the nets that they drive.
