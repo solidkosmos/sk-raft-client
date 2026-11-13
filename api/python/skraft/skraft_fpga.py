@@ -62,7 +62,7 @@ from .exceptions import (
 )
 
 
-SK_RAFT_VERSION = "1.0.0.alpha.28"
+SK_RAFT_VERSION = "1.0.0"
 
 # The size of each chunk that the client streams during a design file upload.
 _UPLOAD_CHUNK_SIZE = 1 << 20
@@ -353,7 +353,7 @@ class FpgaDevice:
                 f"failed to release device: {_rpc_detail(e)}"
             ) from e
 
-    def uploadDesignToServer(self, design: Design) -> None:
+    def upload_design_to_server(self, design: Design) -> None:
         """
         Upload the files of a design to the server.
 
@@ -527,7 +527,7 @@ class FpgaDevice:
         """
         return self._design
 
-    def programFPGA(self, design: Optional[Design] = None) -> None:
+    def program_fpga(self, design: Optional[Design] = None) -> None:
         """
         Program the device with an uploaded design.
 

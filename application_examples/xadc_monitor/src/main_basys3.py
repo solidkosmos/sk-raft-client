@@ -55,7 +55,7 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 # If you do not know the serial number of your target device,
 # use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA252EA"
+SERIAL_NUMBER = "210183BA2524A"
 
 # Set ZYNQ to True for a Zynq-7000 device (for example, the ZedBoard).
 # Then the script also reads the supplies of the Processing System (PS).

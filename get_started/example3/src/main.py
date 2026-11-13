@@ -43,7 +43,7 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 # If you do not know the serial number of your target device,
 # use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA252EA"
+SERIAL_NUMBER = "210183BA2524A"
 
 # The design for both parts: a flip-flop shift register and a LUTRAM.
 # The script gives all three files at the start:
@@ -141,8 +141,8 @@ def main() -> int:
                 # Setup the SEED for deterministic behaviour. 
                 dev.configure_seed(0)
 
-                dev.uploadDesignToServer(design)
-                dev.programFPGA(design)
+                dev.upload_design_to_server(design)
+                dev.program_fpga(design)
                 print(f"Programmed {SERIAL_NUMBER}.")
 
                 # Part 1: flip-flop shift register.
@@ -203,7 +203,7 @@ def main() -> int:
                 print(f"Part 1: done after {n} trials.")
 
                 print("Re-programming before Part 2.")
-                dev.programFPGA(design)
+                dev.program_fpga(design)
 
                 # Part 2: LUTRAM.
                 # When the script programs the FPGA again, USER1 resets to
@@ -284,7 +284,7 @@ def main() -> int:
                       f"corrupted, {corrupt_bits} bits in total.")
 
                 print("Re-programming to clear the device.")
-                dev.programFPGA(design)
+                dev.program_fpga(design)
     except SkraftError as e:
         print(f"Example 3 failed: {e}")
         return 1

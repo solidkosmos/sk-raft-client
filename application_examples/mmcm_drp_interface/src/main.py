@@ -37,7 +37,7 @@ from skraft import BscanPrimitive, Design, SkraftError, SkraftFpga
 
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-SERIAL_NUMBER = "210183BA252EA"  # use get_devices() if you do not know it
+SERIAL_NUMBER = "210183BA2524A"  # use get_devices() if you do not know it
 
 # The design file that create_project.tcl writes (default project
 # mmcm_drp_interface/ next to create_project.tcl)
@@ -197,8 +197,8 @@ def main() -> int:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
             with client.attach(SERIAL_NUMBER) as dev:
-                dev.uploadDesignToServer(design)
-                dev.programFPGA(design)
+                dev.upload_design_to_server(design)
+                dev.program_fpga(design)
                 stage("Stage 0: programmed. CLKOUT0 and CLKOUT1 at 100 MHz, "
                       "phase 0: the two LEDs blink together.")
                 input("Press Enter for stage 1...")
