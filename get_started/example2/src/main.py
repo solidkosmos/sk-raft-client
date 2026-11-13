@@ -35,7 +35,7 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 # If you do not know the serial number of your target device,
 # use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA252EA"
+SERIAL_NUMBER = "210183BA2524A"
 
 # The design for all trials: a simplex adder and a TMR adder.
 # The script gives all three files at the start:
@@ -134,8 +134,8 @@ def main() -> int:
 
                 # SK-RAFT: upload the bitstream, EBD file and XDC file.
                 # Then program the FPGA.
-                dev.uploadDesignToServer(design)
-                dev.programFPGA(design)
+                dev.upload_design_to_server(design)
+                dev.program_fpga(design)
                 print(f"Programmed {SERIAL_NUMBER}.")
                 simplex_ebits = dev.bit_count(TargetMemory.ESSENTIAL_CRAM, 
                                               pblock=PBLOCK_SIMPLEX)

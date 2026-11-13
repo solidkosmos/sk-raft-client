@@ -101,8 +101,8 @@ def main() -> int:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
             with client.attach(SERIAL_NUMBER) as dev:
-                dev.uploadDesignToServer(design)
-                dev.programFPGA(design)
+                dev.upload_design_to_server(design)
+                dev.program_fpga(design)
                 print(f"Programmed {SERIAL_NUMBER}")
                 print(f"Word 0 is written as {pattern(0):#018x}.")
                 print()
@@ -130,7 +130,7 @@ def main() -> int:
                 read_word_0(dev, "4  clock on")
 
                 # Program the FPGA again to clear the upset.
-                dev.programFPGA(design)
+                dev.program_fpga(design)
     except SkraftError as e:
         print(f"failed: {e}")
         return 1

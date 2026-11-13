@@ -357,7 +357,7 @@ def run(dev: FpgaDevice, sem: SemUart, number: int) -> None:
     # configuration. Start the clock and give the grant: the SEM
     # initializes and goes to observation.
     sem.muted = True
-    dev.programFPGA(design)
+    dev.program_fpga(design)
     sem.flush()
     dev.write_bscan(USER_CLK_EN, 1)
     dev.write_bscan(USER_GRANT, 1)
@@ -410,13 +410,13 @@ def main() -> int:
             dev.configure_seed(0)
 
             sem = SemUart(BOARD.uart_port, QUIET_S)
-            dev.uploadDesignToServer(design)
+            dev.upload_design_to_server(design)
             for number in EXPERIMENTS:
                 run(dev, sem, number)
 
             # Program the design again: the experiments leave upsets in the
             # CRAM
-            dev.programFPGA(design)
+            dev.program_fpga(design)
             print("\nProgrammed the design again: the CRAM is clean.")
     except (SkraftError, RuntimeError, serial.SerialException) as e:
         print(f"\nStopped: {e}")

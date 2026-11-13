@@ -46,7 +46,7 @@ SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 # If you do not know the serial number of your target device,
 # use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA252EA"
+SERIAL_NUMBER = "210183BA2524A"
 
 # The design: targeted_top, the design of example 1. Its two heartbeats
 # are components, and each heartbeat drives an LED.
@@ -114,8 +114,8 @@ def main() -> int:
                 # Setup the SEED for deterministic behaviour.
                 dev.configure_seed(0)
 
-                dev.uploadDesignToServer(design)
-                dev.programFPGA(design)
+                dev.upload_design_to_server(design)
+                dev.program_fpga(design)
                 print(f"Programmed {SERIAL_NUMBER}.")
 
                 # Part 1. SK-RAFT: get the tree of the components.
@@ -177,7 +177,7 @@ def main() -> int:
                 print(f"{n} upsets injected into {COMPONENT}.")
 
                 print("Re-programming to clear the device.")
-                dev.programFPGA(design)
+                dev.program_fpga(design)
     except SkraftError as e:
         print(f"Component injection failed: {e}")
         return 1
