@@ -40,7 +40,7 @@ SK_RAFT_SERVER_PORT = 50051
 #   The EBD file (.ebd): to find which bits are essential.
 #   The XDC file (.xdc): to find the pblocks.
 # uploadDesignToServer() sends the files to the server. The client sends
-# only the file name of each path, not the directory.
+# only the file name of each path, not the directory.       
 #
 # BOARD is the board of your target device: "basys3" or "zedboard", or
 # the name of your own board (see hw/README.md). The script reads the
