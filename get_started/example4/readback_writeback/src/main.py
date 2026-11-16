@@ -24,9 +24,6 @@ from skraft import BscanPrimitive, Design, SkraftError, SkraftFpga, TargetMemory
 # --------------------------------------------------------------------------- #
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-# If you do not know the serial number of your target device,
-# use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BFD452A"
 
 # BOARD is the board of your target device: "basys3" or "zedboard". The
 # script reads the design files from
@@ -100,10 +97,13 @@ def main() -> int:
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
-            with client.attach(SERIAL_NUMBER) as dev:
+            # Select the first detected device.
+            serial_number = client.get_devices()[0].serial_number
+
+            with client.attach(serial_number) as dev:
                 dev.upload_design_to_server(design)
                 dev.program_fpga(design)
-                print(f"Programmed {SERIAL_NUMBER}")
+                print(f"Programmed {serial_number}")
                 print(f"Word 0 is written as {pattern(0):#018x}.")
                 print()
                 print_header()

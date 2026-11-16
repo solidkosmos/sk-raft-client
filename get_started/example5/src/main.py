@@ -44,9 +44,6 @@ from skraft import (Design, FpgaComponent, SkraftError, SkraftFpga,
 # --------------------------------------------------------------------------- #
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-# If you do not know the serial number of your target device,
-# use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA2524A"
 
 # The design: targeted_top, the design of example 1. Its two heartbeats
 # are components, and each heartbeat drives an LED.
@@ -110,13 +107,16 @@ def main() -> int:
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
-            with client.attach(SERIAL_NUMBER) as dev:
+            # Select the first detected device.
+            serial_number = client.get_devices()[0].serial_number
+
+            with client.attach(serial_number) as dev:
                 # Setup the SEED for deterministic behaviour.
                 dev.configure_seed(0)
 
                 dev.upload_design_to_server(design)
                 dev.program_fpga(design)
-                print(f"Programmed {SERIAL_NUMBER}.")
+                print(f"Programmed {serial_number}.")
 
                 # Part 1. SK-RAFT: get the tree of the components.
                 components = dev.components()
