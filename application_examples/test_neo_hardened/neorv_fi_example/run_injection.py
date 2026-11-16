@@ -41,8 +41,6 @@ import bscan_routine_helpers as bscan
 SK_RAFT_SERVER_IP = "127.0.0.1"
 # The port of the SK-RAFT server.
 SK_RAFT_SERVER_PORT = 50051
-# The serial number of the target board.
-SERIAL_NUMBER = "210183BA252EA"
 # The design files (paths relative to this folder). The script uploads them
 # to the server. The Generate Bitstream run of the project from
 # create_project.tcl writes the .bit, .ebd and .ll files to IMPL_DIR. Change
@@ -193,10 +191,10 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> bool:
         ll=f"{IMPL_DIR}/{TOP}.ll",
         xdc=XDC_FILE,
     )
-    dev.uploadDesignToServer(design)
+    dev.upload_design_to_server(design)
 
     # Program the FPGA with the uploaded bitstream.
-    dev.programFPGA(design)
+    dev.program_fpga(design)
 
     # Markers used to extract the benchmark report from the UART stream
     msg_start_marker = b"TOTAL REPORT:\n"
@@ -313,7 +311,7 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> bool:
                     if flag != 0:
                         print(f"[ERROR] r-{run+1}: injection failed, "
                               f"reprogramming.")
-                        dev.programFPGA(design)
+                        dev.program_fpga(design)
                         restarts += 1
                         continue
 
@@ -326,7 +324,7 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> bool:
                         else:
                             print(f"[ERROR] r-{run+1}: step send failed, "
                                   f"reprogramming.")
-                            dev.programFPGA(design)
+                            dev.program_fpga(design)
                             retry = True
                             restarts += 1
                             break
@@ -337,7 +335,7 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> bool:
                     if bscan_counter not in (TX_DRAIN_SENTINEL, COUNT_ZERO):
                         print(f"[ERROR] r-{run+1}: unexpected counter "
                               f"0x{bscan_counter.hex()}, reprogramming.")
-                        dev.programFPGA(design)
+                        dev.program_fpga(design)
                         retry = True
                         restarts += 1
 
@@ -464,10 +462,10 @@ def run_campaign(dev: FpgaDevice, ser: serial.Serial) -> bool:
                                      inject_report.word_index,
                                      inject_report.bit_index, status])
                     if not finished:
-                        dev.programFPGA(design)
+                        dev.program_fpga(design)
                         not_done += 1
                     else:
-                        dev.programFPGA(design)
+                        dev.program_fpga(design)
                         done += 1
                 else:
                     # Run without an error. A CRC that differs here is a
@@ -544,7 +542,11 @@ def main() -> int:
         # SK-RAFT: open the connection. Then attach to the target device.
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
-            with client.attach(SERIAL_NUMBER) as dev:
+            
+            # Select the first detected device.
+            serial_number = client.get_devices()[0].serial_number
+
+            with client.attach(serial_number) as dev:
                 # Setup the SEED for deterministic behaviour. 
                 dev.configure_seed(0)
 

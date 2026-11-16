@@ -41,9 +41,6 @@ from skraft import BscanPrimitive, Design, SkraftError, SkraftFpga, TargetMemory
 # --------------------------------------------------------------------------- #
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-# If you do not know the serial number of your target device,
-# use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA2524A"
 
 # The design for both parts: a flip-flop shift register and a LUTRAM.
 # The script gives all three files at the start:
@@ -137,13 +134,16 @@ def main() -> int:
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
-            with client.attach(SERIAL_NUMBER) as dev:
+            # Select the first detected device.
+            serial_number = client.get_devices()[0].serial_number
+
+            with client.attach(serial_number) as dev:
                 # Setup the SEED for deterministic behaviour. 
                 dev.configure_seed(0)
 
                 dev.upload_design_to_server(design)
                 dev.program_fpga(design)
-                print(f"Programmed {SERIAL_NUMBER}.")
+                print(f"Programmed {serial_number}.")
 
                 # Part 1: flip-flop shift register.
                 # Make sure that the selected pblock contains flip-flops.

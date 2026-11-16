@@ -37,7 +37,6 @@ from skraft import BscanPrimitive, Design, SkraftError, SkraftFpga
 
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-SERIAL_NUMBER = "210183BA2524A"  # use get_devices() if you do not know it
 
 # The design file that create_project.tcl writes (default project
 # mmcm_drp_interface/ next to create_project.tcl)
@@ -196,7 +195,10 @@ def main() -> int:
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
-            with client.attach(SERIAL_NUMBER) as dev:
+            # Select the first detected device.
+            serial_number = client.get_devices()[0].serial_number
+
+            with client.attach(serial_number) as dev:
                 dev.upload_design_to_server(design)
                 dev.program_fpga(design)
                 stage("Stage 0: programmed. CLKOUT0 and CLKOUT1 at 100 MHz, "
