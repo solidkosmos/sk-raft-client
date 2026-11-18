@@ -1,6 +1,20 @@
-<img alt="SK-RAFT by SolidKosmos" src="docs/images/sk-raft-logo-light-bg.svg">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/sk-raft-logo-dark-bg.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/sk-raft-logo-light-bg.svg">
+  <img alt="SK-RAFT by SolidKosmos" src="docs/images/sk-raft-logo-light-bg.svg">
+</picture>
+
+# SK-RAFT: FPGA fault injection for AMD-Xilinx devices
+
+[![Latest release](https://img.shields.io/github/v/release/solidkosmos/sk-raft-client?label=release)](https://github.com/solidkosmos/sk-raft-client/releases/latest)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE.md)
+[![Documentation](https://img.shields.io/badge/docs-solidkosmos.github.io-informational)](https://solidkosmos.github.io/)
 
 SK-RAFT is an EDA software tool for fault injection in AMD-Xilinx FPGAs. It emulates single-event upsets (SEUs).
+
+![SK-RAFT runs fault injection trials on a Basys 3. In each trial, it flips one essential bit of a simplex adder and one essential bit of a TMR adder. The simplex adder gives wrong results in approximately 45% of the trials. The TMR adder gives wrong results in approximately 2.6% of the trials.](docs/images/sk-raft-demo.gif)
+
+The demo uses [example 2](get_started/example2/README.md). In each trial, SK-RAFT injects one fault into a random essential bit of a simplex adder and one fault into a random essential bit of a TMR adder. Then the script examines the results of the two adders. The vulnerability factor (VF) of an adder is the number of trials with wrong results, divided by the number of trials.
 
 This repository contains open-source getting-started examples for the SK-RAFT server. The SK-RAFT server is proprietary SolidKosmos software and requires a valid trial or commercial licence.
 
@@ -173,7 +187,9 @@ The changes of each version are in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Documentation
 
-The documents are Markdown files in this repository:
+To read all the documents on one website, go to [solidkosmos.github.io](https://solidkosmos.github.io/).
+
+The documents are also Markdown files in this repository:
 
 - [`docs/concepts.md`](docs/concepts.md): the concepts of SK-RAFT.
 - [`docs/general_guidelines.md`](docs/general_guidelines.md): the setup rules for injection into the application memory.
