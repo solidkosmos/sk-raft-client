@@ -36,8 +36,8 @@ Part 2 injects faults into the LUTRAM in `pblock_LUTRAM` (`TargetMemory.LUTRAM`)
 
 | Call | Use in the example |
 | --- | --- |
-| `SkraftFpga.connect(ip=..., port=...)`, `client.attach(SERIAL_NUMBER)` | Connect to the SK-RAFT server and attach to the device, in `with` statements that release the device and close the connection. |
-| `Design(bit, ll, xdc)`, `dev.uploadDesignToServer(design)`, `dev.programFPGA(design)` | Give the design files, upload them to the server and program the FPGA. |
+| `SkraftFpga.connect(ip=..., port=...)`, `client.get_devices()`, `client.attach(serial_number)` | Connect to the SK-RAFT server, select the first board that the server lists and attach to it, in `with` statements that release the device and close the connection. |
+| `Design(bit, ll, xdc)`, `dev.upload_design_to_server(design)`, `dev.program_fpga(design)` | Give the design files, upload them to the server and program the FPGA. |
 | `dev.configure_seed(0)` | Set the seed of the random injections. The same seed gives the same upsets in each run. |
 | `BscanPrimitive(user, length)`, `dev.write_bscan(primitive, value)`, `dev.read_bscan(primitive)` | Start and stop the clock (USER1), read the shift register (USER2), and select, write and read a LUTRAM word (USER3, USER4). |
 | `dev.bit_count(TargetMemory.FF, pblock=PBLOCK_SR)`, `dev.bit_count(TargetMemory.LUTRAM, pblock=PBLOCK_LUTRAM)` | Get the number of flip-flop bits and LUTRAM bits of each pblock. |
@@ -47,7 +47,7 @@ Part 2 injects faults into the LUTRAM in `pblock_LUTRAM` (`TargetMemory.LUTRAM`)
 ## Run the example
 
 1. Make sure that the design files are in `hw/design_examples/<board>/ff_lut_top/`, and set `BOARD` in `src/main.py` to your board. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files).
-2. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP` and `SERIAL_NUMBER`. The design files are `ff_lut_top.bit`, `ff_lut_top.ll` and the XDC file. The script uploads them to the server.
+2. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP`. The script attaches to the first board that the server lists. Connect only the target board to the server. The design files are `ff_lut_top.bit`, `ff_lut_top.ll` and the XDC file. The script uploads them to the server.
 3. Run the script:
 
 ```bash

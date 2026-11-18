@@ -22,7 +22,7 @@ Register addresses and bit fields: XAPP888 (v1.8), 7 series, Tables 1-3,
 reference design: the bits outside the field keep their value.
 
 BSCAN USER1 (see mmcm_drp_interface_top.vhd)
-  write (32 bits): (31:25) padding, (24) MMCM RST,
+  write (32 bits): (31:25) not used, (24) MMCM RST,
                    (23) 1 = write / 0 = read, (22:16) DRP address,
                    (15:0) DRP data
   read  (24 bits): (23:17) current DRP address, (16:1) DO, (0) DRP error
@@ -45,8 +45,7 @@ IMPL_DIR = (HERE.parent / "mmcm_drp_interface"
             / "mmcm_drp_interface.runs" / "impl_1")
 design = Design(bit=str(IMPL_DIR / "mmcm_drp_interface_top.bit"))
 
-# BSCAN USER1: 32 bits are written (25 used), 24 bits are read. Each
-# length is a whole number of bytes.
+# BSCAN USER1: 32 bits are written (25 used), 24 bits are read.
 USER1_WRITE = BscanPrimitive(1, 32)
 USER1_READ = BscanPrimitive(1, 24)
 

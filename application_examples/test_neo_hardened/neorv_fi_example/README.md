@@ -10,7 +10,7 @@ root clock, CRC read).
 | Function | Calls |
 | --- | --- |
 | Connection | `SkraftFpga.connect()` and `client.attach()`, in `with` statements that release the device and close the connection |
-| Design | `Design` (`.bit`, `.ebd`, `.ll`, `.xdc`), `dev.uploadDesignToServer()` and `dev.programFPGA(design)` |
+| Design | `Design` (`.bit`, `.ebd`, `.ll`, `.xdc`), `dev.upload_design_to_server()` and `dev.program_fpga(design)` |
 | Pblock exclusion | `exclude_pblock` of `dev.inject_random()`: SK-RAFT does not inject into the harness pblock |
 | BSCAN | `BscanPrimitive`, `dev.write_bscan()` and `dev.read_bscan()` |
 | Fault injection | `TargetMemory` (essential bits, BRAM, FF, LUTRAM), `dev.inject_random()`, and `dev.inject_at()` to flip the bit back after the run |
@@ -21,7 +21,8 @@ Build the design first. Refer to the [README of the example](../README.md).
 The script reads the `.bit`, `.ebd` and `.ll` files from
 `../test_neo/test_neo.runs/impl_1/` (`IMPL_DIR`), and the XDC from
 `../hw/xdc/basys3.xdc`. Set the constants at the top of the script, then run
-the script from this folder:
+the script from this folder. The script attaches to the first board that the
+server lists. Connect only the target board to the server.
 
 ```bash
 pip install ../../../api/python pyserial
@@ -30,7 +31,6 @@ python run_injection.py
 
 | Constant | Default | Description |
 | --- | --- | --- |
-| `SERIAL_NUMBER` | `"210183BFD452A"` | The serial number of the board. `get_devices()` gives the connected boards. |
 | `UART_PORT` | `"COM5"` | The serial port of the UART of the board. |
 | `TARGET` | `"EBITS"` | The memory type of the campaign: `"EBITS"` (essential CRAM bits), `"BRAM"`, `"FF"` or `"LUT"`. |
 | `RUNS` | `200` | The number of runs. |

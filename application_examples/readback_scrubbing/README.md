@@ -53,7 +53,7 @@ The SK-RAFT scrubber on the server does the same steps. The script is different 
 
 ## Run the example
 
-1. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP` and `SERIAL_NUMBER`.
+1. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP`. The script attaches to the first board that the server lists. Connect only the target board to the server.
 2. Run the script:
 
 ```bash
@@ -64,7 +64,6 @@ python main.py
 | Constant | Default | Description |
 | --- | --- | --- |
 | `SK_RAFT_SERVER_IP` / `SK_RAFT_SERVER_PORT` | `"127.0.0.1"` / `50051` | The address of the SK-RAFT server. |
-| `SERIAL_NUMBER` | `"210183BFD452A"` | The serial number of the target board. `get_devices()` gives the connected boards. |
 | `SCRUB_CYCLES` | `10` | The number of scrub cycles. |
 | `SCRUB_PERIOD_S` | `5.0` | The time from the start of one scrub cycle to the start of the next, in seconds. |
 | `INJECT_UPSETS` | `True` | If `True`, the script injects one upset before each scrub cycle. |

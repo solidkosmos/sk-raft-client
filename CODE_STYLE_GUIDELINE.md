@@ -103,8 +103,9 @@ from .exceptions import (
   `FpgaFrame`, `FpgaScrubReport`, `XadcSensor`.
 - Put the unit at the end of the name of a quantity: `duration_ms`,
   `sbu_percent`, `READ_PERIOD_S`.
-- `uploadDesignToServer` and `programFPGA` are older names that do not follow
-  these rules. They stay for compatibility. Do not add new `camelCase` names.
+- Do not use `camelCase` names. Version 1.0.0 renamed the last two:
+  `uploadDesignToServer` is now `upload_design_to_server`, and `programFPGA`
+  is now `program_fpga`.
 
 ---
 

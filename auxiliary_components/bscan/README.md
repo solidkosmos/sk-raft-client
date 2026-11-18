@@ -41,6 +41,12 @@ port (
 One instance per USER chain. Each chain (1 to 4) can be used once in a
 design.
 
+`data_len_r` and `data_len_w` can be any number of bits, for example 1,
+5 or 25. They do not have to be a whole number of bytes: the client
+gives the length to the server, and the server shifts exactly that number
+of bits. Some examples in this repository use whole bytes with unused
+bits, but this is not necessary.
+
 ## How a read and a write work
 
 JTAG shifts the register LSB first. What happens at the end of the shift

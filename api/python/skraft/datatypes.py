@@ -152,7 +152,7 @@ class Design:
     """
     The files of a design, as paths on the client computer.
 
-    FpgaDevice.uploadDesignToServer uploads every file that is set. All
+    FpgaDevice.upload_design_to_server uploads every file that is set. All
     files are optional. An operation that needs a file that is not set
     raises an error that names the missing file.
 
@@ -1626,7 +1626,7 @@ _KHZ_PER_MHZ = 1000
 class JtagFrequency:
     """
     A JTAG clock (TCK) frequency of the FTDI, for
-    FpgaDevice.configure_frequency.
+    FpgaDevice.configure_jtag_frequency.
 
     The frequency is from 460 kHz to 15 MHz. The FTDI divides its 30 MHz
     clock by an integer n, from 2 to 65. Thus, it makes only the

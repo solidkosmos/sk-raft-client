@@ -31,9 +31,7 @@ The build adds the BSCAN interface and the safe-startup PLL from `auxiliary_comp
 
 | Register | Write (32 bits) | Read (24 bits) |
 | --- | --- | --- |
-| USER1 | The DRP packet. Bits 31:25: padding. Bit 24: MMCM RST. Bit 23: 1 = write, 0 = read. Bits 22:16: DRP address. Bits 15:0: DRP write data. | Bits 23:17: the current DRP address. Bits 16:1: the DO of the MMCM. Bit 0: the DRP error (watchdog timeout). |
-
-The length of each direction is a whole number of bytes. The write has 7 padding bits for this reason.
+| USER1 | The DRP packet. Bits 31:25: not used. Bit 24: MMCM RST. Bit 23: 1 = write, 0 = read. Bits 22:16: DRP address. Bits 15:0: DRP write data. | Bits 23:17: the current DRP address. Bits 16:1: the DO of the MMCM. Bit 0: the DRP error (watchdog timeout). |
 
 On the Basys 3, LD0 shows the heartbeat of CLKOUT0 (`led_o[0]`) and LD1 the heartbeat of CLKOUT1 (`led_o[1]`).
 
@@ -93,7 +91,7 @@ Stage 2 does not change the phase of the clock. It changes the offset between th
 
 ## Run the example
 
-1. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP` and `SERIAL_NUMBER`.
+1. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP`. The script attaches to the first board that the server lists. Connect only the target board to the server.
 2. Run the script:
 
    ```bash
@@ -103,7 +101,6 @@ Stage 2 does not change the phase of the clock. It changes the offset between th
 | Constant | Default | Description |
 | --- | --- | --- |
 | `SK_RAFT_SERVER_IP` / `SK_RAFT_SERVER_PORT` | `"127.0.0.1"` / `50051` | The address of the SK-RAFT server. |
-| `SERIAL_NUMBER` | `"210183BFD452A"` | The serial number of the board. `get_devices()` gives the connected boards. |
 | `SLOW_DIVIDE` | `50` | The divide of CLKOUT0 and CLKOUT1 in stage 1. |
 | `LAG_DIVIDE` / `LAG_TIME_S` | `100` / `1.0` | The divide of CLKOUT1 in stage 2, and the time it runs at that divide, in seconds. |
 

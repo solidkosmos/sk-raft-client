@@ -42,8 +42,8 @@ Two consequences for SK-RAFT campaigns:
 
 | Call | Use in the example |
 | --- | --- |
-| `SkraftFpga.connect(ip=..., port=...)`, `client.attach(SERIAL_NUMBER)` | Connect to the SK-RAFT server and attach to the device, in `with` statements that release the device and close the connection. |
-| `Design(bit, ll)`, `dev.uploadDesignToServer(design)`, `dev.programFPGA(design)` | Give the design files, upload them to the server and program the FPGA. |
+| `SkraftFpga.connect(ip=..., port=...)`, `client.get_devices()`, `client.attach(serial_number)` | Connect to the SK-RAFT server, select the first board that the server lists and attach to it, in `with` statements that release the device and close the connection. |
+| `Design(bit, ll)`, `dev.upload_design_to_server(design)`, `dev.program_fpga(design)` | Give the design files, upload them to the server and program the FPGA. |
 | `BscanPrimitive(user, length)`, `dev.write_bscan(primitive, value)`, `dev.read_bscan(primitive)` | Start and stop the clock (USER1), select the address (USER2), write the words and read the BRAM outputs (USER3). |
 | `dev.inject_at(far, word, bit, TargetMemory.BRAM)` | Stage 3: inject into word 0, bit 0. The script finds the location of the bit (`Ram=B:BIT0`) in the LL file. |
 
@@ -60,7 +60,7 @@ vivado -mode batch -source create_project.tcl -tclargs basys3 bram_readback_writ
 
 ## Run the example
 
-1. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP`, `SERIAL_NUMBER` and `BOARD`.
+1. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP` and `BOARD`. The script attaches to the first board that the server lists. Connect only the target board to the server.
 2. Run the script:
 
 ```bash

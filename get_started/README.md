@@ -6,6 +6,8 @@
 get_started/
 ├── example1/ .. example5/               SK-RAFT client examples (src/main.py)
 ├── list_devices.py                      lists the boards connected to the server
+├── install_client.bat, .sh              installs the skraft client into .venv (repository root)
+├── open_terminal.bat, .sh               opens a terminal with .venv active
 └── hw/                                  Vivado project (create_project.tcl)
     ├── design_examples/                 design files: design_examples.zip and build output
     ├── sources_1/new/                   VHDL sources
@@ -20,14 +22,14 @@ get_started/
 | 2 | [example2](example2/README.md) | [`bscan_adder_top`](hw/sources_1/new/bscan_adder_top.vhd) (simplex adder and TMR adder, each in its own pblock. Input and output are provided via BSCAN) | Showing how to set up and control a design during fault campaigns through BSCAN. |
 | 3 | [example3](example3/README.md) | [`ff_lut_top`](hw/sources_1/new/ff_lut_top.vhd) (flip-flop shift register and LUTRAM) | Showing how to inject faults into the ARAM layer, e.g., flip-flop and LUTRAM contents. |
 | 4 | [example4](example4/README.md) | [`brams_top`](hw/sources_1/new/brams_top.vhd) (one BRAM with a Hamming SEC code for each byte), and [`bram_readback_writeback_top`](hw/sources_1/new/bram_readback_writeback_top.vhd) in [`readback_writeback/`](example4/readback_writeback/README.md) (one BRAM with the built-in ECC, no output register) | Showing how to inject faults into the BRAMs: You corrupt CRAM bits and content data (ARAM). `readback_writeback/` shows what the BRAM outputs during and after an injection into its content: a wrong word while the clock is stopped, then the flipped bit with no ECC error. |
-| 5 | [example5](example5/README.md) | [`targeted_top`](hw/sources_1/new/targeted_top.vhd) (the design of example 1: the two heartbeats are components of the design hierarchy) | Showing how to list the components of a design as a tree, from the flip-flop nets of the LL file, and how to perform random fault injection into the flip-flops of one component, with the net of each flip-flop that an upset hits. |
+| 5 | [example5](example5/README.md) | [`bscan_adder_top`](hw/sources_1/new/bscan_adder_top.vhd) (the design of example 2: the three BSCAN registers are components of the design hierarchy) | Showing how to list the components of a design as a tree, from the flip-flop nets of the LL file, and how to perform random fault injection into the flip-flops of one component, with the net of each flip-flop that an upset hits. |
 
 Each example operates with one design. The README of each example shows how to create the files that the SK-RAFT client script uploads to the SK-RAFT server for testing. These files are the bitstream and the EBD, LL and XDC files where necessary. Vivado builds these files from the `sources_1/new/*.vhd` files of that design in [`hw`](hw/).
 
 ## Requirements
 
 - Tested with Vivado 2025.2. 
-- Python 3.9 or a later version, with the `skraft` package installed (`api/python`).
+- Python 3.9 or a later version, with the `skraft` package installed (`api/python`). To install it, double-click `install_client.bat` in this folder (Windows), or run `sh get_started/install_client.sh` in the root folder of the repository (Linux). Then open a terminal for the examples with `open_terminal.bat` or `sh get_started/open_terminal.sh`. To install the client with commands instead, refer to [Installation](../README.md#installation).
 - SK-RAFT server
 - Target FPGA board connected via JTAG to the SK-RAFT server.
 - The design files are listed in each example's README. The script uploads these files to the server.
@@ -59,8 +61,8 @@ vivado -mode batch -source create_project.tcl -tclargs <device> <top>
 
 | `<top>` | Example |
 | --- | --- |
-| `targeted_top` | example1, example5 |
-| `bscan_adder_top` | example2 |
+| `targeted_top` | example1 |
+| `bscan_adder_top` | example2, example5 |
 | `ff_lut_top` | example3 |
 | `brams_top` | example4 |
 | `bram_readback_writeback_top` | example4 (`readback_writeback/`) |
@@ -92,12 +94,14 @@ The prebuilt `brams_top` files in `design_examples.zip` were built with the pass
 
 ## Run an example
 
+Run the example in the terminal that `open_terminal.bat` or `open_terminal.sh` opens, or in another terminal where the virtual environment of the client is active. The terminal of `open_terminal` starts in the root folder of the repository:
+
 ```bash
-cd exampleN/src
+cd get_started/exampleN/src
 python main.py
 ```
 
-The examples do not use command-line options. To configure an example, change the constants at the top of its `main.py`: `SK_RAFT_SERVER_IP`, `SERIAL_NUMBER`, `BOARD` and the other constants of that example. Then run the script. To find the serial number of your board, run `python list_devices.py` in this folder.
+The examples do not use command-line options. To configure an example, change the constants at the top of its `main.py`: `SK_RAFT_SERVER_IP`, `BOARD` and the other constants of that example. Then run the script. Each example attaches to the first board that the server lists, so connect only the target board to the server. To see the boards that the server finds, run `python get_started/list_devices.py` in the root folder of the repository.
 
 Each example ends with exit code 0 when it is done, 1 on an error and 130 after Ctrl+C.
 
