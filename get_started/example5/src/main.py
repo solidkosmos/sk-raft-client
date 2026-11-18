@@ -44,9 +44,6 @@ from skraft import (Design, FpgaComponent, SkraftError, SkraftFpga,
 # --------------------------------------------------------------------------- #
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-# If you do not know the serial number of your target device,
-# use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA252EA"
 
 # The design: bscan_adder_top, the design of example 2. 
 # The script gives two files:
@@ -109,13 +106,16 @@ def main() -> int:
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
-            with client.attach(SERIAL_NUMBER) as dev:
+            # Select the first detected device.
+            serial_number = client.get_devices()[0].serial_number
+
+            with client.attach(serial_number) as dev:
                 # Setup the SEED for deterministic behaviour.
                 dev.configure_seed(0)
 
-                dev.uploadDesignToServer(design)
-                dev.programFPGA(design)
-                print(f"Programmed {SERIAL_NUMBER}.")
+                dev.upload_design_to_server(design)
+                dev.program_fpga(design)
+                print(f"Programmed {serial_number}.")
 
                 # Part 1. SK-RAFT: get the tree of the components.
                 components = dev.components()
@@ -176,7 +176,7 @@ def main() -> int:
                 print(f"{n} upsets injected into {COMPONENT}.")
 
                 print("Re-programming to clear the device.")
-                dev.programFPGA(design)
+                dev.program_fpga(design)
     except SkraftError as e:
         print(f"Component injection failed: {e}")
         return 1

@@ -15,7 +15,7 @@ This repository contains open-source getting-started examples for the SK-RAFT se
   - The essential bits of a specific Pblock.
   - The application memories of selected components in your RTL hierarchy.
 - **Essential-bit analysis.** SK-RAFT reads the Vivado-generated EBD file and finds the essential bits of the design or specific Pblocks.
-- **Full BSCAN support.** Your script can write inputs to the design and read outputs from the design through the BSCAN user registers (USER1 to USER4).
+- **Full BSCAN support.** Your script can write inputs to the design and read outputs from the design through the BSCAN user registers (USER1 to USER4). A register can have any number of bits. It does not have to be a whole number of bytes.
 - **External scrubbing through JTAG.** SK-RAFT can scrub the CRAM from outside the FPGA, through JTAG. This function helps during radiation tests.
 - **Programmer.** SK-RAFT can program the FPGA with a bitstream.
 - **XADC and System Monitor access.** SK-RAFT can read the temperature and voltage sensors of the XADC (7 series) and of the System Monitor (UltraScale, UltraScale+) through JTAG. It can also set and clear their alarms.
@@ -37,8 +37,8 @@ The `skraft` Python client in this repository sends the gRPC requests for you. A
 
 1. Connect to the server: `SkraftFpga.connect(ip, port)`.
 2. Reserve the board with its serial number: `client.attach(serial_number)`. To find the serial numbers of the connected boards, use `client.get_devices()`.
-3. Upload the design files (bitstream, EBD, LL and XDC files) to the server: `dev.uploadDesignToServer(design)`.
-4. Program the FPGA with an uploaded design: `dev.programFPGA(design)`. The server keeps each uploaded design. Thus, you can upload several designs, and then program the one to use.
+3. Upload the design files (bitstream, EBD, LL and XDC files) to the server: `dev.upload_design_to_server(design)`.
+4. Program the FPGA with an uploaded design: `dev.program_fpga(design)`. The server keeps each uploaded design. Thus, you can upload several designs, and then program the one to use.
 5. Inject faults, for example: `dev.inject_random(TargetMemory.ESSENTIAL_CRAM)`.
 6. Read the effect of the faults, for example through BSCAN: `dev.read_bscan(...)`.
 
@@ -50,8 +50,8 @@ from skraft import Design, SkraftFpga, TargetMemory
 with SkraftFpga.connect(ip="127.0.0.1", port=50051) as client:
     with client.attach("210183BFD452A") as dev:
         design = Design(bit="top.bit", ebd="top.ebd")
-        dev.uploadDesignToServer(design)
-        dev.programFPGA(design)
+        dev.upload_design_to_server(design)
+        dev.program_fpga(design)
         report = dev.inject_random(TargetMemory.ESSENTIAL_CRAM)
         print(f"far {report.far:#010x} word {report.word_index} bit {report.bit_index}")
 ```
@@ -97,15 +97,15 @@ Before you inject into the application memory (flip-flops, LUTRAM, BRAM), read t
    | `-tls-public-key <file>` | The public key (or certificate) of the clients that the server accepts. Refer to [`application_examples/tls_program`](application_examples/tls_program/README.md). |
 
    `bin\sk-raft.bat -v` prints the version of the server. On Windows, the launcher runs the server in `%LOCALAPPDATA%\SolidKosmos\sk-raft`. The server writes its log, `skraft.log`, and its cache there.
-3. Install the `skraft` Python client. Refer to [Installation](#installation).
-4. Find the serial number of your board:
+3. Install the `skraft` Python client. On Windows, double-click `get_started\install_client.bat`, then `get_started\open_terminal.bat`. On Linux, run `sh get_started/install_client.sh`, then `sh get_started/open_terminal.sh`. Run the commands of the next steps in the terminal that opens. To install the client with commands instead, refer to [Installation](#installation).
+4. Make sure that the server finds your board:
 
    ```bash
    python get_started/list_devices.py
    ```
 
    The script prints the serial number and the part number of each board that is connected to the server. For a server on another computer, set `SK_RAFT_SERVER_IP` at the top of the script to the address of that computer. In your own scripts, `client.get_devices()` gives the same list.
-5. Run an example. Start with [`get_started`](get_started/README.md). It has prebuilt design files for the Basys 3 and the ZedBoard. Set `SERIAL_NUMBER` and `BOARD` at the top of the `main.py` of the example.
+5. Run an example. Start with [`get_started`](get_started/README.md). It has prebuilt design files for the Basys 3 and the ZedBoard. Set `BOARD` at the top of the `main.py` of the example. The examples attach to the first board that the server lists, so connect only the target board to the server.
 
 ## Folder structure
 
@@ -114,13 +114,40 @@ sk-raft-client/
 ├── api/python/                           Python client (skraft package) and offline bundle
 ├── application_examples/                 Example designs and scripts for specific use cases
 ├── auxiliary_components/                 Reusable BSCAN registers, safe clock, BRAM hold pass
-├── docs/                                 Concepts, reference documents and documentation builder
-└── get_started/                          Example designs and scripts
+├── docs/                                 Concepts, guidelines and cheat sheet
+└── get_started/                          Example designs and scripts, client install scripts
 ```
 
 ## Installation
 
-The `skraft` Python client is not on PyPI. Install it from this repository into the virtual environment of your project:
+The `skraft` Python client is not on PyPI. You install it from this repository into a virtual environment, with the scripts in `get_started` or with commands.
+
+### Install with the scripts
+
+The scripts make a virtual environment, `.venv`, in the root folder of this repository, and install the client from `api/python` into it. They need Python 3.9 or a later version and internet access.
+
+On Windows:
+
+1. Double-click `get_started\install_client.bat`. Do this one time.
+2. Double-click `get_started\open_terminal.bat`. It opens a Command Prompt in the root folder of this repository, with `.venv` active. If the client is not installed yet, the script installs it first.
+
+On Linux, in the root folder of this repository:
+
+```bash
+sh get_started/install_client.sh
+```
+
+```bash
+sh get_started/open_terminal.sh
+```
+
+The second script opens a shell with `.venv` active. Type `exit` to leave it. On Ubuntu and Debian, the scripts need the `python3-venv` package (`sudo apt install python3-venv`).
+
+The examples in `get_started` and `application_examples` run in this terminal. Some application examples need more packages, for example `pyserial`. Their README gives the `pip install` command.
+
+### Install with commands
+
+To install the client into the virtual environment of your own project:
 
 ```bash
 cd your-project
@@ -137,11 +164,7 @@ See [`./api/python/offline_bundle`](./api/python/offline_bundle)
 
 ## Compatibility
 
-The client and the SK-RAFT server have separate versions. The table gives the server versions that the current client supports:
-
-| Client (`skraft`) | Supported SK-RAFT server versions |
-| --- | --- |
-| 1.0.0 | 1.0.0 |
+The client and the SK-RAFT server have separate versions, in the form MAJOR.MINOR.PATCH. A server works with each client of the same major version that is not newer than the server. For example, server 1.4.2 works with clients 1.0.0 to 1.4.2. It does not work with client 1.5.0 or with client 2.0.0.
 
 - The version of the client: `pip show skraft`.
 - The version of the server: `bin\sk-raft.bat -v`, or `client.version()` from a script.
@@ -150,15 +173,12 @@ The changes of each version are in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Documentation
 
-To read all the documents of this repository, and the API reference of the client, in a web browser, build the documentation:
+The documents are Markdown files in this repository:
 
-```bash
-docs/html-gen/build_docs.sh      # docs\html-gen\build_docs.bat on Windows
-```
-
-The script writes one HTML file, `api/python/dist/skraft-docs-<version>.html`. The file contains all the pages, the images and a search. It needs no other file and no internet. Open it in a web browser, or send it to another person.
-
-On the first run, the script creates a virtual environment in `docs/html-gen/.venv` and installs the packages of `docs/html-gen/requirements-docs.txt`. This needs internet access and Python 3.11 or later.
+- [`docs/concepts.md`](docs/concepts.md): the concepts of SK-RAFT.
+- [`docs/general_guidelines.md`](docs/general_guidelines.md): the setup rules for injection into the application memory.
+- [`docs/cheatsheet.md`](docs/cheatsheet.md): code snippets of the common routines.
+- The README of each folder in `get_started` and `application_examples`.
 
 ## Report a problem
 

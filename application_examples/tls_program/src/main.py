@@ -23,6 +23,7 @@ Start the server with the TLS files first:
 README.md shows how to make the TLS files with OpenSSL.
 """
 
+import serial
 from skraft import Design, SkraftError, SkraftFpga
 
 # --------------------------------------------------------------------------- #
@@ -32,9 +33,6 @@ from skraft import Design, SkraftError, SkraftFpga
 # of server.crt, else the client refuses the server.
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-# If you do not know the serial number of your target device,
-# use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA252EA"
 
 # The TLS files of the client. The paths are relative to src/. Run the
 # script from that folder.
@@ -74,10 +72,13 @@ def main() -> int:
                                 tls_server_cert=SERVER_CERT,
                                 tls_cert=CLIENT_CERT,
                                 tls_key=CLIENT_KEY) as client:
-            with client.attach(SERIAL_NUMBER) as dev:
-                dev.uploadDesignToServer(design)
-                dev.programFPGA(design)
-                print(f"programmed {SERIAL_NUMBER} ({dev.part_number}) "
+            # Select the first detected device.
+            serial_number = client.get_devices()[0].serial_number
+
+            with client.attach(serial_number) as dev:
+                dev.upload_design_to_server(design)
+                dev.program_fpga(design)
+                print(f"programmed {serial_number} ({dev.part_number}) "
                       f"with {design.bit}")
     except (SkraftError, OSError) as e:
         print(f"error: {e}")

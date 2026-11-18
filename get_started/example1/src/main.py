@@ -31,9 +31,6 @@ from skraft import Design, TargetMemory, ReadbackOption, SkraftError, SkraftFpga
 # --------------------------------------------------------------------------- #
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-# If you do not know the serial number of your target device,
-# use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA252EA"
 
 # The design for all steps: two heartbeat counters (LD0, LD1).
 # The script gives all three files at the start:
@@ -75,13 +72,16 @@ def main() -> int:
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
-            with client.attach(SERIAL_NUMBER) as dev:
+            # Select the first detected device.
+            serial_number = client.get_devices()[0].serial_number
+
+            with client.attach(serial_number) as dev:
                 # Setup the SEED for deterministic behaviour. 
                 dev.configure_seed(0)
 
-                dev.uploadDesignToServer(design)
-                dev.programFPGA(design)
-                print(f"programmed {SERIAL_NUMBER} with {design.bit}")
+                dev.upload_design_to_server(design)
+                dev.program_fpga(design)
+                print(f"programmed {serial_number} with {design.bit}")
 
                 # ----------------------------------------------------------- #
                 # Step 1: random bits, anywhere in the configuration RAM.
@@ -135,7 +135,7 @@ def main() -> int:
                       f"({dev.bit_count(TargetMemory.ESSENTIAL_CRAM)})",
                       f". Press Enter to move on.")
                 # Program the FPGA again to remove the upsets of step 1.
-                dev.programFPGA(design)
+                dev.program_fpga(design)
 
                 watch_for_enter()
                 n = 0
@@ -167,7 +167,7 @@ def main() -> int:
                 # ----------------------------------------------------------- #
                 print("\nStep 3: one pblock at a time.")
                 # Program the FPGA again to remove the upsets of step 2.
-                dev.programFPGA(design)
+                dev.program_fpga(design)
 
                 # The names of the two pblocks, as declared in the XDC file.
                 pblocks = ["pblock_slow_heartbeat", "pblock_fast_heartbeat"]

@@ -53,9 +53,6 @@ from skraft import (
 # --------------------------------------------------------------------------- #
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-# If you do not know the serial number of your target device,
-# use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA252EA"
 
 # Set ZYNQ to True for a Zynq-7000 device (for example, the ZedBoard).
 # Then the script also reads the supplies of the Processing System (PS).
@@ -135,7 +132,10 @@ def main() -> int:
         # SK-RAFT: open the connection. Then attach to the target device.
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
-            with client.attach(SERIAL_NUMBER) as dev:
+            # Select the first detected device.
+            serial_number = client.get_devices()[0].serial_number
+
+            with client.attach(serial_number) as dev:
                 print(f"Device: serial number {dev.serial_number}, "
                       f"part number {dev.part_number}")
                 print("Reading the XADC once per second. "

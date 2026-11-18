@@ -103,12 +103,12 @@ Uses the FpgaClose RPC.
 - `ConnectionFailedError` - If the server could not release the
   device.
 
-<a id="skraft.skraft_fpga.FpgaDevice.uploadDesignToServer"></a>
+<a id="skraft.skraft_fpga.FpgaDevice.upload_design_to_server"></a>
 
-#### uploadDesignToServer
+#### upload\_design\_to\_server
 
 ```python
-def uploadDesignToServer(design: Design) -> None
+def upload_design_to_server(design: Design) -> None
 ```
 
 Upload the files of a design to the server.
@@ -116,7 +116,7 @@ Upload the files of a design to the server.
 Each file is sent in its own stream through the FpgaUploadDesignFile
 RPC. The server keeps the files of each design in a folder of its
 own. Thus, you can upload several designs, and then program one of
-them with programFPGA. Once every file has been sent, the design is
+them with program_fpga. Once every file has been sent, the design is
 also kept on the client so that later calls can check which files
 are available.
 
@@ -147,17 +147,17 @@ The design that was last uploaded to the server, or programmed.
 - `Design` - The last uploaded or programmed design, or an empty
   design if nothing has been uploaded yet.
 
-<a id="skraft.skraft_fpga.FpgaDevice.programFPGA"></a>
+<a id="skraft.skraft_fpga.FpgaDevice.program_fpga"></a>
 
-#### programFPGA
+#### program\_fpga
 
 ```python
-def programFPGA(design: Optional[Design] = None) -> None
+def program_fpga(design: Optional[Design] = None) -> None
 ```
 
 Program the device with an uploaded design.
 
-Upload the design with uploadDesignToServer first. The server keeps
+Upload the design with upload_design_to_server first. The server keeps
 each uploaded design. Thus, you can upload several designs, and then
 program the one to use. The client reads the local files of the
 design again, and the server checks that its copies are the same.
@@ -181,10 +181,10 @@ Uses the FpgaProgram RPC.
 
 **Examples**:
 
-  >>> dev.uploadDesignToServer(design_a)
-  >>> dev.uploadDesignToServer(design_b)
-  >>> dev.programFPGA(design_a)
-  >>> dev.programFPGA(design_b)
+  >>> dev.upload_design_to_server(design_a)
+  >>> dev.upload_design_to_server(design_b)
+  >>> dev.program_fpga(design_a)
+  >>> dev.program_fpga(design_b)
 
 <a id="skraft.skraft_fpga.FpgaDevice.readback_range"></a>
 
@@ -223,13 +223,63 @@ Uses the FpgaReadBackRange RPC.
 def configure_jtag_frequency(frequency: JtagFrequency) -> None
 ```
 
-Configure the frequency of the JTAG interface.
+Set the JTAG clock (TCK) frequency of the FTDI that accesses the
+device.
 
-Uses the FpgaConfigureFrequency RPC.
+The frequency is from 460 kHz to 15 MHz. The FTDI makes only the
+frequencies 30 MHz / n, for an integer n. Thus, use one of the
+JTAG_* constants, for example JTAG_10_MHZ, to get the frequency
+without change. See JtagFrequency. Uses the FpgaConfigureFrequency
+RPC.
 
-**Raises**
+**Arguments**:
 
-- `JtagError` - if the device fails to configure the jtag frequency. 
+- `frequency` _JtagFrequency_ - The TCK frequency.
+
+
+**Raises**:
+
+- `TypeError` - If the frequency is not a JtagFrequency.
+- `JtagError` - If the server could not set the frequency.
+
+
+**Examples**:
+
+  >>> dev.configure_jtag_frequency(JTAG_10_MHZ)
+  >>> dev.configure_jtag_frequency(
+  ...     JtagFrequency(750, FrequencyUnit.KHZ)
+  ... )
+
+<a id="skraft.skraft_fpga.FpgaDevice.configure_latency"></a>
+
+#### configure\_latency
+
+```python
+def configure_latency(latency_ms: int) -> None
+```
+
+Set the latency timer of the FTDI that accesses the device.
+
+The FTDI sends the data that it holds to the host when the latency
+timer expires, if its buffer is not full. Uses the
+FpgaConfigureLatency RPC.
+
+**Arguments**:
+
+- `latency_ms` _int_ - The latency, in milliseconds (ms), from 0 to
+  255. The FTDI driver can refuse low values.
+
+
+**Raises**:
+
+- `TypeError` - If the latency is not an integer.
+- `ValueError` - If the latency does not fit in 8 bits.
+- `JtagError` - If the server could not set the latency.
+
+
+**Examples**:
+
+  >>> dev.configure_latency(2)
 
 <a id="skraft.skraft_fpga.FpgaDevice.shutdown"></a>
 
@@ -850,7 +900,7 @@ def extract_fars_from_bitstream(bitstream: str) -> list[int]
 Extract every frame address from a bitstream.
 
 The bitstream is sent to the server only for this operation, so the
-bitstream uploaded with uploadDesignToServer is not changed. It must
+bitstream uploaded with upload_design_to_server is not changed. It must
 be generated with per-frame CRC. Uses the
 FpgaExtractFarsFromBitstream RPC.
 
@@ -1003,8 +1053,8 @@ def write_bscan(bscan: BscanPrimitive, value: int) -> bytes
 
 Write a value into a USER register through a BSCAN primitive.
 
-The value is sent most significant byte first and padded to a whole
-number of bytes. Uses the FpgaWriteBscan RPC.
+The register can have any width. The server shifts exactly
+size_in_bits bits of the value into it. Uses the FpgaWriteBscan RPC.
 
 **Arguments**:
 
@@ -1711,7 +1761,7 @@ class Design()
 
 The files of a design, as paths on the client computer.
 
-FpgaDevice.uploadDesignToServer uploads every file that is set. All
+FpgaDevice.upload_design_to_server uploads every file that is set. All
 files are optional. An operation that needs a file that is not set
 raises an error that names the missing file.
 
@@ -2133,6 +2183,120 @@ def clauses() -> list[str]
 ```
 
 The range clauses of the pblock.
+
+<a id="skraft.datatypes.FpgaComponent"></a>
+
+## FpgaComponent Objects
+
+```python
+class FpgaComponent()
+```
+
+A component of the design hierarchy, with its flip-flops.
+
+The server finds the components in the nets of the flip-flops in the
+logic location (LL) file. To inject into the flip-flops of a
+component, give its path as the component of
+FpgaDevice.inject_random. Print a component to show it and its sub
+components as a text tree.
+
+**Attributes**:
+
+- `name` _str_ - The name of the component, the last level of its path.
+- `path` _str_ - The full path of the component, for example
+  "top_component/sub_component".
+- `flip_flop_count` _int_ - The number of flip-flops in the component,
+  together with its sub components.
+- `children` _list[FpgaComponent]_ - The sub components, in the order
+  of their names.
+
+
+**Examples**:
+
+  >>> print(component)
+  top_component (120 flip-flops)
+  |-- other_component (40 flip-flops)
+  `-- sub_component (80 flip-flops)
+      `-- sub_sub_component (16 flip-flops)
+
+<a id="skraft.datatypes.FpgaComponent.__init__"></a>
+
+#### \_\_init\_\_
+
+```python
+def __init__(name: str, path: str, flip_flop_count: int,
+             children: list[FpgaComponent]) -> None
+```
+
+Create a component.
+
+**Arguments**:
+
+- `name` _str_ - The name of the component.
+- `path` _str_ - The full path of the component.
+- `flip_flop_count` _int_ - The number of flip-flops in the
+  component, together with its sub components.
+- `children` _list[FpgaComponent]_ - The sub components.
+
+<a id="skraft.datatypes.FpgaComponent.name"></a>
+
+#### name
+
+```python
+@property
+def name() -> str
+```
+
+The name of the component, the last level of its path.
+
+<a id="skraft.datatypes.FpgaComponent.path"></a>
+
+#### path
+
+```python
+@property
+def path() -> str
+```
+
+The full path of the component, to give as a component.
+
+<a id="skraft.datatypes.FpgaComponent.flip_flop_count"></a>
+
+#### flip\_flop\_count
+
+```python
+@property
+def flip_flop_count() -> int
+```
+
+The number of flip-flops, together with the sub components.
+
+<a id="skraft.datatypes.FpgaComponent.children"></a>
+
+#### children
+
+```python
+@property
+def children() -> list[FpgaComponent]
+```
+
+The sub components, in the order of their names.
+
+<a id="skraft.datatypes.FpgaComponent.__str__"></a>
+
+#### \_\_str\_\_
+
+```python
+def __str__() -> str
+```
+
+Show the component and its sub components as a text tree.
+
+**Returns**:
+
+- `str` - One line for each component, with its name and its number
+  of flip-flops. The sub components are indented under their
+  component.
 
 <a id="skraft.datatypes.FpgaWord"></a>
 
@@ -3822,6 +3986,97 @@ shutdown at the over-temperature (OT) limit. The value 0011b enables it.
 - `ALARM15` _XadcRegister_ - VCCO_DDR lower threshold (5Fh), Zynq-7000
   only.
 
+<a id="skraft.datatypes.FrequencyUnit"></a>
+
+## FrequencyUnit Objects
+
+```python
+class FrequencyUnit(int, Enum)
+```
+
+The unit of a JTAG clock (TCK) frequency, for JtagFrequency.
+
+The values match the frequency units that the server understands.
+
+**Attributes**:
+
+- `MHZ` _FrequencyUnit_ - Megahertz (MHz).
+- `KHZ` _FrequencyUnit_ - Kilohertz (kHz).
+
+<a id="skraft.datatypes.JtagFrequency"></a>
+
+## JtagFrequency Objects
+
+```python
+@dataclass(frozen=True)
+class JtagFrequency()
+```
+
+A JTAG clock (TCK) frequency of the FTDI, for
+FpgaDevice.configure_jtag_frequency.
+
+The frequency is from 460 kHz to 15 MHz. The FTDI divides its 30 MHz
+clock by an integer n, from 2 to 65. Thus, it makes only the
+frequencies 30 MHz / n. For a different value, the FTDI uses the next
+higher of these frequencies. For example, 7 MHz gives 7.5 MHz and
+4 MHz gives 4.29 MHz. The library defines a constant for each frequency
+that the FTDI makes without change, for example JTAG_15_MHZ or
+JTAG_500_KHZ.
+
+**Attributes**:
+
+- `value` _int_ - The frequency, in the unit.
+- `unit` _FrequencyUnit_ - The unit of the frequency. The default is
+  FrequencyUnit.MHZ.
+
+<a id="skraft.datatypes.JtagFrequency.__post_init__"></a>
+
+#### \_\_post\_init\_\_
+
+```python
+def __post_init__() -> None
+```
+
+Check the frequency.
+
+**Raises**:
+
+- `TypeError` - If the value is not an int, or if the unit is not a
+  FrequencyUnit.
+- `ValueError` - If the frequency is not from 460 kHz to 15 MHz.
+
+<a id="skraft.datatypes.JtagFrequency.kilohertz"></a>
+
+#### kilohertz
+
+```python
+@property
+def kilohertz() -> int
+```
+
+The frequency, in kHz.
+
+<a id="skraft.datatypes.JtagFrequency.__str__"></a>
+
+#### \_\_str\_\_
+
+```python
+def __str__() -> str
+```
+
+Return the frequency with its unit, for example "15 MHz".
+
+<a id="skraft.datatypes.JTAG_15_MHZ"></a>
+
+#### JTAG\_\* constants
+
+The JTAG clock (TCK) frequencies that the FTDI makes without change:
+its 30 MHz clock divided by an integer. Give them to
+FpgaDevice.configure_jtag_frequency.
+
+`JTAG_15_MHZ`, `JTAG_10_MHZ`, `JTAG_7_5_MHZ`, `JTAG_6_MHZ`, `JTAG_5_MHZ`,
+`JTAG_3_MHZ`, `JTAG_2_MHZ`, `JTAG_1_MHZ`, `JTAG_500_KHZ`
+
 <a id="skraft.exceptions"></a>
 
 # skraft.exceptions
@@ -3906,3 +4161,12 @@ class XadcError(SkraftError)
 
 The read of an XADC sensor failed.
 
+<a id="skraft.exceptions.JtagError"></a>
+
+## JtagError Objects
+
+```python
+class JtagError(SkraftError)
+```
+
+The configuration of the JTAG programmer (FTDI) failed.

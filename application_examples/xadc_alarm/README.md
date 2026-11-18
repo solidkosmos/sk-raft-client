@@ -108,7 +108,7 @@ The script is the same for all these devices. The server selects the temperature
 
 ## Run the example
 
-1. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP` and `SERIAL_NUMBER`.
+1. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP`. The script attaches to the first board that the server lists. Connect only the target board to the server.
 2. Run the script:
 
 ```bash
@@ -121,7 +121,6 @@ python main.py
 | Constant | Default | Description |
 | --- | --- | --- |
 | `SK_RAFT_SERVER_IP` / `SK_RAFT_SERVER_PORT` | `"127.0.0.1"` / `50051` | The address of the SK-RAFT server. |
-| `SERIAL_NUMBER` | `"210183BFD452A"` | The serial number of the target board. `get_devices()` gives the connected boards. |
 | `MARGIN_C` | `5.0` | The distance between the thresholds and the temperature at the start, in degrees Celsius. The temperature must change by less than this value during the example. |
 | `READ_PERIOD_S` | `0.5` | The time between two reads, in seconds. |
 
