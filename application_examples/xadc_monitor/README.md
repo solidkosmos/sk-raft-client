@@ -55,7 +55,7 @@ In 7 series and Zynq-7000 devices, the sensors are in the XADC (UG480). In Zynq 
 
 ## Run the example
 
-1. At the top of the script for your board, set `SK_RAFT_SERVER_IP` and `SERIAL_NUMBER`.
+1. At the top of the script for your board, set `SK_RAFT_SERVER_IP`. In `main_zedboard.py` and `main_zuboard_1cg.py`, also set `SERIAL_NUMBER`. `main_basys3.py` attaches to the first board that the server lists.
 2. Run the script for your board:
 
 ```bash
@@ -70,7 +70,7 @@ python main_zuboard_1cg.py   # ZUBoard 1CG
 | Constant | Default | Description |
 | --- | --- | --- |
 | `SK_RAFT_SERVER_IP` / `SK_RAFT_SERVER_PORT` | `"127.0.0.1"` / `50051` | The address of the SK-RAFT server. |
-| `SERIAL_NUMBER` | `"210183BFD452A"` | The serial number of the target board. `get_devices()` gives the connected boards. |
+| `SERIAL_NUMBER` | `"210248781184"` in `main_zedboard.py`, `"1234-oj1A"` in `main_zuboard_1cg.py` | The serial number of the target board. `get_devices()` gives the connected boards. `main_basys3.py` has no `SERIAL_NUMBER`: it attaches to the first board that the server lists. |
 | `ZYNQ` | `True` in `main_zedboard.py`, `False` in the other scripts | `True` adds the PS supplies (`vpint`, `vpaux`, `vddr`). Set it only for a Zynq-7000 device. The server reads these sensors only in Zynq-7000 devices: on other devices, the script stops with an error. |
 | `READ_PERIOD_S` | `1.0` | The time between two reads, in seconds. |
 

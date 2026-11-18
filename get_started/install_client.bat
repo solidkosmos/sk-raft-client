@@ -20,7 +20,7 @@ if errorlevel 1 (
     exit /b 1
 )
 if not exist "api\python\pyproject.toml" (
-    echo Error: there is no api\python in %CD%. Run this script from the get_started folder of the examples.
+    echo Error: there is no api\python in %CD%. This script must stay in the get_started folder of the SK-RAFT client, next to the api folder. Do not copy it to another place.
     if not defined NOPAUSE pause
     exit /b 1
 )

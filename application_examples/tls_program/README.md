@@ -147,7 +147,7 @@ channel = grpc.secure_channel("192.168.1.50:50051", credentials)
 
 ## Run the example
 
-1. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP`, `SERIAL_NUMBER` and `BOARD` (or `BITSTREAM`).
+1. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP` and `BOARD` (or `BITSTREAM`). The script attaches to the first board that the server lists. Connect only the target board to the server.
 2. Run the script from `src/`:
 
    ```bash

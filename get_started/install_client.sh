@@ -16,8 +16,9 @@ set -u
 cd "$(dirname "$0")/.." || exit 1
 here=$(pwd)
 if [ ! -f api/python/pyproject.toml ]; then
-    echo "Error: there is no api/python in $here. Run this script from the" \
-        "get_started folder of the examples." >&2
+    echo "Error: there is no api/python in $here. This script must stay in" \
+        "the get_started folder of the SK-RAFT client, next to the api" \
+        "folder. Do not copy it to another place." >&2
     exit 1
 fi
 if ! command -v python3 >/dev/null 2>&1; then
