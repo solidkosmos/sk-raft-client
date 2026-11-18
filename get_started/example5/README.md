@@ -1,6 +1,6 @@
 # Component injection: the components of a design, and random flip-flop upsets in one component
 
-This example shows the components of the design hierarchy as a tree, with the number of flip-flops in each component. Then it injects upsets only into the flip-flops of one of these components, and the LEDs show the effect. It uses the design of [example 2](../example2/README.md) (`bscan_adder_top`)
+This example shows the components of the design hierarchy as a tree, with the number of flip-flops in each component. Then it injects upsets only into the flip-flops of one of these components. It uses the design of [example 2](../example2/README.md) (`bscan_adder_top`).
 
 A component is one or more whole levels of the net paths in the LL file. For example, the net `bscan_u1_operands/bscan_interface_read_write_uX/data_user_reg_data_in[2]` is inside the component `bscan_u1_operands`. The last level, `data_user_reg_data_in[2]`, is the net. It is not a component. A part of a name is not a component: `bscan_u1` does not select this net.
 
@@ -34,8 +34,8 @@ For each upset, the script prints the location of the flip-flop (FAR, word and b
 
 | Call | Use in the example |
 | --- | --- |
-| `SkraftFpga.connect(ip=..., port=...)`, `client.attach(SERIAL_NUMBER)` | Connect to the SK-RAFT server and attach to the device, in `with` statements that release the device and close the connection. |
-| `Design(bit, ll)`, `dev.uploadDesignToServer(design)`, `dev.programFPGA(design)` | Give the design files, upload them to the server and program the FPGA. |
+| `SkraftFpga.connect(ip=..., port=...)`, `client.get_devices()`, `client.attach(serial_number)` | Connect to the SK-RAFT server, select the first board that the server lists and attach to it, in `with` statements that release the device and close the connection. |
+| `Design(bit, ll)`, `dev.upload_design_to_server(design)`, `dev.program_fpga(design)` | Give the design files, upload them to the server and program the FPGA. |
 | `dev.configure_seed(0)` | Set the seed of the random injections. The same seed gives the same upsets in each run. |
 | `dev.components()` | Part 1: get the components of the design as a tree, with the number of flip-flops in each component. |
 | `dev.inject_random(TargetMemory.FF, component=COMPONENT)` | Part 2: inject one upset into a random flip-flop of one component. The report gives the net of the flip-flop (`net_name`). |
@@ -43,7 +43,7 @@ For each upset, the script prints the location of the flip-flop (FAR, word and b
 ## Run the example
 
 1. Make sure that the design files are in `hw/design_examples/<board>/bscan_adder_top/`, and set `BOARD` in `src/main.py` to your board. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files).
-2. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP` and `SERIAL_NUMBER`. The design files are `bscan_adder_top.bit` and `bscan_adder_top.ll`. The script uploads them to the server.
+2. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP`. The script attaches to the first board that the server lists. Connect only the target board to the server. The design files are `bscan_adder_top.bit` and `bscan_adder_top.ll`. The script uploads them to the server.
 3. Run the script:
 
 ```bash
@@ -58,7 +58,7 @@ python main.py
 
 ## Result
 
-The script prints the tree, the full paths, and then one line for each upset: the number of the upset, the FAR, the word, the bit and the net. In `targeted_top`, the top-level components are `clk_gen_inst` (the clock generator), `fast_heartbeat` and `slow_heartbeat`.
+The script prints the tree, the full paths, and then one line for each upset: the number of the upset, the FAR, the word, the bit and the net. In `bscan_adder_top`, the top-level components are the three BSCAN registers: `bscan_u1_operands` (USER1, the operands of the two adders), `bscan_u2_simplex_adder_res` (USER2, the result of the simplex adder) and `bscan_u3_tmr_adder_res` (USER3, the result of the TMR adder). The script does not read the adders. To read their results through BSCAN, refer to [example 2](../example2/README.md).
 
 The number of flip-flops and the locations depend on the build of your design. The numbers come from the LL file. If you exclude pblocks or frames, `dev.inject_random()` can select fewer flip-flops of a component than the tree shows. The script sets the seed (`dev.configure_seed(0)`). Thus, with the same design, each run injects into the same sequence of flip-flops.
 

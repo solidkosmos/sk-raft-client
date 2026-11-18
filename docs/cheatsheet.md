@@ -33,8 +33,8 @@ client = SkraftFpga.connect(ip="10.0.0.5", port=50051,
 from skraft import Design
 
 design = Design(bit="top.bit", ebd="top.ebd", ll="top.ll", xdc="top.xdc")
-dev.uploadDesignToServer(design)   # the server keeps each uploaded design
-dev.programFPGA(design)            # program again at any time to clear all upsets
+dev.upload_design_to_server(design)   # the server keeps each uploaded design
+dev.program_fpga(design)            # program again at any time to clear all upsets
 ```
 
 | Target | Files that the design must have |
@@ -233,5 +233,5 @@ try:
 except SkraftError as e:          # base class of all client errors
     print(f"failed: {e}")
 finally:
-    dev.programFPGA(design)       # clear all upsets before other work
+    dev.program_fpga(design)       # clear all upsets before other work
 ```

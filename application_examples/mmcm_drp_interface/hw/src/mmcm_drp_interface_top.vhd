@@ -9,8 +9,8 @@
 --              FSM and the DRP of the MMCM, and it is the MMCM input clock.
 --
 --              BSCAN USER1
---                write (32 bits; bits 31:25 are padding, so that the
---                length is a whole number of bytes): the DRP control packet
+--                write (32 bits; bits 31:25 are not used): the DRP
+--                control packet
 --                  (24)    MMCM RST
 --                  (23)    R/W flag (1 = write, 0 = read)
 --                  (22:16) DRP address

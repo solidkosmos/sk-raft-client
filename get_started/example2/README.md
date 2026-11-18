@@ -19,8 +19,8 @@ The trials continue until you press Enter.
 
 | Call | Use in the example |
 | --- | --- |
-| `SkraftFpga.connect(ip=..., port=...)`, `client.attach(SERIAL_NUMBER)` | Connect to the SK-RAFT server and attach to the device, in `with` statements that release the device and close the connection. |
-| `Design(bit, ebd, xdc)`, `dev.uploadDesignToServer(design)`, `dev.programFPGA(design)` | Give the design files, upload them to the server and program the FPGA. |
+| `SkraftFpga.connect(ip=..., port=...)`, `client.get_devices()`, `client.attach(serial_number)` | Connect to the SK-RAFT server, select the first board that the server lists and attach to it, in `with` statements that release the device and close the connection. |
+| `Design(bit, ebd, xdc)`, `dev.upload_design_to_server(design)`, `dev.program_fpga(design)` | Give the design files, upload them to the server and program the FPGA. |
 | `dev.configure_seed(0)` | Set the seed of the random injections. The same seed gives the same upsets in each run. |
 | `BscanPrimitive(user, length)`, `dev.write_bscan(primitive, value)`, `dev.read_bscan(primitive)` | Write the operands through USER1, and read the results of the simplex adder (USER2) and of the TMR adder (USER3). |
 | `dev.bit_count(TargetMemory.ESSENTIAL_CRAM, pblock=...)` | Get the number of essential bits of each adder pblock. |
@@ -30,7 +30,7 @@ The trials continue until you press Enter.
 ## Run the example
 
 1. Make sure that the design files are in `hw/design_examples/<board>/bscan_adder_top/`, and set `BOARD` in `src/main.py` to your board. Refer to [Build a design](../README.md#build-a-design) or [Prebuilt design files](../README.md#prebuilt-design-files).
-2. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP` and `SERIAL_NUMBER`.
+2. At the top of `src/main.py`, set `SK_RAFT_SERVER_IP`. The script attaches to the first board that the server lists. Connect only the target board to the server.
 3. Run the script:
 
 ```bash

@@ -22,7 +22,7 @@ Register addresses and bit fields: XAPP888 (v1.8), 7 series, Tables 1-3,
 reference design: the bits outside the field keep their value.
 
 BSCAN USER1 (see mmcm_drp_interface_top.vhd)
-  write (32 bits): (31:25) padding, (24) MMCM RST,
+  write (32 bits): (31:25) not used, (24) MMCM RST,
                    (23) 1 = write / 0 = read, (22:16) DRP address,
                    (15:0) DRP data
   read  (24 bits): (23:17) current DRP address, (16:1) DO, (0) DRP error
@@ -37,7 +37,6 @@ from skraft import BscanPrimitive, Design, SkraftError, SkraftFpga
 
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-SERIAL_NUMBER = "210183BA252EA"  # use get_devices() if you do not know it
 
 # The design file that create_project.tcl writes (default project
 # mmcm_drp_interface/ next to create_project.tcl)
@@ -46,8 +45,7 @@ IMPL_DIR = (HERE.parent / "mmcm_drp_interface"
             / "mmcm_drp_interface.runs" / "impl_1")
 design = Design(bit=str(IMPL_DIR / "mmcm_drp_interface_top.bit"))
 
-# BSCAN USER1: 32 bits are written (25 used), 24 bits are read. Each
-# length is a whole number of bytes.
+# BSCAN USER1: 32 bits are written (25 used), 24 bits are read.
 USER1_WRITE = BscanPrimitive(1, 32)
 USER1_READ = BscanPrimitive(1, 24)
 
@@ -196,9 +194,12 @@ def main() -> int:
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
-            with client.attach(SERIAL_NUMBER) as dev:
-                dev.uploadDesignToServer(design)
-                dev.programFPGA(design)
+            # Select the first detected device.
+            serial_number = client.get_devices()[0].serial_number
+
+            with client.attach(serial_number) as dev:
+                dev.upload_design_to_server(design)
+                dev.program_fpga(design)
                 stage("Stage 0: programmed. CLKOUT0 and CLKOUT1 at 100 MHz, "
                       "phase 0: the two LEDs blink together.")
                 input("Press Enter for stage 1...")

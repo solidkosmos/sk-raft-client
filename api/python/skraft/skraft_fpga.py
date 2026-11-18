@@ -62,7 +62,7 @@ from .exceptions import (
 )
 
 
-SK_RAFT_VERSION = "1.0.0.alpha.28"
+SK_RAFT_VERSION = "1.0.0"
 
 # The size of each chunk that the client streams during a design file upload.
 _UPLOAD_CHUNK_SIZE = 1 << 20
@@ -353,14 +353,14 @@ class FpgaDevice:
                 f"failed to release device: {_rpc_detail(e)}"
             ) from e
 
-    def uploadDesignToServer(self, design: Design) -> None:
+    def upload_design_to_server(self, design: Design) -> None:
         """
         Upload the files of a design to the server.
 
         Each file is sent in its own stream through the FpgaUploadDesignFile
         RPC. The server keeps the files of each design in a folder of its
         own. Thus, you can upload several designs, and then program one of
-        them with programFPGA. Once every file has been sent, the design is
+        them with program_fpga. Once every file has been sent, the design is
         also kept on the client so that later calls can check which files
         are available.
 
@@ -527,11 +527,11 @@ class FpgaDevice:
         """
         return self._design
 
-    def programFPGA(self, design: Optional[Design] = None) -> None:
+    def program_fpga(self, design: Optional[Design] = None) -> None:
         """
         Program the device with an uploaded design.
 
-        Upload the design with uploadDesignToServer first. The server keeps
+        Upload the design with upload_design_to_server first. The server keeps
         each uploaded design. Thus, you can upload several designs, and then
         program the one to use. The client reads the local files of the
         design again, and the server checks that its copies are the same.
@@ -550,10 +550,10 @@ class FpgaDevice:
                 device, for example because the design was not uploaded.
 
         Examples:
-            >>> dev.uploadDesignToServer(design_a)
-            >>> dev.uploadDesignToServer(design_b)
-            >>> dev.programFPGA(design_a)
-            >>> dev.programFPGA(design_b)
+            >>> dev.upload_design_to_server(design_a)
+            >>> dev.upload_design_to_server(design_b)
+            >>> dev.program_fpga(design_a)
+            >>> dev.program_fpga(design_b)
         """
         if design is None:
             design = self._design
@@ -1507,7 +1507,7 @@ class FpgaDevice:
         Extract every frame address from a bitstream.
 
         The bitstream is sent to the server only for this operation, so the
-        bitstream uploaded with uploadDesignToServer is not changed. It must
+        bitstream uploaded with upload_design_to_server is not changed. It must
         be generated with per-frame CRC. Uses the
         FpgaExtractFarsFromBitstream RPC.
 
@@ -1709,8 +1709,8 @@ class FpgaDevice:
         """
         Write a value into a USER register through a BSCAN primitive.
 
-        The value is sent most significant byte first and padded to a whole
-        number of bytes. Uses the FpgaWriteBscan RPC.
+        The register can have any width. The server shifts exactly
+        size_in_bits bits of the value into it. Uses the FpgaWriteBscan RPC.
 
         Parameters:
             bscan (BscanPrimitive): The BSCAN primitive that gives access to

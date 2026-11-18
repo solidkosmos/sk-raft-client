@@ -44,9 +44,6 @@ from skraft import BscanPrimitive, Design, SkraftError, SkraftFpga, TargetMemory
 # --------------------------------------------------------------------------- #
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
-# If you do not know the serial number of your target device,
-# use the get_devices() call to find it.
-SERIAL_NUMBER = "210183BA252EA"
 
 # The design for both parts: a single BRAM behind an ECC read path.
 # The script gives all four files at the start:
@@ -196,13 +193,16 @@ def main() -> int:
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
-            with client.attach(SERIAL_NUMBER) as dev:
+            # Select the first detected device.
+            serial_number = client.get_devices()[0].serial_number
+
+            with client.attach(serial_number) as dev:
                 # Setup the SEED for deterministic behaviour. 
                 dev.configure_seed(0)
 
-                dev.uploadDesignToServer(design)
-                dev.programFPGA(design)
-                print(f"Programmed {SERIAL_NUMBER}.")
+                dev.upload_design_to_server(design)
+                dev.program_fpga(design)
+                print(f"Programmed {serial_number}.")
                 enable_clock(dev, True)
 
                 # Part 1: inject upsets into the configuration frames
@@ -276,7 +276,7 @@ def main() -> int:
                           "hit bits this read/write path doesn't depend on.")
                 print("Re-programming to clear the config upsets "
                       "before the content campaign.")
-                dev.programFPGA(design)
+                dev.program_fpga(design)
                 enable_clock(dev, True)
 
                 # When the script programs the FPGA again, USER4 resets to 0.
@@ -360,7 +360,7 @@ def main() -> int:
                               f"decoder mis-corrected a data bit.")
 
                 print("Re-programming to clear the device.")
-                dev.programFPGA(design)
+                dev.program_fpga(design)
              
     except SkraftError as e:
         print(f"Example 4 failed: {e}")
