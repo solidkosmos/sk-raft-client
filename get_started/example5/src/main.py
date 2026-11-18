@@ -45,8 +45,7 @@ from skraft import (Design, FpgaComponent, SkraftError, SkraftFpga,
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 
-# The design: targeted_top, the design of example 1. Its two heartbeats
-# are components, and each heartbeat drives an LED.
+# The design: bscan_adder_top, the design of example 2. 
 # The script gives two files:
 #   The bitstream (.bit): to program the device.
 #   The LL file (.ll): to find the flip-flops and the nets that they drive.
