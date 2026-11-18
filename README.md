@@ -8,6 +8,7 @@
 
 [![Latest release](https://img.shields.io/github/v/release/solidkosmos/sk-raft-client?label=release)](https://github.com/solidkosmos/sk-raft-client/releases/latest)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE.md)
+[![Documentation](https://img.shields.io/badge/docs-solidkosmos.github.io-informational)](https://solidkosmos.github.io/)
 
 SK-RAFT is an EDA software tool for fault injection in AMD-Xilinx FPGAs. It emulates single-event upsets (SEUs).
 
@@ -186,7 +187,9 @@ The changes of each version are in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Documentation
 
-The documents are Markdown files in this repository:
+To read all the documents on one website, go to [solidkosmos.github.io](https://solidkosmos.github.io/).
+
+The documents are also Markdown files in this repository:
 
 - [`docs/concepts.md`](docs/concepts.md): the concepts of SK-RAFT.
 - [`docs/general_guidelines.md`](docs/general_guidelines.md): the setup rules for injection into the application memory.
