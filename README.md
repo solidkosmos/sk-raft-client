@@ -11,6 +11,10 @@
 
 SK-RAFT is an EDA software tool for fault injection in AMD-Xilinx FPGAs. It emulates single-event upsets (SEUs).
 
+![SK-RAFT runs fault injection trials on a Basys 3. In each trial, it flips one essential bit of a simplex adder and one essential bit of a TMR adder. The simplex adder gives wrong results in approximately 45% of the trials. The TMR adder gives wrong results in approximately 2.6% of the trials.](docs/images/sk-raft-demo.gif)
+
+The demo uses [example 2](get_started/example2/README.md). In each trial, SK-RAFT injects one fault into a random essential bit of a simplex adder and one fault into a random essential bit of a TMR adder. Then the script examines the results of the two adders. The vulnerability factor (VF) of an adder is the number of trials with wrong results, divided by the number of trials.
+
 This repository contains open-source getting-started examples for the SK-RAFT server. The SK-RAFT server is proprietary SolidKosmos software and requires a valid trial or commercial licence.
 
 **Request Free Trial:**  [https://solidkosmos.gr/#try](https://solidkosmos.gr/#try).
