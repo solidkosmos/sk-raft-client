@@ -1,4 +1,13 @@
-<img alt="SK-RAFT by SolidKosmos" src="docs/images/sk-raft-logo-light-bg.svg">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/sk-raft-logo-dark-bg.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/sk-raft-logo-light-bg.svg">
+  <img alt="SK-RAFT by SolidKosmos" src="docs/images/sk-raft-logo-light-bg.svg">
+</picture>
+
+# SK-RAFT: FPGA fault injection for AMD-Xilinx devices
+
+[![Latest release](https://img.shields.io/github/v/release/solidkosmos/sk-raft-client?label=release)](https://github.com/solidkosmos/sk-raft-client/releases/latest)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE.md)
 
 SK-RAFT is an EDA software tool for fault injection in AMD-Xilinx FPGAs. It emulates single-event upsets (SEUs).
 
