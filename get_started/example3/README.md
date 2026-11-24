@@ -2,8 +2,8 @@
 
 This example does two campaigns on one design through BSCAN:
 
-- Part 1: a shift register with a feedback loop, made of flip-flops.
-- Part 2: a distributed RAM (LUTRAM).
+- Part 1: an 8-bit shift register with a feedback loop, made of flip-flops. It shifts every 0.2 s, and the LEDs of the board show its bits 3:0.
+- Part 2: a 64 x 32 distributed RAM (LUTRAM): 64 words of 32 bits.
 
 USER1 starts and stops the clock of the shift register and of the LUTRAM. The script reads the shift register through USER2. USER3 and USER4 give access to the LUTRAM (address and data).
 
