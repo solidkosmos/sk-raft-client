@@ -6,7 +6,7 @@
 get_started/
 ├── example1/ .. example5/               SK-RAFT client examples (src/main.py)
 ├── list_devices.py                      lists the boards connected to the server
-├── install_client.bat, .sh              installs the skraft client into .venv (repository root)
+├── install_client.bat, .sh              installs the skraft client into .venv (for a clone from GitHub)
 ├── open_terminal.bat, .sh               opens a terminal with .venv active
 └── hw/                                  Vivado project (create_project.tcl)
     ├── design_examples/                 design files: design_examples.zip and build output
@@ -29,7 +29,7 @@ Each example operates with one design. The README of each example shows how to c
 ## Requirements
 
 - Tested with Vivado 2025.2. 
-- Python 3.9 or a later version, with the `skraft` package installed (`api/python`). To install it, double-click `install_client.bat` in this folder (Windows), or run `sh get_started/install_client.sh` in the root folder of the repository (Linux). Then open a terminal for the examples with `open_terminal.bat` or `sh get_started/open_terminal.sh`. To install the client with commands instead, refer to [Installation](../README.md#installation).
+- Python 3.9 or a later version, with the `skraft` package (`api/python`). The SK-RAFT setup installs it in the virtual environment `.venv` of the examples folder. Open a terminal for the examples with `open_terminal.bat` in this folder (Windows), or with `sh get_started/open_terminal.sh` in the root folder of the examples (Linux). In a clone of the repository from GitHub, install the client first with `install_client.bat` or `sh get_started/install_client.sh`. Refer to [Installation](../README.md#installation).
 - SK-RAFT server
 - Target FPGA board connected via JTAG to the SK-RAFT server.
 - The design files are listed in each example's README. The script uploads these files to the server.

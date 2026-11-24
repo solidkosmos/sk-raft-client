@@ -105,7 +105,7 @@ Before you inject into the application memory (flip-flops, LUTRAM, BRAM), read t
    | `-tls-public-key <file>` | The public key (or certificate) of the clients that the server accepts. Refer to [`application_examples/tls_program`](application_examples/tls_program/README.md). |
 
    `sk-raft -v` prints the version of the server. The server writes its log, `skraft.log`, and its cache in `%LOCALAPPDATA%\SolidKosmos\sk-raft` on Windows and in `~/.local/share/SolidKosmos/sk-raft` on Linux.
-3. Install the `skraft` Python client. On Windows, double-click `get_started\install_client.bat`, then `get_started\open_terminal.bat`. On Linux, run `sh get_started/install_client.sh`, then `sh get_started/open_terminal.sh`. Run the commands of the next steps in the terminal that opens. To install the client with commands instead, refer to [Installation](#installation).
+3. Open a terminal with the `skraft` Python client. The SK-RAFT setup installs the client in a virtual environment of your examples folder. On Windows, double-click `get_started\open_terminal.bat`. On Linux, run `sh get_started/open_terminal.sh`. Run the commands of the next steps in the terminal that opens. If you cloned this repository from GitHub, install the client first: refer to [Installation](#installation).
 4. Make sure that the server finds your board:
 
    ```bash
@@ -128,28 +128,28 @@ sk-raft-client/
 
 ## Installation
 
-The `skraft` Python client is not on PyPI. You install it from this repository into a virtual environment, with the scripts in `get_started` or with commands.
+The `skraft` Python client is not on PyPI. The SK-RAFT setup installs it: your examples folder has a virtual environment, `.venv`, with the client from `api/python` in it.
 
-### Install with the scripts
+### Open a terminal with the client
 
-The scripts make a virtual environment, `.venv`, in the root folder of this repository, and install the client from `api/python` into it. They need Python 3.9 or a later version and internet access.
+On Windows, double-click `get_started\open_terminal.bat`. It opens a Command Prompt in the root folder of the examples, with `.venv` active.
 
-On Windows:
-
-1. Double-click `get_started\install_client.bat`. Do this one time.
-2. Double-click `get_started\open_terminal.bat`. It opens a Command Prompt in the root folder of this repository, with `.venv` active. If the client is not installed yet, the script installs it first.
-
-On Linux, in the root folder of this repository:
-
-```bash
-sh get_started/install_client.sh
-```
+On Linux, in the root folder of the examples:
 
 ```bash
 sh get_started/open_terminal.sh
 ```
 
-The second script opens a shell with `.venv` active. Type `exit` to leave it. On Ubuntu and Debian, the scripts need the `python3-venv` package (`sudo apt install python3-venv`).
+The script opens a shell with `.venv` active. Type `exit` to leave it.
+
+### Install the client in a clone from GitHub
+
+A clone of this repository from GitHub has no `.venv`. Install the client one time with the scripts in `get_started`. They make `.venv` in the root folder of the repository and install the client from `api/python` into it. They need Python 3.9 or a later version and internet access.
+
+- On Windows, double-click `get_started\install_client.bat`.
+- On Linux, in the root folder of the repository, run `sh get_started/install_client.sh`. On Ubuntu and Debian, the script needs the `python3-venv` package (`sudo apt install python3-venv`).
+
+Then open a terminal with the client, as above. If `.venv` does not exist, `open_terminal` installs the client first.
 
 The examples in `get_started` and `application_examples` run in this terminal. Some application examples need more packages, for example `pyserial`. Their README gives the `pip install` command.
 
