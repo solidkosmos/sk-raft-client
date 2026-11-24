@@ -161,14 +161,42 @@ The examples in `get_started` and `application_examples` run in this terminal. S
 
 ### Install with commands
 
-To install the client into the virtual environment of your own project:
+The SK-RAFT installation comes with a virtual environment that has the client installed. You need the commands below only to make a new virtual environment with the client, for example for your own project. Use the commands of your shell.
+
+Linux:
 
 ```bash
 cd your-project
-python -m venv .venv
-source .venv/bin/activate        # .venv\Scripts\activate on Windows
+python3 -m venv .venv
+source .venv/bin/activate
 pip install /path/to/api/python
 ```
+
+Windows, Command Prompt:
+
+```bat
+cd your-project
+python -m venv .venv
+.venv\Scripts\activate.bat
+pip install C:\path\to\api\python
+```
+
+Windows, PowerShell:
+
+```powershell
+cd your-project
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install C:\path\to\api\python
+```
+
+If PowerShell stops at `Activate.ps1` with the error "running scripts is disabled on this system", the execution policy of Windows blocks PowerShell scripts. Run this command one time in PowerShell, then activate again. It changes the policy only for your Windows user, and it does not need administrator rights:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+If a group policy of your organization sets the execution policy, you cannot change it. Then use Command Prompt, or use the Python of the virtual environment without activation: `.venv\Scripts\python -m pip install C:\path\to\api\python`, then `.venv\Scripts\python main.py`.
 
 To use local changes to the client without a new installation, use `pip install -e /path/to/api/python`.
 
