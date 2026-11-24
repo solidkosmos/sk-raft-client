@@ -205,6 +205,8 @@ The client and the SK-RAFT server have separate versions, in the form MAJOR.MINO
 - The version of the client: `pip show skraft`.
 - The version of the server: `sk-raft -v`, or `client.version()` from a script.
 
+When the client connects, it prints its version and the version of the server. It prints a warning when their major or minor versions (X.Y of X.Y.Z) differ.
+
 The changes of each version are in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Documentation
