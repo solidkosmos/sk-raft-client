@@ -63,6 +63,8 @@ The pass works only if the design obeys these requirements:
    set_power_opt -exclude_cells [get_cells -hier -filter {REF_NAME =~ RAMB*}]
    ```
 
+   Without this line, the power optimization of `opt_design` can change the BRAM read enable, also one that is tied to 1, so that the BRAM reads only after a write or an address change. SK-RAFT changes the BRAM content without either, so the BRAM does not read the changed word.
+
 **In this repository:**
 
 - [`auxiliary_components/bram_hold_pass/README.md`](../auxiliary_components/bram_hold_pass/README.md): the problem, the hold register, the requirements and the report of the pass.
