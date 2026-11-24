@@ -34,4 +34,7 @@ SK-RAFT always uses three coordinates for the location of a bit, in reports and 
 2. The word index in the frame.
 3. The bit index in the word.
 
-`dev.decode_far()` decodes a FAR into its block type, top or bottom half, row, column and minor frame number (see 7 Series FPGAs Configuration User Guide - UG470). 
+`dev.decode_far()` splits a FAR into its fields. The fields depend on the device family:
+
+- 7 series: block type, top or bottom half, row, column and minor frame (`FpgaFar7series`). Refer to UG470, *7 Series FPGAs Configuration User Guide*.
+- UltraScale and UltraScale+: block type, row, column and minor frame, without the top or bottom half (`FpgaFarUltraScale`). Refer to UG570, *UltraScale Architecture Configuration User Guide*.
