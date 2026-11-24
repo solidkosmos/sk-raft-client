@@ -28,10 +28,12 @@ The script does not correct the upsets. Part 1 continues until you press Enter.
 
 Part 2 injects faults into the LUTRAM in `pblock_LUTRAM` (`TargetMemory.LUTRAM`). The script does these steps:
 
-1. With the clock on, it writes a known pattern into each word. Then it reads back each word to make sure that the pattern is correct.
-2. It stops the clock and injects one upset each 0.5 s, until you press Enter.
+1. With the clock on, it writes the pattern `0xA5A5A5A5` into each word. Then it reads back each word to make sure that it holds the pattern.
+2. It stops the clock and injects one upset each 0.5 s, until you press Enter. For each upset, it prints the LUTRAM word that the upset hit (ADDR). It finds the word in the LL file of the design: the line of the hit bit ends with `Ram=<LUT>:<n>`, and for a 64-deep LUTRAM the word is 63 - n.
 3. It starts the clock again and reads back the full array.
-4. It prints each word with the positions of its incorrect bits.
+4. It prints each word that changed, in hex, with the bits that differ from the pattern.
+
+On the Basys 3, the LUTRAM is in the frames `00400a20` to `00400a23` and `00000a20` to `00000a23`: `pblock_LUTRAM` crosses the border between two clock regions, at row Y50.
 
 ## The calls of the example
 
@@ -64,6 +66,7 @@ python main.py
 | `HOLD_AFTER_INJECTION_S` | `1.5` | Part 1: the time that the clock stays stopped after each upset, so that the LEDs show the flipped bit. |
 | `LUT_ADDR_BITS` / `LUT_DEPTH` | `6` / `64` | The address width and the number of words of the LUTRAM. |
 | `LUT_DATA_LEN` | `32` | The word width of the LUTRAM. It must be equal to the `lut_data_len` generic of the design. |
+| `PATTERN` | `0xA5A5A5A5` | Part 2: the value that the script writes into each LUTRAM word. |
 | `PBLOCK_SR` / `PBLOCK_LUTRAM` | `"pblock_ff_sr_inst"` / `"pblock_LUTRAM"` | The pblocks for parts 1 and 2, as the XDC file names them. |
 
 ## Result
@@ -83,20 +86,27 @@ FF is the flip-flop that the upset hit. BEFORE and AFTER show bit 7 on the left,
      4   5  00400f9f    97   28  00000000  00100000
 Part 1: done after 4 trials.
 Re-programming before Part 2.
-Part 2: all 64 LUTRAM words read back correctly. Injecting random upsets, not corrected - press Enter to move on.
+Part 2: all 64 LUTRAM words read back 0xa5a5a5a5. Injecting random upsets, not corrected - press Enter to move on.
 Part 2: 2048 LUTRAM bits inside pblock_LUTRAM.
-     #  FAR       WORD  BIT
-     1  00000a21     3   27
-     2  00000a23     3    0
-...
+ADDR is the LUTRAM word that the upset hit.
+     #  FAR       WORD  BIT  ADDR
+     1  00000a21     3   27    25
+     2  00000a23     3    0    55
+     3  00400a21    93   15     9
+     4  00400a21    97    5    45
+     5  00400a22    89    8    22
+     6  00400a23    91   16    55
+     7  00400a23   100    8    23
+     8  00400a22    98   27    16
 Part 2: 8 upsets injected.
-  ADDR  CORRECT                           READ                              CORRUPTED BITS
-     0  10100101101001011010010110100101  10100101101001011010010110100101  -
-...
-     9  10100101101001011010010110101100  10100101101001011010010110100100  3
-...
-    55  10100101101001011010010110010010  10101101111001011010010110010010  22, 27
-...
+  ADDR  READ        FLIPPED BITS
+     9  0xa5a5a5ad  3
+    16  0xa5a5a5a4  0
+    22  0xa5a1a5a5  18
+    23  0xe5a5a5a5  30
+    25  0xa4a5a5a5  24
+    45  0xa5a5a1a5  10
+    55  0xade5a5a5  22, 27
 Part 2: 7/64 words are corrupted, 8 bits in total.
 Re-programming to clear the device.
 Example 3 done.
