@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 from typing import Iterable, Optional, overload
 
 import grpc
@@ -70,6 +71,23 @@ _UPLOAD_CHUNK_SIZE = 1 << 20
 # The number of hexadecimal digits of the checksum in the name of the folder
 # of a design on the server.
 _DESIGN_CHECKSUM_DIGITS = 8
+
+def _major_minor(version: str) -> Optional[tuple[int, int]]:
+    """
+    Get the major and minor numbers of a version X.Y.Z, without the
+    revision and the hash: for example (1, 0) for "1.0.3" or
+    "1.0.3-2-g4a4fc34".
+
+    Parameters:
+        version (str): The version.
+
+    Returns:
+        Optional[tuple[int, int]]: The major and minor numbers, or None if
+            the version does not start with X.Y.
+    """
+    match = re.match(r"\s*v?(\d+)\.(\d+)", version)
+    return (int(match.group(1)), int(match.group(2))) if match else None
+
 
 def _rpc_detail(error: grpc.RpcError) -> str:
     """
@@ -322,19 +340,26 @@ class FpgaDevice:
         """
         return self
 
-    def __exit__(self, *exc_info) -> None:
+    def __exit__(self, exc_type, exc, tb) -> None:
         """
         Leave the context manager and release the device.
 
+        If the block raised an error, a failed release (for example after
+        the server stopped) does not replace that error.
+
         Parameters:
-            *exc_info: Details of any exception raised inside the block.
-                They are not used.
+            exc_type, exc, tb: Details of any exception raised inside the
+                block.
 
         Raises:
             ConnectionFailedError: If the server could not release the
-                device.
+                device, and the block did not raise an error.
         """
-        self.release()
+        try:
+            self.release()
+        except ConnectionFailedError:
+            if exc_type is None:
+                raise
 
     def release(self) -> None:
         """
@@ -2180,8 +2205,9 @@ class SkraftFpga:
         """
         Create a client and open a connection to the server.
 
-        After connecting, the server version is checked and a warning is
-        printed if it does not match the version this client expects.
+        After connecting, the client prints its version and the version of
+        the server. It prints a warning if their major or minor versions
+        differ (X.Y of X.Y.Z).
 
         The connection uses TLS when any of the TLS files is given. This is
         needed when the server is started with -tls-cert and -tls-key.
@@ -2240,8 +2266,13 @@ class SkraftFpga:
                 f"{_rpc_detail(e)}"
             ) from e
 
-        if SK_RAFT_VERSION not in client.version():
-            print(f"WARNING: expected version {SK_RAFT_VERSION}, got {client.version()}")
+        server_version = client.version()
+        if _major_minor(server_version) != _major_minor(SK_RAFT_VERSION):
+            print(f"WARNING: SK-RAFT client {SK_RAFT_VERSION} and server "
+                  f"{server_version} have different major or minor "
+                  f"versions.")
+        else:
+            print(f"SK-RAFT client {SK_RAFT_VERSION}, server {server_version}")
 
         return client
 
