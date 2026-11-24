@@ -4,15 +4,22 @@ The rules that a design must obey for correct fault injection with SK-RAFT, and 
 
 ## 1. Use a safe-startup clock source
 
-**Rule:** The source of each clock tree in the design must be a PLL or an MMCM with safe startup. The output clock must stay off until the PLL has locked.
+**Rule:** Each clock of the design must start only when it is stable and after the FPGA has finished its startup (safe startup):
 
-**Why:** An experiment can program the FPGA again many times, for example to remove the upsets of one step before the next step. After each programming, the design starts again. Without safe startup, the design can run on the clock while the PLL is not stable, and start in an incorrect state. Then a failure that the script sees can come from the startup, and not from the injected fault.
+- A PLL or MMCM output must stay off until the PLL has locked.
+- A board oscillator is stable, but it already runs while the FPGA starts. Drive it through a BUFGCE, and enable the BUFGCE a few clock cycles after the startup, for example through a short shift register.
+
+**Why:** An experiment can program the FPGA again many times, for example to remove the upsets of one step before the next step. After each programming, the design starts again. Without safe startup, the design can run on the clock while the PLL is not stable, and start in an incorrect state. The end of the startup (the release of the global set/reset, GSR) is not synchronous to the clock, and it does not reach all the flip-flops at the same time. If the clock runs at that time, some flip-flops can start one cycle later than the others. In the tests of SK-RAFT, designs without safe startup sometimes started in a corrupt state after a programming. Then a failure that the script sees can come from the startup, and not from the injected fault.
 
 **In this repository:**
 
 - [`auxiliary_components/safe_clk_gen/`](../auxiliary_components/safe_clk_gen/README.md): `clk_gen_wrapper`, a PLL for 7-series, UltraScale and UltraScale+. It enables the output BUFGCE only after LOCKED has passed an 8-stage shift register.
 - `targeted_top`, `ff_lut_top`, `brams_top` and `bram_readback_writeback_top` (in `get_started/hw/sources_1/new/`), [`test_neo_hardened`](../application_examples/test_neo_hardened/README.md), [`sem_arbitration`](../application_examples/sem_arbitration/README.md) and [`mmcm_drp_interface`](../application_examples/mmcm_drp_interface/README.md) use `clk_gen_wrapper`.
 - All the examples program the FPGA at the start, and some examples program it again between their steps (for example [example1](../get_started/example1/README.md) and [example4](../get_started/example4/README.md)).
+
+**AMD references:**
+
+- WP272, *Get Smart About Reset: Think Local, Not Global*: the global set/reset (GSR) at the end of the configuration, and its release.
 
 ## 2. Stop the clock during application memory injection
 
