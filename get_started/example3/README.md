@@ -15,11 +15,12 @@ Part 1 injects faults into the flip-flops inside the shift-register's pblock are
 
 Each trial does these steps:
 
-1. It lets the clock operate for 2 s, and then it stops the clock.
+1. It lets the shift register make two full turns (16 shifts, 3.2 s), and then it stops the clock.
 2. It reads the shift register.
 3. It upsets one flip-flop.
 4. It reads the shift register again and prints the two values.
-5. It starts the clock again.
+5. It keeps the clock stopped for 1.5 s, so that the LEDs show the flipped bit. The LEDs show bits 3:0 of the register: an upset in bits 7:4 shows on the LEDs when it shifts down.
+6. It starts the clock again.
 
 The script does not correct the upsets. Part 1 continues until you press Enter.
 
@@ -58,6 +59,9 @@ python main.py
 | Constant | Default | Description |
 | --- | --- | --- |
 | `SR_LEN` | `8` | The width of the shift register. It must be equal to the `sr_len` generic of the design. |
+| `SHIFT_PERIOD_S` | `0.2` | The time between two shifts of the register: 2 x the `shift_interval` generic of the design (100 ms). |
+| `TURNS_PER_TRIAL` | `2` | Part 1: the full turns of the register between two upsets. 2 turns are 16 shifts, 3.2 s. |
+| `HOLD_AFTER_INJECTION_S` | `1.5` | Part 1: the time that the clock stays stopped after each upset, so that the LEDs show the flipped bit. |
 | `LUT_ADDR_BITS` / `LUT_DEPTH` | `6` / `64` | The address width and the number of words of the LUTRAM. |
 | `LUT_DATA_LEN` | `32` | The word width of the LUTRAM. It must be equal to the `lut_data_len` generic of the design. |
 | `PBLOCK_SR` / `PBLOCK_LUTRAM` | `"pblock_ff_sr_inst"` / `"pblock_LUTRAM"` | The pblocks for parts 1 and 2, as the XDC file names them. |

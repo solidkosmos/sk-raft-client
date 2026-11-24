@@ -13,11 +13,12 @@ Part 1 injects upsets into the flip-flops in ``pblock_ff_sr_inst``, with
 script uses ``bit_count`` to make sure that the pblock contains
 flip-flops.
 
-Each trial runs the clock for 2 s and then stops the clock. The script
-reads the shift register before and after the upset. Then the script
-starts the clock again. The script does not correct the upsets, so each
-trial starts from the state that the earlier trials left. Part 1
-continues until you press Enter.
+Each trial lets the shift register make TURNS_PER_TRIAL full turns, and
+then stops the clock. The script reads the shift register before and after
+the upset. The clock stays stopped for HOLD_AFTER_INJECTION_S, so that the
+LEDs show the flipped bit. Then the script starts the clock again. The
+script does not correct the upsets, so each trial starts from the state
+that the earlier trials left. Part 1 continues until you press Enter.
 
 Part 2 limits the injection to a pblock in the same way, with
 ``dev.inject_random(TargetMemory.LUTRAM, pblock=PBLOCK_LUTRAM)``. The
@@ -71,6 +72,18 @@ PBLOCK_LUTRAM = "pblock_LUTRAM"
 # The generics of the design. If you build the design again with
 # different values, set these constants to the same values.
 SR_LEN = 8
+# The design shifts the register every 2 x shift_interval ms (generic,
+# 100 ms by default): every 0.2 s.
+SHIFT_PERIOD_S = 0.2
+
+# Part 1 timing, so that you can follow each upset on the LEDs. Between two
+# upsets, the register makes TURNS_PER_TRIAL full turns (SR_LEN shifts
+# each): 2 turns take 3.2 s. After each upset, the clock stays stopped for
+# HOLD_AFTER_INJECTION_S, so that the LEDs show the flipped bit.
+TURNS_PER_TRIAL = 2
+HOLD_AFTER_INJECTION_S = 1.5
+RUN_S = TURNS_PER_TRIAL * SR_LEN * SHIFT_PERIOD_S
+
 # 6 address bits give 64 LUTRAM words.
 LUT_ADDR_BITS = 6
 LUT_DEPTH = 64
@@ -164,10 +177,11 @@ def main() -> int:
                 enable_clock(dev, True)
                 n = 0
                 while True:
-                    if stop.is_set():
+                    # Let the register make TURNS_PER_TRIAL full turns.
+                    # Enter stops Part 1 at once, without one more upset.
+                    if stop.wait(RUN_S):
                         break
 
-                    time.sleep(2)
                     # Injection guideline (application memory): each upset
                     # is a readback-modify-writeback of full frames. These
                     # frames also hold adjacent logic. The server does
@@ -197,6 +211,9 @@ def main() -> int:
                           f"{before:08b}  {after:08b}")
                     n += 1
 
+                    # Keep the clock stopped, so that the LEDs show the
+                    # flipped bit (the LEDs show bits 3:0 only).
+                    time.sleep(HOLD_AFTER_INJECTION_S)
                     enable_clock(dev, True)
 
 
