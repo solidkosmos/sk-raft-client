@@ -171,7 +171,9 @@ def main() -> int:
                     return 1
 
                 print(f"Press Enter to move on.")
-                print("     #  FAR       WORD  BIT  BEFORE    AFTER")
+                print("FF is the flip-flop that the upset hit. BEFORE and "
+                      "AFTER show bit 7 on the left, bit 0 on the right.")
+                print("     #  FF  FAR       WORD  BIT  BEFORE    AFTER")
                 watch_for_enter()
 
                 enable_clock(dev, True)
@@ -206,7 +208,12 @@ def main() -> int:
                     # starts again, the value moves along the feedback
                     # loop. You can see the value on the LEDs and through
                     # BSCAN.
-                    print(f"{n + 1:>6}  {report.far:08x}  "
+                    # The server names the flip-flop that it hit, for
+                    # example "ff_sr_inst/mass_s_reg[5]": [5] is bit 5 of
+                    # the shift register.
+                    ff = (report.net_name.rsplit("[", 1)[-1].rstrip("]")
+                          if report.net_name else "?")
+                    print(f"{n + 1:>6}  {ff:>2}  {report.far:08x}  "
                           f"{report.word_index:>4}  {report.bit_index:>3}  "
                           f"{before:08b}  {after:08b}")
                     n += 1

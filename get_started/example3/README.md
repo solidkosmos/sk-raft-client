@@ -18,7 +18,7 @@ Each trial does these steps:
 1. It lets the shift register make two full turns (16 shifts, 3.2 s), and then it stops the clock.
 2. It reads the shift register.
 3. It upsets one flip-flop.
-4. It reads the shift register again and prints the two values.
+4. It reads the shift register again. It prints the two values and the flip-flop that the upset hit (FF). The server gives the name of that flip-flop in the injection report, for example `ff_sr_inst/mass_s_reg[5]` for bit 5.
 5. It keeps the clock stopped for 1.5 s, so that the LEDs show the flipped bit. The LEDs show bits 3:0 of the register: an upset in bits 7:4 shows on the LEDs when it shifts down.
 6. It starts the clock again.
 
@@ -42,7 +42,7 @@ Part 2 injects faults into the LUTRAM in `pblock_LUTRAM` (`TargetMemory.LUTRAM`)
 | `dev.configure_seed(0)` | Set the seed of the random injections. The same seed gives the same upsets in each run. |
 | `BscanPrimitive(user, length)`, `dev.write_bscan(primitive, value)`, `dev.read_bscan(primitive)` | Start and stop the clock (USER1), read the shift register (USER2), and select, write and read a LUTRAM word (USER3, USER4). |
 | `dev.bit_count(TargetMemory.FF, pblock=PBLOCK_SR)`, `dev.bit_count(TargetMemory.LUTRAM, pblock=PBLOCK_LUTRAM)` | Get the number of flip-flop bits and LUTRAM bits of each pblock. |
-| `dev.inject_random(TargetMemory.FF, pblock=PBLOCK_SR)` | Part 1: inject one upset into a random flip-flop of the shift register. |
+| `dev.inject_random(TargetMemory.FF, pblock=PBLOCK_SR)`, `report.net_name` | Part 1: inject one upset into a random flip-flop of the shift register, and get the name of that flip-flop. |
 | `dev.inject_random(TargetMemory.LUTRAM, pblock=PBLOCK_LUTRAM)` | Part 2: inject one upset into a random bit of the LUTRAM. |
 
 ## Run the example
@@ -72,14 +72,15 @@ Sample output of a run on a Basys 3 (shortened). The frame addresses, the bit co
 
 ```
 Example 3: Flip-flop shift register and LUTRAM injection
-Programmed 210183BFD452A.
+Programmed 210183BA2524A.
 Part 1: 8 flip-flop bits inside pblock_ff_sr_inst.
 Press Enter to move on.
-     #  FAR       WORD  BIT  BEFORE    AFTER
-     1  00400f9f    97   28  00000100  00100100
-     2  00400f9f    97   28  10010000  10110000
-     3  00400f9f    97    4  11000010  11000011
-     4  00400f9f    97   28  00001111  00101111
+FF is the flip-flop that the upset hit. BEFORE and AFTER show bit 7 on the left, bit 0 on the right.
+     #  FF  FAR       WORD  BIT  BEFORE    AFTER
+     1   5  00400f9f    97   28  00000001  00100001
+     2   5  00400f9f    97   28  00100001  00000001
+     3   0  00400f9f    97    4  00000001  00000000
+     4   5  00400f9f    97   28  00000000  00100000
 Part 1: done after 4 trials.
 Re-programming before Part 2.
 Part 2: all 64 LUTRAM words read back correctly. Injecting random upsets, not corrected - press Enter to move on.
@@ -88,7 +89,7 @@ Part 2: 2048 LUTRAM bits inside pblock_LUTRAM.
      1  00000a21     3   27
      2  00000a23     3    0
 ...
-Part 2: 7 upsets injected.
+Part 2: 8 upsets injected.
   ADDR  CORRECT                           READ                              CORRUPTED BITS
      0  10100101101001011010010110100101  10100101101001011010010110100101  -
 ...
@@ -96,7 +97,7 @@ Part 2: 7 upsets injected.
 ...
     55  10100101101001011010010110010010  10101101111001011010010110010010  22, 27
 ...
-Part 2: 6/64 words are corrupted, 7 bits in total.
+Part 2: 7/64 words are corrupted, 8 bits in total.
 Re-programming to clear the device.
 Example 3 done.
 ```
