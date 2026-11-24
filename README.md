@@ -74,14 +74,8 @@ Before you inject into the application memory (flip-flops, LUTRAM, BRAM), read t
 
 ## Quick start
 
-1. Install the SK-RAFT server with its licence. Connect the FPGA board to the server computer through its USB JTAG cable.
-2. Start the server. On Windows, run the launcher in the `bin` folder of the server installation:
-
-   ```bat
-   bin\sk-raft.bat
-   ```
-
-   On Linux, run the server executable of the installation. It takes the same options as on Windows.
+1. Install the SK-RAFT server and activate its licence. Connect the licence dongle, if you use one, and the FPGA board (its USB JTAG cable) to the server computer. Close the Vivado Hardware Manager (`hw_server`): only one program can use a JTAG cable at a time.
+2. Start the server: type `sk-raft` in a terminal, on Windows or on Linux. If the server does not see the board, refer to the troubleshooting chapter of the SK-RAFT Server User Manual.
 
    The server is ready when it prints:
 
@@ -110,7 +104,7 @@ Before you inject into the application memory (flip-flops, LUTRAM, BRAM), read t
    | `-tls-cert <file>`, `-tls-key <file>` | The TLS certificate and private key (PEM) of the server. With them, the server accepts only TLS connections. |
    | `-tls-public-key <file>` | The public key (or certificate) of the clients that the server accepts. Refer to [`application_examples/tls_program`](application_examples/tls_program/README.md). |
 
-   `bin\sk-raft.bat -v` prints the version of the server. On Windows, the launcher runs the server in `%LOCALAPPDATA%\SolidKosmos\sk-raft`. The server writes its log, `skraft.log`, and its cache there.
+   `sk-raft -v` prints the version of the server. The server writes its log, `skraft.log`, and its cache in `%LOCALAPPDATA%\SolidKosmos\sk-raft` on Windows and in `~/.local/share/SolidKosmos/sk-raft` on Linux.
 3. Install the `skraft` Python client. On Windows, double-click `get_started\install_client.bat`, then `get_started\open_terminal.bat`. On Linux, run `sh get_started/install_client.sh`, then `sh get_started/open_terminal.sh`. Run the commands of the next steps in the terminal that opens. To install the client with commands instead, refer to [Installation](#installation).
 4. Make sure that the server finds your board:
 
@@ -209,7 +203,7 @@ See [`./api/python/offline_bundle`](./api/python/offline_bundle)
 The client and the SK-RAFT server have separate versions, in the form MAJOR.MINOR.PATCH. A server works with each client of the same major version that is not newer than the server. For example, server 1.4.2 works with clients 1.0.0 to 1.4.2. It does not work with client 1.5.0 or with client 2.0.0.
 
 - The version of the client: `pip show skraft`.
-- The version of the server: `bin\sk-raft.bat -v`, or `client.version()` from a script.
+- The version of the server: `sk-raft -v`, or `client.version()` from a script.
 
 The changes of each version are in [`CHANGELOG.md`](CHANGELOG.md).
 
