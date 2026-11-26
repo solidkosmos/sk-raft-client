@@ -1,4 +1,4 @@
-# Component injection: the components of a design, and random flip-flop upsets in one component
+# Example 5: the components of a design, and random flip-flop upsets in one component
 
 This example shows the components of the design hierarchy as a tree, with the number of flip-flops in each component. Then it injects upsets only into the flip-flops of one of these components. It uses the design of [example 2](../example2/README.md) (`bscan_adder_top`).
 
@@ -6,7 +6,7 @@ A component is one or more whole levels of the net paths in the LL file. For exa
 
 ### Example of the hierarchy
 
-Using `bscan_adder_top` as an example.
+The tree of `bscan_adder_top`, as part 1 prints it:
 
 ```
 3 top-level components:
@@ -58,7 +58,46 @@ python main.py
 
 ## Result
 
-The script prints the tree, the full paths, and then one line for each upset: the number of the upset, the FAR, the word, the bit and the net. In `bscan_adder_top`, the top-level components are the three BSCAN registers: `bscan_u1_operands` (USER1, the operands of the two adders), `bscan_u2_simplex_adder_res` (USER2, the result of the simplex adder) and `bscan_u3_tmr_adder_res` (USER3, the result of the TMR adder). The script does not read the adders. To read their results through BSCAN, refer to [example 2](../example2/README.md).
+Sample output of a run on a Basys 3. The frame addresses and the flip-flops depend on the board, the build and the seed.
+
+```
+Example 5: the components of the design, and random flip-flop upsets in one component
+SK-RAFT client 1.0.0, server 1.0.3
+Programmed 210183BA2524A.
+
+3 top-level components:
+
+bscan_u1_operands (20 flip-flops)
+`-- bscan_interface_read_write_uX (20 flip-flops)
+bscan_u2_simplex_adder_res (5 flip-flops)
+`-- bscan_interface_read_write_uX (5 flip-flops)
+bscan_u3_tmr_adder_res (5 flip-flops)
+`-- bscan_interface_read_write_uX (5 flip-flops)
+
+Component paths for inject_random(TargetMemory.FF, component=<path>):
+
+  bscan_u1_operands                                             20 flip-flops
+  bscan_u1_operands/bscan_interface_read_write_uX               20 flip-flops
+  bscan_u2_simplex_adder_res                                     5 flip-flops
+  bscan_u2_simplex_adder_res/bscan_interface_read_write_uX       5 flip-flops
+  bscan_u3_tmr_adder_res                                         5 flip-flops
+  bscan_u3_tmr_adder_res/bscan_interface_read_write_uX           5 flip-flops
+
+bscan_u1_operands: 20 flip-flops.
+Injecting random upsets, not corrected. Press Enter to stop.
+     #  FAR       WORD  BIT  NET
+     1  00400a1f    62    1  bscan_u1_operands/bscan_interface_read_write_uX/data_user_reg_data_in[2]
+     2  00400a1f    62    1  bscan_u1_operands/bscan_interface_read_write_uX/data_user_reg_data_in[2]
+     3  00400a1f    61   29  bscan_u1_operands/bscan_interface_read_write_uX/Q[1]
+     4  0040099f    63   28  bscan_u1_operands/bscan_interface_read_write_uX/FSM_onehot_check_rw_reg_n_0_[0]
+...
+6 upsets injected into bscan_u1_operands.
+Re-programming to clear the device.
+
+Example 5 done.
+```
+
+The script prints the tree, the full paths, and then one line for each upset: the number of the upset, the FAR, the word, the bit and the net. The same flip-flop can get two upsets in a row, as upsets 1 and 2 show: the second upset flips the bit back. In `bscan_adder_top`, the top-level components are the three BSCAN registers: `bscan_u1_operands` (USER1, the operands of the two adders), `bscan_u2_simplex_adder_res` (USER2, the result of the simplex adder) and `bscan_u3_tmr_adder_res` (USER3, the result of the TMR adder). The script does not read the adders. To read their results through BSCAN, refer to [example 2](../example2/README.md).
 
 The number of flip-flops and the locations depend on the build of your design. The numbers come from the LL file. If you exclude pblocks or frames, `dev.inject_random()` can select fewer flip-flops of a component than the tree shows. The script sets the seed (`dev.configure_seed(0)`). Thus, with the same design, each run injects into the same sequence of flip-flops.
 

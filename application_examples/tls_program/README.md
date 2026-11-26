@@ -81,18 +81,18 @@ To use RSA keys instead of EC keys, replace `-algorithm EC -pkeyopt ec_paramgen_
 
 ## Start the server with TLS
 
-Give the server the full paths of the TLS files. On Windows, the launcher runs the server in `%LOCALAPPDATA%\SolidKosmos\sk-raft`, not in the current folder. With a relative path, the server does not find the file and stops with `failed to load TLS files: open certs\server.crt: The system cannot find the path specified.`
+Give the server the full paths of the TLS files. The server runs in its own folder (`%LOCALAPPDATA%\SolidKosmos\sk-raft` on Windows), not in the current folder. With a relative path, the server does not find the file and stops with `failed to load TLS files: open certs\server.crt: The system cannot find the path specified.`
 
-On Windows, run the launcher from the folder of the server installation. The paths are an example:
+On Windows (the paths are an example):
 
 ```bat
-bin\sk-raft.bat -port 50051 -tls-cert C:\sk-raft\certs\server.crt -tls-key C:\sk-raft\certs\server.key -tls-public-key C:\sk-raft\certs\client_public.pem
+sk-raft -port 50051 -tls-cert C:\sk-raft\certs\server.crt -tls-key C:\sk-raft\certs\server.key -tls-public-key C:\sk-raft\certs\client_public.pem
 ```
 
-On Linux, give the same options to the server executable of the installation, for example with the files in `~/sk-raft/certs/`:
+On Linux, with the files in `~/sk-raft/certs/`:
 
 ```bash
-<server executable> -port 50051 \
+sk-raft -port 50051 \
     -tls-cert ~/sk-raft/certs/server.crt -tls-key ~/sk-raft/certs/server.key \
     -tls-public-key ~/sk-raft/certs/client_public.pem
 ```

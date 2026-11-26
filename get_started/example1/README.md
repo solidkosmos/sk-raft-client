@@ -4,20 +4,26 @@ This example shows the CRAM injection functions of SK-RAFT in three steps on one
 
 1. **Full-device CRAM.** The script reads back all the CRAM frames. Then it upsets random bits in these frames.
 2. **Essential bits.** The server selects each bit from the design's essential bits. The server reads the essential bits from the EBD file.
-3. **The essential bits of one pblock.** This step is the same as step 2, but in one pblock at a time: first `pblock_slow_heartbeat`, then `pblock_fast_heartbeat`.
+3. **The essential bits of one pblock.** This step is the same as step 2, but in one pblock at a time: first `pblock_sr_0`, then `pblock_sr_1`.
 
-The script keeps each upset for 100 ms, then flips the same bit again to correct it. Each step, and each pblock in step 3, continues until you press Enter. The script reprograms the FPGA before steps 2 and 3. Monitor the LEDs on the board to see the effect of each upset.
+The script keeps each upset for 100 ms, then flips the same bit again to correct it. Step 1 stops after 200 upsets, or earlier when you press Enter. Step 2, and each pblock in step 3, continue until you press Enter. The script reprograms the FPGA before steps 2 and 3. Monitor the LEDs on the board to see the effect of each upset.
 
 ## Design
 
-<img src="images/example1_targeted_top_abstract.svg" alt="Block diagram of targeted_top. The safe clock generation feeds a slow heartbeat and a fast heartbeat. Each heartbeat is in its own pblock and drives an LED." />
+<img src="images/example1_targeted_top_abstract.svg" alt="Block diagram of targeted_top. The safe clock generation feeds two 16-bit shift registers with a feedback loop. Each shift register is in its own pblock. A parity generator outside the pblocks reads each register and drives an LED." />
 
-The design for this example is [`targeted_top`](../hw/sources_1/new/targeted_top.vhd). It has a fast heartbeat counter and a slow heartbeat counter, each in its own pblock. The XDC file of the design declares the two pblocks, for example:
+The design for this example is [`targeted_top`](../hw/sources_1/new/targeted_top.vhd). It has two 16-bit shift registers with a feedback loop, `shift_reg_0` and `shift_reg_1`, each in its own pblock. Both shift at each clock cycle. The design computes the even parity of each register, outside the pblocks, and shows it on an LED: LD0 for `shift_reg_0`, LD1 for `shift_reg_1`.
+
+Each register starts with one '1' bit, so both LEDs are on. A shift does not change the number of '1' bits, so the LEDs stay on. An upset that changes the number of '1' bits in a register changes its LED. The register keeps the changed bits after the script corrects the upset: the LED stays changed until the script programs the FPGA again, or until a second upset changes the register again.
+
+The two registers are identical, so synthesis would keep only one of them. The `dont_touch` attribute on their instances keeps both.
+
+The XDC file of the design declares the two pblocks, for example (Basys 3):
 
 ```tcl
-create_pblock pblock_fast_heartbeat
-add_cells_to_pblock [get_pblocks pblock_fast_heartbeat] [get_cells fast_hb_inst]
-resize_pblock [get_pblocks pblock_fast_heartbeat] -add {SLICE_X54Y91:SLICE_X57Y99}
+create_pblock pblock_sr_0
+add_cells_to_pblock [get_pblocks pblock_sr_0] [get_cells -quiet [list shift_reg_0]]
+resize_pblock [get_pblocks pblock_sr_0] -add {SLICE_X54Y91:SLICE_X57Y99}
 ```
 
 A pblock keeps the cells of its instance in the given area. Two more properties control the pblock:
@@ -54,37 +60,41 @@ python main.py
 | Constant | Default | Description |
 | --- | --- | --- |
 | `design` | `targeted_top.{bit,ebd}` + XDC | The design files. The script uploads them to the server. |
-| `pblocks` (in `main()`) | slow and fast heartbeat | The pblocks for step 3, as the XDC file names them. |
+| `STEP1_UPSETS` | `200` | The number of upsets in step 1. Press Enter to stop step 1 earlier. |
+| `PBLOCKS` | `pblock_sr_0`, `pblock_sr_1` | The pblocks for step 3, as the XDC file names them. |
 
 ## Result
 
 Sample output of a run on a Basys 3 (shortened). The frame addresses, the bit counts and the error counts depend on the board, the build and the seed.
 
 ```
-programmed 210183BFD452A with ../../hw/design_examples/basys3/targeted_top/targeted_top.bit
+SK-RAFT client 1.0.0, server 1.0.3
+programmed 210183BA2524A with ../../hw/design_examples/basys3/targeted_top/targeted_top.bit
 
-Step 1: random bits, anywhere. Press Enter to move on.
+Step 1: random bits, anywhere. 200 upsets, or press Enter to move on.
 frames read back: 5568
   1: far 0x00c000cb word  14 bit  1
   2: far 0x00020a14 word  31 bit 14
 ...
 
-Step 2: essential bits only (18563) . Press Enter to move on.
+Step 2: essential bits only (7906) . Press Enter to move on.
   1: far 0x00001400 word  50 bit 31
-  2: far 0x0000110d word  87 bit 27
+  2: far 0x00001094 word  83 bit 20
 ...
 
 Step 3: one pblock at a time.
 
-pblock_slow_heartbeat: essential bits (7166). Press Enter to move on.
-  1: far 0x00001423 word  20 bit  4
+pblock_sr_0: essential bits (1129). Press Enter to move on.
+  1: far 0x000011a0 word  83 bit 30
+  2: far 0x0000118f word  84 bit 15
 ...
 
-pblock_fast_heartbeat: essential bits (6740). Press Enter to move on.
-  1: far 0x00001214 word  86 bit 26
+pblock_sr_1: essential bits (1076). Press Enter to move on.
+  1: far 0x0000141e word  13 bit  3
+  2: far 0x00001408 word  12 bit  6
 ...
 
 Example 1 done.
 ```
 
-The script corrects each upset. Thus, the device configuration is clean at the end. If you stop the script with Ctrl+C during an upset, the upset can remain in the device. In that case, reprogram the FPGA before you do any other work.
+The script corrects each upset. Thus, the device configuration is clean at the end. The shift registers can still hold bits that an upset changed: program the FPGA again to start them from one '1' bit. If you stop the script with Ctrl+C during an upset, the upset can remain in the device. In that case, reprogram the FPGA before you do any other work.

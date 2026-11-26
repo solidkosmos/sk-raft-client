@@ -1,6 +1,6 @@
 # Readback scrubbing in Python
 
-This example corrects upsets in the configuration memory (CRAM) of the FPGA with a readback scrubber that runs on the client. The script uses only the readback and the frame write of SK-RAFT. It does not use the scrubbing of the server (`dev.scrub()`). Thus you can see each step of the scrubber, and change it.
+This example corrects upsets in the configuration memory (CRAM) of the FPGA with a readback scrubber that runs on the client. The script uses only the readback and the frame write of SK-RAFT. Thus you can see each step of the scrubber, and change it.
 
 The script does not need design files, and it does not program the FPGA. It scrubs the design that is in the FPGA.
 
@@ -30,7 +30,7 @@ The script does not check these frames:
 | Dummy (pad) frames | The first and the last frame of a readback, and each frame with the same FAR as the frame before it. A dummy frame does not hold configuration data. Its FAR is the FAR of a real frame, thus a write would change the real frame. |
 | BRAM content frames (block type 1) | The contents of the BRAMs change during operation. |
 
-The SK-RAFT scrubber on the server does the same steps. The script is different in these points:
+The scrubber has these limits:
 
 - The golden frames come from the readback at the start of the script. If an upset is in the CRAM before this readback, the scrubber does not correct it.
 - The script does not tell essential upsets from non-essential upsets.

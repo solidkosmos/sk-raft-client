@@ -1,20 +1,30 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (C) 2026 SOLIDKOSMOS S.A.
 
-"""Example 4, readback and writeback: what a BRAM with the built-in ECC and
-no output register outputs when SK-RAFT injects into its content.
+"""Example 6: the BRAM port that SK-RAFT shares with your design.
+
+A BRAM has one write path and one read path. Your design (the application
+layer) and the configuration logic of the FPGA (the configuration layer)
+both use them. SK-RAFT reads and writes the BRAM content through the
+configuration layer. This script shows the two effects:
+
+  1. A configuration read changes the output of the BRAM. While the clock
+     is stopped, the BRAM outputs a word that your design did not read.
+  2. A configuration write goes through the ECC encoder of the BRAM. The
+     encoder makes new parity bits for the injected bit, so the ECC
+     decoder does not see the error.
 
 The design has one RAMB36 (512 x 72: 64 data bits, 8 ECC bits) with the
 built-in ECC encoder and decoder, and no output register. The read port
-is always enabled. USER3 reads the BRAM outputs directly. Refer to
-README.md for the register map.
+is always enabled. USER3 reads the BRAM outputs directly, with no hold
+register. Refer to README.md for the register map.
 
 Stage 1: fill the BRAM, select word 0, read. The word is correct.
 Stage 2: stop the clock, read. The word is still correct.
 Stage 3: inject into word 0, bit 0 (the clock is still stopped), read.
-         The output is a wrong word.
+         The output is a wrong word (effect 1).
 Stage 4: start the clock, read. The word has bit 0 flipped, and SBITERR
-         is 0.
+         is 0 (effect 2).
 """
 
 from skraft import BscanPrimitive, Design, SkraftError, SkraftFpga, TargetMemory
@@ -31,7 +41,7 @@ SK_RAFT_SERVER_PORT = 50051
 # create_project.tcl (see README.md). The paths are relative to src/. Run
 # the script from that folder.
 BOARD = "basys3"
-DESIGN_DIR = f"../../../hw/design_examples/{BOARD}/bram_readback_writeback_top"
+DESIGN_DIR = f"../../hw/design_examples/{BOARD}/bram_readback_writeback_top"
 
 # The bitstream programs the device. The LL file gives the location of
 # each BRAM content bit.

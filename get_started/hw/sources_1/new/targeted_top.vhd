@@ -4,8 +4,10 @@
 -- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
 -- Module Name: targeted_top
--- Description: Two independent heartbeat counters (slow, fast) for
+-- Description: Two independent feedback loop shift registers for
 --              targeted fault-injection experiments.
+--              Their parity is output to LEDs to indicate
+--              erroneous behaviour.
 --------------------------------------------------------------------------------
 
 
@@ -14,7 +16,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 use work.examples_utilities_pkg.all;
 
--- Two heartbeat modules (slow and fast) for the targeted fault-injection example
+-- Two feedback loop shift registers for the targeted fault-injection example
 
 entity targeted_top is
   Generic (
@@ -22,12 +24,10 @@ entity targeted_top is
     -- to clk_gen_wrapper.
     g_family       : string  := "7SERIES";
     -- The input clock frequency in MHz (100 MHz by default). The PLL wrapper
-    -- uses it. The heartbeat intervals are in clock cycles and do not use it.
+    -- uses it. The shift registers shift at each clock cycle.
     clk_freq       : integer range 1 to 400 := 100;
-    -- Maximum 5 s (500,000,000 cycles) at 100 MHz
-    slow_heartbeat_interval : integer range 1 to 5*(10**8) := 1*(10**8);
-    -- The default is 0.25 s at 100 MHz
-    fast_heartbeat_interval : integer range 1 to 5*(10**8) := (1*(10**8))/4
+    -- The number of bits each shift register will have
+    sr_bit_count   : integer range 0 to 512 := 16
   );
   Port ( 
     clk_i : in std_ulogic;
@@ -39,18 +39,25 @@ architecture Structure of targeted_top is
 
     signal safe_clk : std_ulogic;
     
-    signal heartbeat_slow_sig,
-           heartbeat_fast_sig : std_ulogic := '0';
+    signal sr_0, sr_1 : std_ulogic_vector(sr_bit_count - 1 downto 0);
+
+    signal sr_par_0,
+           sr_par_1 : std_ulogic := '0';
     
-    component heartbeat is
+    component sr_module is
       Generic (
-        hb_interval : integer range 1 to 5*(10**8) := 1 
+        mass_bit_count : integer range 0 to 512 := 8
       );
       Port ( 
-        clk_i : in std_ulogic;
-        heartbeat_o : out std_ulogic
+        clk_i   : in std_ulogic;
+        data_o  : out std_ulogic_vector(mass_bit_count - 1 downto 0)
       );
     end component;
+
+    -- Keep both shift registers. They have the same inputs and generics, so
+    -- synthesis would otherwise keep only one of them (decloning).
+    attribute dont_touch : string;
+    attribute dont_touch of shift_reg_0, shift_reg_1 : label is "TRUE";
     
 begin
     
@@ -69,25 +76,46 @@ begin
       );
 
     
-    slow_heartbeat:heartbeat
-    Generic map (
-      hb_interval => slow_heartbeat_interval
-    )
-    Port map ( 
-      clk_i       => safe_clk,
-      heartbeat_o => heartbeat_slow_sig
-    );
+    shift_reg_0:sr_module
+      Generic map (
+        mass_bit_count => sr_bit_count
+      )
+      Port map ( 
+        clk_i   => safe_clk,
+        data_o  => sr_0
+      );
     
-    fast_heartbeat:heartbeat
-    Generic map (
-      hb_interval => fast_heartbeat_interval
-    )
-    Port map ( 
-      clk_i       => safe_clk,
-      heartbeat_o => heartbeat_fast_sig
-    );
+    shift_reg_1:sr_module
+      Generic map (
+        mass_bit_count => sr_bit_count
+      )
+      Port map ( 
+        clk_i   => safe_clk,
+        data_o  => sr_1
+      );
+
+    -- Even parity generation for each shift reg
+    sr_0_par_gen:process(sr_0)
+      variable vpar : std_ulogic;
+      begin
+        vpar := '0';
+        for i in 0 to (sr_bit_count - 1) loop
+            vpar := vpar XOR sr_0(i);
+        end loop;
+        sr_par_0 <= vpar;
+    end process sr_0_par_gen;
+
+    sr_1_par_gen:process(sr_1)
+      variable vpar : std_ulogic;
+      begin
+        vpar := '0';
+        for i in 0 to (sr_bit_count - 1) loop
+            vpar := vpar XOR sr_1(i);
+        end loop;
+        sr_par_1 <= vpar;
+    end process sr_1_par_gen;
     
-    data_o(0) <= heartbeat_slow_sig;
-    data_o(1) <= heartbeat_fast_sig;
+    data_o(0) <= sr_par_0;
+    data_o(1) <= sr_par_1;
 
 end Structure;

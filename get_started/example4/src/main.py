@@ -1,8 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (C) 2026 SOLIDKOSMOS S.A.
 
-"""Example 4: BRAM injection into configuration bits and content, and ECC
-recovery.
+"""Example 4: BRAM content injection and ECC recovery.
 
 The design uses a single RAMB36 as a 1K x 36 memory. Each 36-bit word
 holds 24 data bits and 12 check bits. Fabric logic around the BRAM
@@ -10,26 +9,21 @@ protects each data byte with its own Hamming SEC code (4 check bits for
 each byte). This protection is not the built-in ECC of the BRAM. Refer to
 README.md for the register map.
 
-Part 1 injects essential CRAM upsets into the configuration frames (block
-type 0) of the BRAM column that the pblock covers. These frames hold the
-configuration of the BRAM and the interconnect of the column. The
-interconnect includes routing that only goes through the region
-(EXCLUDE_PLACEMENT constrains placement, not routing). Thus, an upset can
-hit the BRAM, the logic around the BRAM, or unrelated logic. Part 1 does
-not target the content frames (block type 1).
+The script injects upsets only into the content frames of the BRAM
+(block type 1, TargetMemory.BRAM). Then it reads back the memory two
+times: one time with ECC correction off and one time with ECC correction
+on.
 
-After the injections, the script reads back the stored words to find if
-the memory still operates correctly.
+The configuration frames (block type 0) of the BRAM column also affect
+the BRAM. They hold the configuration of the BRAM and the interconnect of
+the column, so an upset in them can change how the BRAM operates, or stop
+it. The script does not inject into them. Refer to README.md.
 
-Part 2 injects upsets into the content frames (block type 1,
-TargetMemory.BRAM). Then the script reads back the memory two times: one
-time with ECC correction off and one time with ECC correction on.
-
-Both parts inject upsets until you press Enter. Thus, the number of
+The script injects upsets until you press Enter. Thus, the number of
 upsets is different for each run. The upsets accumulate, and the script
-does not correct them. Stop Part 2 early to see SEC correct single
-flipped bits. Or, let Part 2 continue to see bytes that collect more
-flipped bits than SEC can correct.
+does not correct them. Stop early to see SEC correct single flipped bits.
+Or, let the injection continue to see bytes that collect more flipped
+bits than SEC can correct.
 """
 
 from __future__ import annotations
@@ -45,13 +39,12 @@ from skraft import BscanPrimitive, Design, SkraftError, SkraftFpga, TargetMemory
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 
-# The design for both parts: a single BRAM behind an ECC read path.
-# The script gives all four files at the start:
+# The design: a single BRAM behind an ECC read path.
+# The script gives all three files at the start:
 #   The bitstream (.bit): to program the device.
-#   The EBD file (.ebd): to find which bits are essential.
 #   The XDC file (.xdc): to find the pblocks.
 #   The LL file (.ll): to find the BRAM/FF/LUTRAM bits that the design uses.
-# uploadDesignToServer() sends the files to the server. The client sends
+# dev.upload_design_to_server() sends the files to the server. The client sends
 # only the file name of each path, not the directory.
 #
 # BOARD is the board of your target device: "basys3" or "zedboard", or
@@ -64,12 +57,11 @@ DESIGN_DIR = f"../../hw/design_examples/{BOARD}/brams_top"
 
 design = Design(
     bit=f"{DESIGN_DIR}/brams_top.bit",
-    ebd=f"{DESIGN_DIR}/brams_top.ebd",
     ll =f"{DESIGN_DIR}/brams_top.ll",
     xdc=f"{DESIGN_DIR}/board.xdc",
 )
 
-PBLOCK_BRAM = "pblock_stock_bram"
+PBLOCK_BRAM = "pblock_soft_sec_bram"
 
 # BSCAN registers: (USER number, width in bits)
 USER_CLK_EN = BscanPrimitive(1, 1)
@@ -188,8 +180,7 @@ def print_hit(dev, n: int, report) -> None:
 
 
 def main() -> int:
-    print("Example 4: BRAM injection, config bits, content, and ECC "
-          "recovery")
+    print("Example 4: BRAM content injection and ECC recovery")
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
@@ -205,21 +196,6 @@ def main() -> int:
                 print(f"Programmed {serial_number}.")
                 enable_clock(dev, True)
 
-                # Part 1: inject upsets into the configuration frames
-                # (block type 0) of the BRAM column, not into its content.
-                # Then program the FPGA again, so no upset from Part 1
-                # stays in Part 2.
-                print("Exercising the stock BRAM's own configuration "
-                      "before touching its contents.")
-                # Note: this count is the size of the set that inject_random
-                # selects from. The set contains the essential bits in the
-                # block type 0 frames of the pblock.
-                bram_config_bits = dev.bit_count(TargetMemory.ESSENTIAL_CRAM, 
-                                                 pblock=PBLOCK_BRAM)
-                print(f"BRAM Config bit count = "
-                      f"{bram_config_bits}")  
-                time.sleep(1)
-
                 # USER4 resets to 0 (correction off). The script writes 0 to
                 # USER4 anyway, so that the code shows the state.
                 # Read the raw data (no correction) for the round-trip check.
@@ -228,7 +204,7 @@ def main() -> int:
                 print("Writing known words in the BRAM...")
                 fill_bram(dev)
                 # Make sure that each word reads back correctly before the
-                # example continues.
+                # injection starts.
                 print("Checking if all words round-trip...")
                 wrong = len(check_bram(dev))
                 if wrong:
@@ -237,56 +213,6 @@ def main() -> int:
                     return 1
                 print(f"All {DEPTH} addresses read back correctly.")
 
-                print("Press enter to stop injecting")
-                time.sleep(1)
-                # Inject upsets until you press Enter.
-                print(f"Injecting Essential CRAM bit upsets into "
-                      f"{PBLOCK_BRAM}'s configuration frames (block type 0), "
-                      f"none corrected.")
-                # Each upset is a readback-modify-writeback of a full frame.
-                # Keep the BRAM idle during the injection (refer to the
-                # guideline in Part 2).
-                print(HIT_HEADER)
-                watch_for_enter()
-                n = 0
-                while True:
-                    if stop.is_set():
-                        break
-                    enable_clock(dev, False)
-                    report = dev.inject_random(TargetMemory.ESSENTIAL_CRAM,
-                                               pblock=PBLOCK_BRAM)
-                    enable_clock(dev, True)
-                    print_hit(dev, n + 1, report)
-                    time.sleep(0.3)
-                    n += 1
-
-                print(f"Injected {n} Essential CRAM faults.")
-                # Scan the memory to count the wrong words.
-                errors = len(check_bram(dev))
-                # A wrong read-back shows that an upset hit the BRAM or its
-                # access path. The read-back cannot show which of the two,
-                # because the frames also hold interconnect.
-                if errors == DEPTH:
-                    print(f"All {DEPTH} addresses read back wrong: the BRAM "
-                          f"or its access path no longer works.")
-                elif errors:
-                    print(f"{errors} of {DEPTH} addresses read back wrong.")
-                else:
-                    print("All words still read back correctly: the upsets "
-                          "hit bits this read/write path doesn't depend on.")
-                print("Re-programming to clear the config upsets "
-                      "before the content campaign.")
-                dev.program_fpga(design)
-                enable_clock(dev, True)
-
-                # When the script programs the FPGA again, USER4 resets to 0.
-                # Thus, the correction is off again. The script does not do the
-                # round-trip check again. The check in Part 1 showed that the
-                # BRAM write/read path is stable.
-
-                # BRAM content: fill the memory with known words.
-                print("Writing known words in the BRAM...")
-                fill_bram(dev)
                 # Note: this count is the size of the set that inject_random
                 # selects from. The set contains all data bits and check
                 # bits of the BRAM (1K x 36 words).

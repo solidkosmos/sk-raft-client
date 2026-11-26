@@ -20,11 +20,11 @@ Each fault that SK-RAFT injects goes into one of the two layers:
 
 Even the densest FPGA design uses only a small part of the CRAM. Thus, a bit flip (fault) in CRAM (`TargetMemory.CRAM`) usually goes into one of these unused CRAM bits. Then the flip has no effect that you can see.
 
-**Essential bits** are CRAM bits that, when corrupted, can cause an application-observable error. SK-RAFT reads the bits from the `.ebd` file of the design that is generated from Vivado bitgen. Thus, targeting faults only in essential CRAM bits (`TargetMemory.ESSENTIAL_CRAM`) can significantly reduce testing time, since only those bits that matter are tested.
+Essential bits are CRAM bits that, when corrupted, can cause an application-observable error. SK-RAFT reads the bits from the `.ebd` file of the design that is generated from Vivado bitgen. Thus, targeting faults only in essential CRAM bits (`TargetMemory.ESSENTIAL_CRAM`) can significantly reduce testing time, since only those bits that matter are tested.
 
 ### Targeting or excluding resources from fault injection
 
-You can inject faults only to the resources of a specific Pblock defined in your XDC constraints file. Combine `pblock=<pblock_name>` with `TargetMemory.FF`, `TargetMemory.LUTRAM`, `TargetMemory.BRAM`, `TargetMemory.CRAM` and `TargetMemory.ESSENTIAL_CRAM` to inject faults into the specific Pblock. To exclude configuration frames from testing, give their frame addresses (FARs) to `dev.exclude_frames()`. The exclusion has no effect on `dev.inject_at()`.
+You can inject faults only to the resources of a specific Pblock defined in your XDC constraints file. Combine `pblock=<pblock_name>` with `TargetMemory.FF`, `TargetMemory.LUTRAM`, `TargetMemory.BRAM`, `TargetMemory.CRAM` and `TargetMemory.ESSENTIAL_CRAM` to inject faults into the specific Pblock. To leave configuration frames out of the injections, give their frame addresses (FARs) to `dev.exclude_frames()`. The exclusion applies to the injections where the server chooses the bits: `dev.inject_random()` and `dev.inject_exhaustive()`. It does not apply to `dev.inject_at()`, which injects at the location that you give, also in an excluded frame. It also does not apply to `dev.run_campaign()`.
 
 ### Location of a bit: FAR, word index and bit index
 
@@ -34,4 +34,7 @@ SK-RAFT always uses three coordinates for the location of a bit, in reports and 
 2. The word index in the frame.
 3. The bit index in the word.
 
-`dev.decode_far()` decodes a FAR into its block type, top or bottom half, row, column and minor frame number (see 7 Series FPGAs Configuration User Guide - UG470). 
+`dev.decode_far()` splits a FAR into its fields. The fields depend on the device family:
+
+- 7 series: block type, top or bottom half, row, column and minor frame (`FpgaFar7series`). Refer to UG470, *7 Series FPGAs Configuration User Guide*.
+- UltraScale and UltraScale+: block type, row, column and minor frame, without the top or bottom half (`FpgaFarUltraScale`). Refer to UG570, *UltraScale Architecture Configuration User Guide*.

@@ -181,7 +181,6 @@ set vhdl_files {
     brams_top.vhd
     bram_readback_writeback_top.vhd
     examples_utilities_pkg.vhd
-    heartbeat.vhd
     lut_memory_array.vhd
     secded_dec8b.vhd
     secded_enc8b.vhd
@@ -313,7 +312,7 @@ array set top_to_example {
     bscan_adder_top 2
     ff_lut_top      3
     brams_top       4
-    bram_readback_writeback_top 4
+    bram_readback_writeback_top 6
 }
 
 if { [info exists top_to_example($top)] } {

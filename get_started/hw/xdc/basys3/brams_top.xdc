@@ -1,7 +1,7 @@
 ## SPDX-License-Identifier: Apache-2.0
 ## Copyright (C) 2026 SOLIDKOSMOS S.A.
 
-## Basys 3 constraints for brams_top: stock BRAM with byte-lane Hamming SEC,
+## Basys 3 constraints for brams_top: BRAM with byte-lane Hamming SEC,
 ## driven over BSCAN.
 
 ## Clock
@@ -42,13 +42,13 @@ set_property BITSTREAM.SEU.ESSENTIALBITS YES [current_design]
 ## frame when it loads it.
 set_property BITSTREAM.GENERAL.PERFRAMECRC YES [current_design]
 
-## Pblock: isolate the stock BRAM for pblock-confined fault injection
-create_pblock pblock_stock_bram
-add_cells_to_pblock [get_pblocks pblock_stock_bram] [get_cells -quiet [list stock_bram]]
-resize_pblock [get_pblocks pblock_stock_bram] -add {RAMB18_X0Y12:RAMB18_X0Y13 \
+## Pblock: isolate the BRAM (soft_sec_bram) for pblock-confined fault injection
+create_pblock pblock_soft_sec_bram
+add_cells_to_pblock [get_pblocks pblock_soft_sec_bram] [get_cells -quiet [list soft_sec_bram]]
+resize_pblock [get_pblocks pblock_soft_sec_bram] -add {RAMB18_X0Y12:RAMB18_X0Y13 \
                                                     RAMB36_X0Y6:RAMB36_X0Y6 \
 }
-set_property EXCLUDE_PLACEMENT 1 [get_pblocks pblock_stock_bram]
+set_property EXCLUDE_PLACEMENT 1 [get_pblocks pblock_soft_sec_bram]
 
 ## Exclude the BRAMs from power optimization. Otherwise, Vivado adds
 ## gating logic to the BRAM enables.

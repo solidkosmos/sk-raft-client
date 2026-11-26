@@ -30,7 +30,7 @@ This repository contains open-source getting-started examples for the SK-RAFT se
   - The application memories of selected components in your RTL hierarchy.
 - **Essential-bit analysis.** SK-RAFT reads the Vivado-generated EBD file and finds the essential bits of the design or specific Pblocks.
 - **Full BSCAN support.** Your script can write inputs to the design and read outputs from the design through the BSCAN user registers (USER1 to USER4). A register can have any number of bits. It does not have to be a whole number of bytes.
-- **External scrubbing through JTAG.** SK-RAFT can scrub the CRAM from outside the FPGA, through JTAG. This function helps during radiation tests.
+- **Readback scrubbing through JTAG.** Your script can scrub the CRAM from outside the FPGA: it reads back the frames and writes the frames that changed back, through JTAG (refer to [`readback_scrubbing`](application_examples/readback_scrubbing/README.md)). This function helps during radiation tests.
 - **Programmer.** SK-RAFT can program the FPGA with a bitstream.
 - **XADC and System Monitor access.** SK-RAFT can read the temperature and voltage sensors of the XADC (7 series) and of the System Monitor (UltraScale, UltraScale+) through JTAG. It can also set and clear their alarms.
 - **TLS connection.** The client can connect to the SK-RAFT server through TLS, with the certificates of the server and of the client.
@@ -74,14 +74,8 @@ Before you inject into the application memory (flip-flops, LUTRAM, BRAM), read t
 
 ## Quick start
 
-1. Install the SK-RAFT server with its licence. Connect the FPGA board to the server computer through its USB JTAG cable.
-2. Start the server. On Windows, run the launcher in the `bin` folder of the server installation:
-
-   ```bat
-   bin\sk-raft.bat
-   ```
-
-   On Linux, run the server executable of the installation. It takes the same options as on Windows.
+1. Install the SK-RAFT server and activate its licence. Connect the licence dongle, if you use one, and the FPGA board (its USB JTAG cable) to the server computer. Close the Vivado Hardware Manager (`hw_server`): only one program can use a JTAG cable at a time.
+2. Start the server: type `sk-raft` in a terminal, on Windows or on Linux. If the server does not see the board, refer to the troubleshooting chapter of the SK-RAFT Server User Manual.
 
    The server is ready when it prints:
 
@@ -110,8 +104,8 @@ Before you inject into the application memory (flip-flops, LUTRAM, BRAM), read t
    | `-tls-cert <file>`, `-tls-key <file>` | The TLS certificate and private key (PEM) of the server. With them, the server accepts only TLS connections. |
    | `-tls-public-key <file>` | The public key (or certificate) of the clients that the server accepts. Refer to [`application_examples/tls_program`](application_examples/tls_program/README.md). |
 
-   `bin\sk-raft.bat -v` prints the version of the server. On Windows, the launcher runs the server in `%LOCALAPPDATA%\SolidKosmos\sk-raft`. The server writes its log, `skraft.log`, and its cache there.
-3. Install the `skraft` Python client. On Windows, double-click `get_started\install_client.bat`, then `get_started\open_terminal.bat`. On Linux, run `sh get_started/install_client.sh`, then `sh get_started/open_terminal.sh`. Run the commands of the next steps in the terminal that opens. To install the client with commands instead, refer to [Installation](#installation).
+   `sk-raft -v` prints the version of the server. The server writes its log, `skraft.log`, and its cache in `%LOCALAPPDATA%\SolidKosmos\sk-raft` on Windows and in `~/.local/share/SolidKosmos/sk-raft` on Linux.
+3. Open a terminal with the `skraft` Python client. The SK-RAFT setup installs the client in a virtual environment of your examples folder. On Windows, double-click `get_started\open_terminal.bat`. On Linux, run `sh get_started/open_terminal.sh`. Run the commands of the next steps in the terminal that opens. If you cloned this repository from GitHub, install the client first: refer to [Installation](#installation).
 4. Make sure that the server finds your board:
 
    ```bash
@@ -134,41 +128,69 @@ sk-raft-client/
 
 ## Installation
 
-The `skraft` Python client is not on PyPI. You install it from this repository into a virtual environment, with the scripts in `get_started` or with commands.
+The `skraft` Python client is not on PyPI. The SK-RAFT setup installs it: your examples folder has a virtual environment, `.venv`, with the client from `api/python` in it.
 
-### Install with the scripts
+### Open a terminal with the client
 
-The scripts make a virtual environment, `.venv`, in the root folder of this repository, and install the client from `api/python` into it. They need Python 3.9 or a later version and internet access.
+On Windows, double-click `get_started\open_terminal.bat`. It opens a Command Prompt in the root folder of the examples, with `.venv` active.
 
-On Windows:
-
-1. Double-click `get_started\install_client.bat`. Do this one time.
-2. Double-click `get_started\open_terminal.bat`. It opens a Command Prompt in the root folder of this repository, with `.venv` active. If the client is not installed yet, the script installs it first.
-
-On Linux, in the root folder of this repository:
-
-```bash
-sh get_started/install_client.sh
-```
+On Linux, in the root folder of the examples:
 
 ```bash
 sh get_started/open_terminal.sh
 ```
 
-The second script opens a shell with `.venv` active. Type `exit` to leave it. On Ubuntu and Debian, the scripts need the `python3-venv` package (`sudo apt install python3-venv`).
+The script opens a shell with `.venv` active. Type `exit` to leave it.
+
+### Install the client in a clone from GitHub
+
+A clone of this repository from GitHub has no `.venv`. Install the client one time with the scripts in `get_started`. They make `.venv` in the root folder of the repository and install the client from `api/python` into it. They need Python 3.9 or a later version and internet access.
+
+- On Windows, double-click `get_started\install_client.bat`.
+- On Linux, in the root folder of the repository, run `sh get_started/install_client.sh`. On Ubuntu and Debian, the script needs the `python3-venv` package (`sudo apt install python3-venv`).
+
+Then open a terminal with the client, as above. If `.venv` does not exist, `open_terminal` installs the client first.
 
 The examples in `get_started` and `application_examples` run in this terminal. Some application examples need more packages, for example `pyserial`. Their README gives the `pip install` command.
 
 ### Install with commands
 
-To install the client into the virtual environment of your own project:
+The SK-RAFT installation comes with a virtual environment that has the client installed. You need the commands below only to make a new virtual environment with the client, for example for your own project. Use the commands of your shell.
+
+Linux:
 
 ```bash
 cd your-project
-python -m venv .venv
-source .venv/bin/activate        # .venv\Scripts\activate on Windows
+python3 -m venv .venv
+source .venv/bin/activate
 pip install /path/to/api/python
 ```
+
+Windows, Command Prompt:
+
+```bat
+cd your-project
+python -m venv .venv
+.venv\Scripts\activate.bat
+pip install C:\path\to\api\python
+```
+
+Windows, PowerShell:
+
+```powershell
+cd your-project
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install C:\path\to\api\python
+```
+
+If PowerShell stops at `Activate.ps1` with the error "running scripts is disabled on this system", the execution policy of Windows blocks PowerShell scripts. Run this command one time in PowerShell, then activate again. It changes the policy only for your Windows user, and it does not need administrator rights:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+If a group policy of your organization sets the execution policy, you cannot change it. Then use Command Prompt, or use the Python of the virtual environment without activation: `.venv\Scripts\python -m pip install C:\path\to\api\python`, then `.venv\Scripts\python main.py`.
 
 To use local changes to the client without a new installation, use `pip install -e /path/to/api/python`.
 
@@ -181,7 +203,9 @@ See [`./api/python/offline_bundle`](./api/python/offline_bundle)
 The client and the SK-RAFT server have separate versions, in the form MAJOR.MINOR.PATCH. A server works with each client of the same major version that is not newer than the server. For example, server 1.4.2 works with clients 1.0.0 to 1.4.2. It does not work with client 1.5.0 or with client 2.0.0.
 
 - The version of the client: `pip show skraft`.
-- The version of the server: `bin\sk-raft.bat -v`, or `client.version()` from a script.
+- The version of the server: `sk-raft -v`, or `client.version()` from a script.
+
+When the client connects, it prints its version and the version of the server. It prints a warning when their major or minor versions (X.Y of X.Y.Z) differ.
 
 The changes of each version are in [`CHANGELOG.md`](CHANGELOG.md).
 

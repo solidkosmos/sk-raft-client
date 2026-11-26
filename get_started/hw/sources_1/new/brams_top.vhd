@@ -4,10 +4,10 @@
 -- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
 -- Module Name: brams_top
--- Description: Stock Block RAM with byte-wise Hamming SEC ECC, driven over
---              independent JTAG/BSCAN address and data channels. JTAG reads
---              the stock data or the ECC-corrected data, for A/B
---              fault-injection comparison.
+-- Description: Block RAM with byte-wise Hamming SEC ECC in the fabric
+--              (soft SEC), driven over independent JTAG/BSCAN address and
+--              data channels. JTAG reads the raw data or the ECC-corrected
+--              data, for A/B fault-injection comparison.
 --------------------------------------------------------------------------------
 
 
@@ -91,8 +91,8 @@ architecture Behavioral of brams_top is
     
     -- The design uses all BSCAN USER registers as follows:
     -- BSCAN USER 1 : CLOCK ENABLE (freeze all downstream fabric)  --
-    -- BSCAN USER 2 : STOCK BRAM ADDRESS CONTROL                   --
-    -- BSCAN USER 3 : STOCK BRAM DATA READ/WRITE                   --
+    -- BSCAN USER 2 : BRAM ADDRESS CONTROL                         --
+    -- BSCAN USER 3 : BRAM DATA READ/WRITE                         --
     -- BSCAN USER 4 : ACTIVATE ECC READ                            --
     signal bscan_clk_en_user : bscan_clk_en_interfacing;
     signal bscan_addr_user : bscan_address_interfacing;
@@ -109,7 +109,7 @@ architecture Behavioral of brams_top is
     signal data_to_bram, data_from_bram   :
         std_ulogic_vector((bram_data_len + (3 * 4)) - 1 downto 0);
     signal corr_data : std_ulogic_vector(bram_data_len - 1 downto 0);
-    signal stock_data : std_ulogic_vector(bram_data_len - 1 downto 0);
+    signal raw_data : std_ulogic_vector(bram_data_len - 1 downto 0);
     
     -- One correction flag for each byte (1 = the decoder corrected a bit)
     signal corr_bytes : std_ulogic_vector(2 downto 0);
@@ -369,7 +369,7 @@ begin
     data_to_bram <= bytes_ecc_gen_pars & bscan_data_user.data_from_jtag_sync;
     
     
-    stock_bram:bram_sdp_native_wrapper
+    soft_sec_bram:bram_sdp_native_wrapper
       Generic map (
         -- "7SERIES", "ULTRASCALE", or "ULTRASCALEPLUS"
         g_family => g_family
@@ -388,7 +388,7 @@ begin
       );
 
     -- Connect the plain data bits (bits 23:0 of the BRAM word)
-    stock_data <= data_from_bram(bram_data_len - 1 downto 0);
+    raw_data <= data_from_bram(bram_data_len - 1 downto 0);
     -- Connect the related ECC parity bits (bits 35:24 of the BRAM word)
     ecc_pars <=
         data_from_bram((bram_data_len + (3 * 4)) - 1 downto bram_data_len);
@@ -400,7 +400,7 @@ begin
             parities_len => 4
           )
           Port map ( 
-            data_i     => stock_data((8 + (8*i)) - 1 downto 8*i),
+            data_i     => raw_data((8 + (8*i)) - 1 downto 8*i),
             ecc_pars_i => ecc_pars((4 + (4*i)) - 1 downto 4*i),   
             par_i      => '0', 
             dec_o      => corr_data((8 + (8*i)) - 1 downto 8*i),
@@ -410,10 +410,10 @@ begin
     end generate gen_byte_ecc_dec;
     
     -- Multiplex the output to BSCAN. The ECC read-enable signal selects the
-    -- ECC-corrected data or the stock data.
+    -- ECC-corrected data or the raw data.
     bscan_data_user.data_to_jtag <=
         corr_data when (bscan_ecc_r_en.data_from_jtag_sync(0) = '1') else
-        stock_data;
+        raw_data;
 
     -- Output the ECC-correction flag of each byte (bit 3 is not used)
     data_o <= '0' & corr_bytes;

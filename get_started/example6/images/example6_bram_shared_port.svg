@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="287" viewBox="0 0 760 312" font-family="Ubuntu, 'Liberation Sans', Arial, Helvetica, sans-serif">
+<rect width="760" height="312" fill="#ffffff"/>
+<rect x="10" y="50" width="160" height="52" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="90" y="69" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">application layer</text>
+<text x="90" y="87" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">your design</text>
+<rect x="10" y="200" width="160" height="52" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="90" y="219" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">configuration layer</text>
+<text x="90" y="237" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">SK-RAFT through JTAG</text>
+<rect x="215" y="30" width="365" height="245" fill="#FFFFFF" stroke="#111111" stroke-width="1.5"/>
+<text x="227" y="47" font-size="13" font-weight="700" fill="#111111" text-anchor="start" dominant-baseline="central">BRAM (DO_REG = 0)</text>
+<rect x="240" y="118" width="95" height="74" fill="#D9D9D9" stroke="#111111" stroke-width="1.5"/>
+<text x="287.5" y="140" font-size="14" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">write path</text>
+<text x="287.5" y="160" font-size="12" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">ECC encoder</text>
+<rect x="352" y="118" width="80" height="74" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
+<text x="392" y="145" font-size="14" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">memory</text>
+<text x="392" y="164" font-size="14" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">array</text>
+<rect x="449" y="118" width="112" height="74" fill="#D9D9D9" stroke="#111111" stroke-width="1.5"/>
+<text x="505" y="137" font-size="14" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">read path</text>
+<text x="505" y="157" font-size="12" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">ECC decoder</text>
+<text x="505" y="175" font-size="12" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">output latch</text>
+<text x="400" y="222" font-size="12" font-weight="400" fill="#333333" text-anchor="middle" dominant-baseline="central">gray: the paths that both layers share</text>
+<path d="M170,76 L200,76 L200,140 L226,140" fill="none" stroke="#111111" stroke-width="2"/>
+<polygon points="240,140 226,145 226,135" fill="#111111"/>
+<text x="173" y="66" font-size="11" font-weight="400" fill="#333333" text-anchor="start" dominant-baseline="central">write</text>
+<path d="M170,226 L200,226 L200,170 L226,170" fill="none" stroke="#111111" stroke-width="2"/>
+<polygon points="240,170 226,175 226,165" fill="#111111"/>
+<text x="173" y="216" font-size="11" font-weight="400" fill="#333333" text-anchor="start" dominant-baseline="central">write</text>
+<path d="M335,155 L338,155" fill="none" stroke="#111111" stroke-width="2"/>
+<polygon points="352,155 338,160 338,150" fill="#111111"/>
+<path d="M432,155 L435,155" fill="none" stroke="#111111" stroke-width="2"/>
+<polygon points="449,155 435,160 435,150" fill="#111111"/>
+<path d="M561,140 L606,140" fill="none" stroke="#111111" stroke-width="2"/>
+<polygon points="620,140 606,145 606,135" fill="#111111"/>
+<text x="590" y="128" font-size="12" font-weight="700" fill="#111111" text-anchor="middle" dominant-baseline="central">DO</text>
+<rect x="620" y="116" width="92" height="48" fill="#FFFFFF" stroke="#555555" stroke-width="1.5" stroke-dasharray="7 5"/>
+<text x="666" y="133" font-size="13" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">hold register</text>
+<text x="666" y="150" font-size="11" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">falling edge</text>
+<text x="666" y="180" font-size="10.5" font-weight="400" fill="#333333" text-anchor="middle" dominant-baseline="central">the fix (example 4),</text>
+<text x="666" y="194" font-size="10.5" font-weight="400" fill="#333333" text-anchor="middle" dominant-baseline="central">not in this design</text>
+<path d="M666,116 L666,16 L90,16 L90,36" fill="none" stroke="#111111" stroke-width="2"/>
+<polygon points="90,50 85,36 95,36" fill="#111111"/>
+<text x="420" y="23" font-size="11" font-weight="400" fill="#333333" text-anchor="middle" dominant-baseline="central">read data to the design</text>
+<path d="M505,192 L505,292 L90,292 L90,266" fill="none" stroke="#111111" stroke-width="2"/>
+<polygon points="90,252 85,266 95,266" fill="#111111"/>
+<text x="300" y="303" font-size="11" font-weight="400" fill="#333333" text-anchor="middle" dominant-baseline="central">read data to the configuration layer (readback)</text>
+</svg>

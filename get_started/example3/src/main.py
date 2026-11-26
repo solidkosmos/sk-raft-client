@@ -13,11 +13,12 @@ Part 1 injects upsets into the flip-flops in ``pblock_ff_sr_inst``, with
 script uses ``bit_count`` to make sure that the pblock contains
 flip-flops.
 
-Each trial runs the clock for 2 s and then stops the clock. The script
-reads the shift register before and after the upset. Then the script
-starts the clock again. The script does not correct the upsets, so each
-trial starts from the state that the earlier trials left. Part 1
-continues until you press Enter.
+Each trial lets the shift register make TURNS_PER_TRIAL full turns, and
+then stops the clock. The script reads the shift register before and after
+the upset. The clock stays stopped for HOLD_AFTER_INJECTION_S, so that the
+LEDs show the flipped bit. Then the script starts the clock again. The
+script does not correct the upsets, so each trial starts from the state
+that the earlier trials left. Part 1 continues until you press Enter.
 
 Part 2 limits the injection to a pblock in the same way, with
 ``dev.inject_random(TargetMemory.LUTRAM, pblock=PBLOCK_LUTRAM)``. The
@@ -71,10 +72,25 @@ PBLOCK_LUTRAM = "pblock_LUTRAM"
 # The generics of the design. If you build the design again with
 # different values, set these constants to the same values.
 SR_LEN = 8
+# The design shifts the register every 2 x shift_interval ms (generic,
+# 100 ms by default): every 0.2 s.
+SHIFT_PERIOD_S = 0.2
+
+# Part 1 timing, so that you can follow each upset on the LEDs. Between two
+# upsets, the register makes TURNS_PER_TRIAL full turns (SR_LEN shifts
+# each): 2 turns take 3.2 s. After each upset, the clock stays stopped for
+# HOLD_AFTER_INJECTION_S, so that the LEDs show the flipped bit.
+TURNS_PER_TRIAL = 2
+HOLD_AFTER_INJECTION_S = 1.5
+RUN_S = TURNS_PER_TRIAL * SR_LEN * SHIFT_PERIOD_S
+
 # 6 address bits give 64 LUTRAM words.
 LUT_ADDR_BITS = 6
 LUT_DEPTH = 64
 LUT_DATA_LEN = 32
+# Part 2 writes this pattern into each LUTRAM word. Each hex digit has 0s
+# and 1s, so the upsets in both directions show.
+PATTERN = 0xA5A5A5A5
 
 # BSCAN registers: (USER number, width in bits)
 USER_CLK_EN = BscanPrimitive(1, 1)
@@ -129,6 +145,19 @@ def read_word(dev) -> int:
     return int.from_bytes(data, "big") & LUT_DATA_MASK
 
 
+# The LUTRAM word that holds a CRAM bit, from the LL file of the design.
+def lutram_address(far: int, word: int, bit: int) -> int | None:
+    # The LL line of the bit ends with Ram=<LUT>:<n>. For a 64-deep LUTRAM,
+    # n is LUT_DEPTH - 1 - the address of the word.
+    with open(design.ll) as ll:
+        for line in ll:
+            f = line.split()
+            if (f[:1] == ["Bit"] and "Ram=" in line and int(f[2], 16) == far
+                    and int(f[3]) == word * 32 + bit):
+                return LUT_DEPTH - 1 - int(line.rsplit(":", 1)[1])
+    return None
+
+
 def main() -> int:
     print("Example 3: Flip-flop shift register and LUTRAM injection")
     try:
@@ -158,16 +187,19 @@ def main() -> int:
                     return 1
 
                 print(f"Press Enter to move on.")
-                print("     #  FAR       WORD  BIT  BEFORE    AFTER")
+                print("FF is the flip-flop that the upset hit. BEFORE and "
+                      "AFTER show bit 7 on the left, bit 0 on the right.")
+                print("     #  FF  FAR       WORD  BIT  BEFORE    AFTER")
                 watch_for_enter()
 
                 enable_clock(dev, True)
                 n = 0
                 while True:
-                    if stop.is_set():
+                    # Let the register make TURNS_PER_TRIAL full turns.
+                    # Enter stops Part 1 at once, without one more upset.
+                    if stop.wait(RUN_S):
                         break
 
-                    time.sleep(2)
                     # Injection guideline (application memory): each upset
                     # is a readback-modify-writeback of full frames. These
                     # frames also hold adjacent logic. The server does
@@ -192,11 +224,19 @@ def main() -> int:
                     # starts again, the value moves along the feedback
                     # loop. You can see the value on the LEDs and through
                     # BSCAN.
-                    print(f"{n + 1:>6}  {report.far:08x}  "
+                    # The server names the flip-flop that it hit, for
+                    # example "ff_sr_inst/mass_s_reg[5]": [5] is bit 5 of
+                    # the shift register.
+                    ff = (report.net_name.rsplit("[", 1)[-1].rstrip("]")
+                          if report.net_name else "?")
+                    print(f"{n + 1:>6}  {ff:>2}  {report.far:08x}  "
                           f"{report.word_index:>4}  {report.bit_index:>3}  "
                           f"{before:08b}  {after:08b}")
                     n += 1
 
+                    # Keep the clock stopped, so that the LEDs show the
+                    # flipped bit (the LEDs show bits 3:0 only).
+                    time.sleep(HOLD_AFTER_INJECTION_S)
                     enable_clock(dev, True)
 
 
@@ -216,23 +256,21 @@ def main() -> int:
                     # The second scan cannot start before the first scan is
                     # done. Thus, no delay is necessary between them.
                     select(dev, address)
-                    write_word(dev, (0xA5A5A5A5 ^ address) & LUT_DATA_MASK)
+                    write_word(dev, PATTERN)
                 # Read back each word and make sure that the write was
                 # successful.
                 for address in range(LUT_DEPTH):
                     select(dev, address)
                     word = read_word(dev)
-                    expected_word = (0xA5A5A5A5 ^ address) & LUT_DATA_MASK
-                    if word != expected_word:
+                    if word != PATTERN:
                         print(f"Part 2: address {address} reads "
-                              f"{word:#010x}, expected {expected_word:#010x}; "
+                              f"{word:#010x}, expected {PATTERN:#010x}; "
                               f"not injecting anything. Check USER3/USER4 "
                               f"register ids and widths.")
                         return 1
-                
 
                 print(f"Part 2: all {LUT_DEPTH} LUTRAM words read back "
-                      f"correctly. Injecting random upsets, not "
+                      f"{PATTERN:#010x}. Injecting random upsets, not "
                       f"corrected - press Enter to move on.")
                 bits = dev.bit_count(TargetMemory.LUTRAM, pblock=PBLOCK_LUTRAM)
                 print(f"Part 2: {bits} LUTRAM bits inside "
@@ -241,7 +279,8 @@ def main() -> int:
                 # LUTRAM). Refer to the guideline in Part 1.
                 enable_clock(dev, False)
 
-                print("     #  FAR       WORD  BIT")
+                print("ADDR is the LUTRAM word that the upset hit.")
+                print("     #  FAR       WORD  BIT  ADDR")
                 watch_for_enter()
 
                 # Inject upsets until you press Enter.
@@ -251,8 +290,11 @@ def main() -> int:
                         break
                     report = dev.inject_random(TargetMemory.LUTRAM, 
                                                pblock=PBLOCK_LUTRAM)
+                    address = lutram_address(report.far, report.word_index,
+                                             report.bit_index)
                     print(f"{n + 1:>6}  {report.far:08x}  "
-                          f"{report.word_index:>4}  {report.bit_index:>3}")
+                          f"{report.word_index:>4}  {report.bit_index:>3}  "
+                          f"{'?' if address is None else address:>4}")
                     # Wait 0.5 s to control the number of injections.
                     time.sleep(0.5)
                     n += 1
@@ -260,24 +302,21 @@ def main() -> int:
                 print(f"Part 2: {n} upsets injected.")
                 # Start the clock to read the contents of the LUTRAM.
                 enable_clock(dev, True)
-                # Print the bits of each LUTRAM word, the value that the
-                # script wrote to the word, and the corrupted bits.
+                # Print each LUTRAM word that changed: the value read, and
+                # the bits that differ from the pattern.
                 corrupt_words = 0
                 corrupt_bits = 0
-                print(f"{'ADDR':>6}  {'CORRECT':<{LUT_DATA_LEN}}  "
-                      f"{'READ':<{LUT_DATA_LEN}}  CORRUPTED BITS")
+                print(f"{'ADDR':>6}  {'READ':<10}  FLIPPED BITS")
                 for address in range(LUT_DEPTH):
                     select(dev, address)
                     word = read_word(dev)
-                    expected_word = (0xA5A5A5A5 ^ address) & LUT_DATA_MASK
                     # The bit positions (0 = LSB) that changed from the
                     # written value.
                     flipped = [bit for bit in range(LUT_DATA_LEN)
-                               if (word ^ expected_word) >> bit & 1]
-                    print(f"{address:>6}  {expected_word:0{LUT_DATA_LEN}b}  "
-                          f"{word:0{LUT_DATA_LEN}b}  "
-                          f"{', '.join(str(bit) for bit in flipped) or '-'}")
+                               if (word ^ PATTERN) >> bit & 1]
                     if flipped:
+                        print(f"{address:>6}  {word:#010x}  "
+                              f"{', '.join(str(bit) for bit in flipped)}")
                         corrupt_words += 1
                         corrupt_bits += len(flipped)
                 print(f"Part 2: {corrupt_words}/{LUT_DEPTH} words are "

@@ -4,9 +4,9 @@
 
 ```
 get_started/
-├── example1/ .. example5/               SK-RAFT client examples (src/main.py)
+├── example1/ .. example6/               SK-RAFT client examples (src/main.py)
 ├── list_devices.py                      lists the boards connected to the server
-├── install_client.bat, .sh              installs the skraft client into .venv (repository root)
+├── install_client.bat, .sh              installs the skraft client into .venv 
 ├── open_terminal.bat, .sh               opens a terminal with .venv active
 └── hw/                                  Vivado project (create_project.tcl)
     ├── design_examples/                 design files: design_examples.zip and build output
@@ -18,18 +18,19 @@ get_started/
 
 | # | Example | Design | Purpose |
 | --- | --- | --- | --- |
-| 1 | [example1](example1/README.md) | [`targeted_top`](hw/sources_1/new/targeted_top.vhd) (fast and slow heartbeat counters, each in its own pblock) | Showing how to perform fault injection (FI) into random CRAM bits, random essential CRAM bits, and targeted FI into a Pblock. |
+| 1 | [example1](example1/README.md) | [`targeted_top`](hw/sources_1/new/targeted_top.vhd) (two 16-bit shift registers with a feedback loop, each in its own pblock, with their parities on two LEDs) | Showing how to perform fault injection (FI) into random CRAM bits, random essential CRAM bits, and targeted FI into a Pblock. |
 | 2 | [example2](example2/README.md) | [`bscan_adder_top`](hw/sources_1/new/bscan_adder_top.vhd) (simplex adder and TMR adder, each in its own pblock. Input and output are provided via BSCAN) | Showing how to set up and control a design during fault campaigns through BSCAN. |
 | 3 | [example3](example3/README.md) | [`ff_lut_top`](hw/sources_1/new/ff_lut_top.vhd) (flip-flop shift register and LUTRAM) | Showing how to inject faults into the ARAM layer, e.g., flip-flop and LUTRAM contents. |
-| 4 | [example4](example4/README.md) | [`brams_top`](hw/sources_1/new/brams_top.vhd) (one BRAM with a Hamming SEC code for each byte), and [`bram_readback_writeback_top`](hw/sources_1/new/bram_readback_writeback_top.vhd) in [`readback_writeback/`](example4/readback_writeback/README.md) (one BRAM with the built-in ECC, no output register) | Showing how to inject faults into the BRAMs: You corrupt CRAM bits and content data (ARAM). `readback_writeback/` shows what the BRAM outputs during and after an injection into its content: a wrong word while the clock is stopped, then the flipped bit with no ECC error. |
+| 4 | [example4](example4/README.md) | [`brams_top`](hw/sources_1/new/brams_top.vhd) (one BRAM with a Hamming SEC code for each byte) | Showing how to inject faults into the content of a BRAM (ARAM, block type 1 frames), and how a SEC code corrects them. |
 | 5 | [example5](example5/README.md) | [`bscan_adder_top`](hw/sources_1/new/bscan_adder_top.vhd) (the design of example 2: the three BSCAN registers are components of the design hierarchy) | Showing how to list the components of a design as a tree, from the flip-flop nets of the LL file, and how to perform random fault injection into the flip-flops of one component, with the net of each flip-flop that an upset hits. |
+| 6 | [example6](example6/README.md) | [`bram_readback_writeback_top`](hw/sources_1/new/bram_readback_writeback_top.vhd) (one BRAM with the built-in ECC, no output register, no hold register) | Showing why a BRAM needs a hold register: SK-RAFT and the design share the write and read paths of the BRAM. A configuration read changes the BRAM output while the clock is stopped, and the built-in ECC encoder makes new parity bits for an injected bit, so the ECC does not see it. |
 
 Each example operates with one design. The README of each example shows how to create the files that the SK-RAFT client script uploads to the SK-RAFT server for testing. These files are the bitstream and the EBD, LL and XDC files where necessary. Vivado builds these files from the `sources_1/new/*.vhd` files of that design in [`hw`](hw/).
 
 ## Requirements
 
 - Tested with Vivado 2025.2. 
-- Python 3.9 or a later version, with the `skraft` package installed (`api/python`). To install it, double-click `install_client.bat` in this folder (Windows), or run `sh get_started/install_client.sh` in the root folder of the repository (Linux). Then open a terminal for the examples with `open_terminal.bat` or `sh get_started/open_terminal.sh`. To install the client with commands instead, refer to [Installation](../README.md#installation).
+- Python 3.9 or a later version, with the `skraft` package (`api/python`). The SK-RAFT setup installs it in the virtual environment `.venv` of the examples folder. Open a terminal for the examples with `open_terminal.bat` in this folder (Windows), or with `sh get_started/open_terminal.sh` in the root folder of the examples (Linux). In a clone of the repository from GitHub, install the client first with `install_client.bat` or `sh get_started/install_client.sh`. Refer to [Installation](../README.md#installation).
 - SK-RAFT server
 - Target FPGA board connected via JTAG to the SK-RAFT server.
 - The design files are listed in each example's README. The script uploads these files to the server.
@@ -65,7 +66,7 @@ vivado -mode batch -source create_project.tcl -tclargs <device> <top>
 | `bscan_adder_top` | example2, example5 |
 | `ff_lut_top` | example3 |
 | `brams_top` | example4 |
-| `bram_readback_writeback_top` | example4 (`readback_writeback/`) |
+| `bram_readback_writeback_top` | example6 |
 
 SolidKosmos tested and supplies only `basys3` and `zedboard` as `<device>`. To add your own board, refer to "Build a bitstream" in [`hw/README.md`](hw/README.md#build-a-bitstream). That section tells you how to:
 
@@ -88,7 +89,7 @@ For `brams_top`, the build runs the BRAM hold register pass before `opt_design`.
 
 An SK-RAFT access to BRAM content frames (readback, inject, revert) overwrites the output latch of the block RAMs without an output register. The stored content does not change, but the design would read the overwritten value after the clock resumes. The pass adds a hold register (a flip-flop on the opposite clock edge) behind each BRAM output in use, so the design keeps the word it read before the freeze.
 
-The build prints the report of the pass, and also writes it to `bram_hold_pass.rpt` in the `impl_1` run directory. For `brams_top`, the report shows the read port of `stock_bram` as held. The other tops have no block RAM, so the build does not run the pass for them.
+The build prints the report of the pass, and also writes it to `bram_hold_pass.rpt` in the `impl_1` run directory. For `brams_top`, the report shows the read port of `soft_sec_bram` as held. The other tops have no block RAM, so the build does not run the pass for them.
 
 The prebuilt `brams_top` files in `design_examples.zip` were built with the pass.
 
@@ -105,9 +106,9 @@ The examples do not use command-line options. To configure an example, change th
 
 Each example ends with exit code 0 when it is done, 1 on an error and 130 after Ctrl+C.
 
-Examples 1 to 5 inject faults until you press Enter. Then the example continues to its next step, or it stops. The `readback_writeback` script of example 4 injects one fault and runs without input.
+Examples 1 to 5 inject faults until you press Enter. Then the example continues to its next step, or it stops. Example 6 injects one fault and runs without input.
 
-Examples 1 and 2 correct each upset. Examples 3, 4 and 5 program the FPGA again at the end.
+Examples 1 and 2 correct each upset. Examples 3, 4, 5 and 6 program the FPGA again at the end.
 
 Each example programs the FPGA at the start. Thus you can run the examples in any order, also after you stop one with Ctrl+C. If you write your own script, program the FPGA first.
 
