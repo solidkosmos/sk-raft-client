@@ -45,11 +45,11 @@ from skraft import (Design, FpgaComponent, SkraftError, SkraftFpga,
 SK_RAFT_SERVER_IP = "127.0.0.1"
 SK_RAFT_SERVER_PORT = 50051
 
-# The design: bscan_adder_top, the design of example 2. 
+# The design: bscan_adder_top, the design of example 2.
 # The script gives two files:
 #   The bitstream (.bit): to program the device.
 #   The LL file (.ll): to find the flip-flops and the nets that they drive.
-# uploadDesignToServer() sends the files to the server. The client sends
+# dev.upload_design_to_server() sends the files to the server. The client sends
 # only the file name of each path, not the directory.
 #
 # BOARD is the board of your target device: "basys3" or "zedboard", or
@@ -101,8 +101,8 @@ def find_component(components: list[FpgaComponent],
 
 
 def main() -> int:
-    print("Component injection: the components of the design, and random "
-          "flip-flop upsets in one component")
+    print("Example 5: the components of the design, and random flip-flop "
+          "upsets in one component")
     try:
         with SkraftFpga.connect(ip=SK_RAFT_SERVER_IP,
                                 port=SK_RAFT_SERVER_PORT) as client:
@@ -178,13 +178,13 @@ def main() -> int:
                 print("Re-programming to clear the device.")
                 dev.program_fpga(design)
     except SkraftError as e:
-        print(f"Component injection failed: {e}")
+        print(f"Example 5 failed: {e}")
         return 1
     except KeyboardInterrupt:
         print("Interrupted.")
         return 130
 
-    print("\nComponent injection done.")
+    print("\nExample 5 done.")
     return 0
 
 
