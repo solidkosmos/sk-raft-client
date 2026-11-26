@@ -1,4 +1,4 @@
-# Example 4: BRAM injection, configuration bits, content and ECC recovery
+# Example 4: BRAM content injection and ECC recovery
 
 The design uses one RAMB36 in the 1K x 36 configuration. Each 36-bit word contains 24 data bits and 12 check bits. Logic in the fabric around the BRAM protects each data byte with its own Hamming SEC code (4 check bits for each byte). This logic is not the built-in ECC of the BRAM.
 
@@ -7,18 +7,31 @@ The design uses one RAMB36 in the 1K x 36 configuration. Each 36-bit word contai
 ## Sequence
 
 1. The script fills the memory. Then it reads back each word to make sure that the data is correct.
-2. **Part 1.** The script injects essential CRAM upsets (`TargetMemory.ESSENTIAL_CRAM`) into the block type 0 frames of the BRAM column. Then it reads back the memory.
-3. The script programs the FPGA again. Thus the upsets of part 1 do not have an effect on part 2.
-4. The script fills the memory again.
-5. **Part 2.** The script injects content upsets (`TargetMemory.BRAM`) into the block type 1 frames. The upsets add up, and the script does not correct them.
-6. The script reads back the full memory two times: first with ECC off, then with ECC on.
-7. The script programs the FPGA again, to clear the upsets of part 2.
+2. The script injects content upsets (`TargetMemory.BRAM`) into the block type 1 frames of the BRAM. The upsets add up, and the script does not correct them.
+3. The script reads back the full memory two times: first with ECC off, then with ECC on.
+4. The script programs the FPGA again, to clear the upsets.
 
-In the two parts, the script injects one upset each 0.3 s until you press Enter. When part 2 continues for a longer time, more bytes get two or more flips. The SEC code cannot correct these bytes.
+The script injects one upset each 0.3 s until you press Enter. When the injection continues for a longer time, more bytes get two or more flips. The SEC code cannot correct these bytes.
+
+## The configuration frames of the BRAM also affect it
+
+The block type field of the frame address (FAR) tells the kind of a frame. The BRAM column has frames of two block types:
+
+| Block type | Frames | What they hold |
+| --- | --- | --- |
+| 0 | Configuration (CLB, I/O, CLK) | The configuration of the BRAM, for example its width and its output register, and the interconnect of the column. |
+| 1 | BRAM content | The data bits and the parity bits of the BRAMs. |
+
+The script injects only into the block type 1 frames. An upset in the block type 0 frames of the column can also change the BRAM: it can change how the BRAM operates, stop it, or break a route to or from it. Thus, to test a design that uses BRAMs, also inject into the essential bits of the BRAM column (`TargetMemory.ESSENTIAL_CRAM` with `pblock=`), as [example 1](../example1/README.md) does for its pblocks.
+
+AMD defines the block types in the description of the frame address register (FAR):
+
+- UG470, *7 Series FPGAs Configuration User Guide*, section "Frame Address Register (FAR)".
+- UG570, *UltraScale Architecture Configuration User Guide*, section "Frame Address Register (FAR)".
 
 ## BRAM output latch and the hold register
 
-When SK-RAFT reads or writes BRAM content frames (part 2 injects into them), the output latch of `soft_sec_bram` takes a value from the configuration frame. The content of the BRAM does not change. The BRAM has no output register (`DO_REG = 0`), so without protection the design can take that wrong value instead of the word it read before the freeze.
+When SK-RAFT reads or writes BRAM content frames (the script injects into them), the output latch of `soft_sec_bram` takes a value from the configuration frame. The content of the BRAM does not change. The BRAM has no output register (`DO_REG = 0`), so without protection the design can take that wrong value instead of the word it read before the freeze.
 
 `hw/create_project.tcl` builds `brams_top` with the BRAM hold register pass ([`auxiliary_components/bram_hold_pass`](../../auxiliary_components/bram_hold_pass/README.md)). The pass adds a falling-edge register behind the BRAM output, which keeps the word read before the freeze. Thus a wrong word in the results comes from the injected content, not from the latch. The build prints the report of the pass.
 
@@ -38,19 +51,18 @@ When SK-RAFT reads or writes BRAM content frames (part 2 injects into them), the
 | Call | Use in the example |
 | --- | --- |
 | `SkraftFpga.connect(ip=..., port=...)`, `client.get_devices()`, `client.attach(serial_number)` | Connect to the SK-RAFT server, select the first board that the server lists and attach to it, in `with` statements that release the device and close the connection. |
-| `Design(bit, ebd, ll, xdc)`, `dev.upload_design_to_server(design)`, `dev.program_fpga(design)` | Give the design files, upload them to the server and program the FPGA. |
+| `Design(bit, ll, xdc)`, `dev.upload_design_to_server(design)`, `dev.program_fpga(design)` | Give the design files, upload them to the server and program the FPGA. |
 | `dev.configure_seed(0)` | Set the seed of the random injections. The same seed gives the same upsets in each run. |
 | `BscanPrimitive(user, length)`, `dev.write_bscan(primitive, value)`, `dev.read_bscan(primitive)` | Start and stop the clock (USER1), select the address (USER2), write and read the data (USER3), and enable the ECC correction (USER4). |
-| `dev.bit_count(TargetMemory.ESSENTIAL_CRAM, pblock=PBLOCK_BRAM)`, `dev.bit_count(TargetMemory.BRAM, pblock=PBLOCK_BRAM)` | Get the number of essential CRAM bits and of content bits of the BRAM pblock. |
-| `dev.inject_random(TargetMemory.ESSENTIAL_CRAM, pblock=PBLOCK_BRAM)` | Part 1: inject one upset into a random essential bit of the BRAM pblock. |
-| `dev.inject_random(TargetMemory.BRAM, pblock=PBLOCK_BRAM)` | Part 2: inject one upset into a random content bit of the BRAM. |
-| `dev.decode_far(far)` | Get the block type of the frame of each upset (0: configuration, 1: BRAM content). |
+| `dev.bit_count(TargetMemory.BRAM, pblock=PBLOCK_BRAM)` | Get the number of content bits of the BRAM pblock. |
+| `dev.inject_random(TargetMemory.BRAM, pblock=PBLOCK_BRAM)` | Inject one upset into a random content bit of the BRAM. |
+| `dev.decode_far(far)` | Get the block type of the frame of each upset (1: BRAM content). |
 
 ## Requirements
 
 - Python 3.9 or a later version, with the `skraft` package installed.
 - An SK-RAFT server in operation, with the target board connected through USB.
-- The bitstream, the EBD file, the LL file and the XDC file that declares `pblock_soft_sec_bram`. The script uploads these files to the server. Use the prebuilt files in `design_examples.zip`, or build them with `hw/create_project.tcl`. Both include the BRAM hold register pass.
+- The bitstream, the LL file and the XDC file that declares `pblock_soft_sec_bram`. The script uploads these files to the server. Use the prebuilt files in `design_examples.zip`, or build them with `hw/create_project.tcl`. Both include the BRAM hold register pass.
 
 ## Configuration
 
@@ -74,37 +86,28 @@ python main.py
 Sample output of a run on a Basys 3 (shortened). The frame addresses, the bit counts and the error counts depend on the board, the build and the seed.
 
 ```
-Example 4: BRAM injection, config bits, content, and ECC recovery
-Programmed 210183BFD452A.
-Exercising the BRAM's own configuration before touching its contents.
-BRAM Config bit count = 3349
+Example 4: BRAM content injection and ECC recovery
+SK-RAFT client 1.0.0, server 1.0.3
+Programmed 210183BA2524A.
 Writing known words in the BRAM...
 Wrote 1024 words into pblock_soft_sec_bram.
 Checking if all words round-trip...
 All 1024 addresses read back correctly.
-Press enter to stop injecting
-Injecting Essential CRAM bit upsets into pblock_soft_sec_bram's configuration frames (block type 0), none corrected.
-     #  FAR       WORD  BIT  BLK_TYPE
-     1  00400311    63   29    0
-...
-Injected 22 Essential CRAM faults.
-896 of 1024 addresses read back wrong.
-Re-programming to clear the config upsets before the content campaign.
-Writing known words in the BRAM...
-Wrote 1024 words into pblock_soft_sec_bram.
 BRAM Content bit count = 36864
 Press enter to stop injecting
 Injecting BRAM Content bit upsets into pblock_soft_sec_bram, none corrected.
      #  FAR       WORD  BIT  BLK_TYPE
-     1  00c00062    67   10    1
+     1  00c00055    63   26    1
+     2  00c00020    61   18    1
 ...
-Injected 29 BRAM Content faults.
+Injected 20 BRAM Content faults.
 Reading the whole memory with ECC read off.
-ECC off: 16 of 1024 addresses wrong.
+ECC off: 13 of 1024 addresses wrong.
   ADDR  EXPECTED                  READ                      FAULTY BITS
-     1  101001011010010110100100  101001111010010110100100  17
+   104  101001011010010111001101  101001011010010110001101  6
+   129  101001011010010100100100  101001111010010100100100  17
 ...
-16 words wrong, 16 faulty bits in total.
+13 words wrong, 13 faulty bits in total.
 --------------------------------------------------------------------------------
 Reading the whole memory again with ECC read on.
 ECC on: 0 of 1024 addresses wrong.
