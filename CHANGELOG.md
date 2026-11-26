@@ -2,10 +2,11 @@
 
 The changes of each release of the SK-RAFT client. For the SK-RAFT server versions that the client supports, refer to [Compatibility](README.md#compatibility) in the README.
 
-## Unreleased
+## 1.0.1 (2026-11-26)
 
 ### Python client (`api/python`, package `skraft`)
 
+- The package has the metadata for PyPI (description, README, license, links), and the minimum versions of its dependencies: grpcio 1.76.0 and protobuf 6.31.1. The generated gRPC code needs these versions.
 - `SkraftFpga.connect()` prints the versions of the client and of the server. It prints a warning only when their major or minor versions (X.Y of X.Y.Z) differ. Before, it printed a warning for each server version other than the version of the client.
 - When the block of `with client.attach(...) as dev:` raises an error and the release of the device also fails, for example because the server stopped, the client reports the error of the block. Before, the error of the release replaced it.
 - Removed `FpgaDevice.scrub` and its types `ScrubbingType`, `FpgaScrubReport`, `FpgaScrubSummary` and `FpgaScrubWordSummary`. To scrub the CRAM, read back the frames and write the frames that changed back from your script, as [`readback_scrubbing`](application_examples/readback_scrubbing/README.md) does.

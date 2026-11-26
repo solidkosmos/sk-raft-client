@@ -59,7 +59,7 @@ from .exceptions import (
 )
 
 
-SK_RAFT_VERSION = "1.0.0"
+SK_RAFT_VERSION = "1.0.1"
 
 # The size of each chunk that the client streams during a design file upload.
 _UPLOAD_CHUNK_SIZE = 1 << 20

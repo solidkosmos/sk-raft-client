@@ -200,7 +200,7 @@ See [`./api/python/offline_bundle`](./api/python/offline_bundle)
 
 ## Compatibility
 
-The client and the SK-RAFT server have separate versions, in the form MAJOR.MINOR.PATCH. A server works with each client of the same major version that is not newer than the server. For example, server 1.4.2 works with clients 1.0.0 to 1.4.2. It does not work with client 1.5.0 or with client 2.0.0.
+The client and the SK-RAFT server have separate versions, in the form MAJOR.MINOR.PATCH. A server works with each client of the same MAJOR version whose MAJOR.MINOR is not newer than the MAJOR.MINOR of the server. The PATCH numbers do not matter. For example, server 1.4.2 works with clients 1.0.x to 1.4.x, also with client 1.4.5. It does not work with client 1.5.0 or with client 2.0.0.
 
 - The version of the client: `pip show skraft`.
 - The version of the server: `sk-raft -v`, or `client.version()` from a script.

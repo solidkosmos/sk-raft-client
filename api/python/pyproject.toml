@@ -1,12 +1,35 @@
 [project]
 name = "skraft"
-version = "1.0.0"
-dependencies = ["grpcio", "protobuf"]
+# Keep the same version in SK_RAFT_VERSION (skraft/skraft_fpga.py):
+# connect() prints it.
+version = "1.0.1"
+description = "Python client of the SK-RAFT FPGA fault-injection server"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.9"
+authors = [{ name = "SOLIDKOSMOS S.A." }]
+# The generated gRPC code (skraft_client_pb2*.py) checks these versions
+# when it is imported: protobuf 6.31.1 and grpcio 1.76.0 made it.
+dependencies = [
+    "grpcio>=1.76.0",
+    "protobuf>=6.31.1,<7",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+]
+
+[project.urls]
+Homepage = "https://solidkosmos.gr"
+Documentation = "https://solidkosmos.github.io"
+Source = "https://github.com/solidkosmos/sk-raft-client"
+Changelog = "https://github.com/solidkosmos/sk-raft-client/blob/main/CHANGELOG.md"
 
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
-
 
 [tool.setuptools]
 packages = ["skraft"]
