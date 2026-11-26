@@ -69,7 +69,7 @@ design = Design(
     xdc=f"{DESIGN_DIR}/board.xdc",
 )
 
-PBLOCK_BRAM = "pblock_stock_bram"
+PBLOCK_BRAM = "pblock_soft_sec_bram"
 
 # BSCAN registers: (USER number, width in bits)
 USER_CLK_EN = BscanPrimitive(1, 1)
@@ -209,7 +209,7 @@ def main() -> int:
                 # (block type 0) of the BRAM column, not into its content.
                 # Then program the FPGA again, so no upset from Part 1
                 # stays in Part 2.
-                print("Exercising the stock BRAM's own configuration "
+                print("Exercising the BRAM's own configuration "
                       "before touching its contents.")
                 # Note: this count is the size of the set that inject_random
                 # selects from. The set contains the essential bits in the

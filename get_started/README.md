@@ -88,7 +88,7 @@ For `brams_top`, the build runs the BRAM hold register pass before `opt_design`.
 
 An SK-RAFT access to BRAM content frames (readback, inject, revert) overwrites the output latch of the block RAMs without an output register. The stored content does not change, but the design would read the overwritten value after the clock resumes. The pass adds a hold register (a flip-flop on the opposite clock edge) behind each BRAM output in use, so the design keeps the word it read before the freeze.
 
-The build prints the report of the pass, and also writes it to `bram_hold_pass.rpt` in the `impl_1` run directory. For `brams_top`, the report shows the read port of `stock_bram` as held. The other tops have no block RAM, so the build does not run the pass for them.
+The build prints the report of the pass, and also writes it to `bram_hold_pass.rpt` in the `impl_1` run directory. For `brams_top`, the report shows the read port of `soft_sec_bram` as held. The other tops have no block RAM, so the build does not run the pass for them.
 
 The prebuilt `brams_top` files in `design_examples.zip` were built with the pass.
 

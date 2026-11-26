@@ -18,7 +18,7 @@ In the two parts, the script injects one upset each 0.3 s until you press Enter.
 
 ## BRAM output latch and the hold register
 
-When SK-RAFT reads or writes BRAM content frames (part 2 injects into them), the output latch of `stock_bram` takes a value from the configuration frame. The content of the BRAM does not change. The BRAM has no output register (`DO_REG = 0`), so without protection the design can take that wrong value instead of the word it read before the freeze.
+When SK-RAFT reads or writes BRAM content frames (part 2 injects into them), the output latch of `soft_sec_bram` takes a value from the configuration frame. The content of the BRAM does not change. The BRAM has no output register (`DO_REG = 0`), so without protection the design can take that wrong value instead of the word it read before the freeze.
 
 `hw/create_project.tcl` builds `brams_top` with the BRAM hold register pass ([`auxiliary_components/bram_hold_pass`](../../auxiliary_components/bram_hold_pass/README.md)). The pass adds a falling-edge register behind the BRAM output, which keeps the word read before the freeze. Thus a wrong word in the results comes from the injected content, not from the latch. The build prints the report of the pass.
 
@@ -50,7 +50,7 @@ When SK-RAFT reads or writes BRAM content frames (part 2 injects into them), the
 
 - Python 3.9 or a later version, with the `skraft` package installed.
 - An SK-RAFT server in operation, with the target board connected through USB.
-- The bitstream, the EBD file, the LL file and the XDC file that declares `pblock_stock_bram`. The script uploads these files to the server. Use the prebuilt files in `design_examples.zip`, or build them with `hw/create_project.tcl`. Both include the BRAM hold register pass.
+- The bitstream, the EBD file, the LL file and the XDC file that declares `pblock_soft_sec_bram`. The script uploads these files to the server. Use the prebuilt files in `design_examples.zip`, or build them with `hw/create_project.tcl`. Both include the BRAM hold register pass.
 
 ## Configuration
 
@@ -76,14 +76,14 @@ Sample output of a run on a Basys 3 (shortened). The frame addresses, the bit co
 ```
 Example 4: BRAM injection, config bits, content, and ECC recovery
 Programmed 210183BFD452A.
-Exercising the stock BRAM's own configuration before touching its contents.
+Exercising the BRAM's own configuration before touching its contents.
 BRAM Config bit count = 3349
 Writing known words in the BRAM...
-Wrote 1024 words into pblock_stock_bram.
+Wrote 1024 words into pblock_soft_sec_bram.
 Checking if all words round-trip...
 All 1024 addresses read back correctly.
 Press enter to stop injecting
-Injecting Essential CRAM bit upsets into pblock_stock_bram's configuration frames (block type 0), none corrected.
+Injecting Essential CRAM bit upsets into pblock_soft_sec_bram's configuration frames (block type 0), none corrected.
      #  FAR       WORD  BIT  BLK_TYPE
      1  00400311    63   29    0
 ...
@@ -91,10 +91,10 @@ Injected 22 Essential CRAM faults.
 896 of 1024 addresses read back wrong.
 Re-programming to clear the config upsets before the content campaign.
 Writing known words in the BRAM...
-Wrote 1024 words into pblock_stock_bram.
+Wrote 1024 words into pblock_soft_sec_bram.
 BRAM Content bit count = 36864
 Press enter to stop injecting
-Injecting BRAM Content bit upsets into pblock_stock_bram, none corrected.
+Injecting BRAM Content bit upsets into pblock_soft_sec_bram, none corrected.
      #  FAR       WORD  BIT  BLK_TYPE
      1  00c00062    67   10    1
 ...

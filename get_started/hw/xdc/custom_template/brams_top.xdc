@@ -1,7 +1,7 @@
 ## SPDX-License-Identifier: Apache-2.0
 ## Copyright (C) 2026 SOLIDKOSMOS S.A.
 
-## CUSTOM BOARD TEMPLATE for brams_top: stock BRAM with byte-lane Hamming SEC, driven over BSCAN.
+## CUSTOM BOARD TEMPLATE for brams_top: BRAM with byte-lane Hamming SEC, driven over BSCAN.
 ## 1. Copy this full folder to xdc/<your_board_name>/.
 ## 2. Fill the PACKAGE_PIN / IOSTANDARD placeholders below for your board.
 ## 3. Add an entry for <your_board_name> to device_info in create_project.tcl
@@ -48,15 +48,15 @@ set_property BITSTREAM.SEU.ESSENTIALBITS YES [current_design]
 ## frame when it loads it.
 set_property BITSTREAM.GENERAL.PERFRAMECRC YES [current_design]
 
-## Optional: a pblock that isolates the stock BRAM for pblock-confined fault
-## injection (instance label: stock_bram, see brams_top.vhd). Set the real
+## Optional: a pblock that isolates the BRAM for pblock-confined fault
+## injection (instance label: soft_sec_bram, see brams_top.vhd). Set the real
 ## RAMB18/RAMB36 ranges for your part.
-# create_pblock pblock_stock_bram
-# add_cells_to_pblock [get_pblocks pblock_stock_bram] [get_cells -quiet [list stock_bram]]
-# resize_pblock [get_pblocks pblock_stock_bram] -add {RAMB18_X<x0>Y<y0>:RAMB18_X<x1>Y<y1> \
+# create_pblock pblock_soft_sec_bram
+# add_cells_to_pblock [get_pblocks pblock_soft_sec_bram] [get_cells -quiet [list soft_sec_bram]]
+# resize_pblock [get_pblocks pblock_soft_sec_bram] -add {RAMB18_X<x0>Y<y0>:RAMB18_X<x1>Y<y1> \
 #                                                     RAMB36_X<x0>Y<y0>:RAMB36_X<x1>Y<y1> \
 # }
-# set_property EXCLUDE_PLACEMENT 1 [get_pblocks pblock_stock_bram]
+# set_property EXCLUDE_PLACEMENT 1 [get_pblocks pblock_soft_sec_bram]
 
 ## Exclude the BRAMs from power optimization. Otherwise, Vivado adds
 ## gating logic to the BRAM enables.

@@ -1,7 +1,7 @@
 ## SPDX-License-Identifier: Apache-2.0
 ## Copyright (C) 2026 SOLIDKOSMOS S.A.
 
-## ZedBoard constraints for brams_top: stock BRAM with byte-lane
+## ZedBoard constraints for brams_top: BRAM with byte-lane
 ## Hamming SEC, driven over BSCAN.
 
 ## The design does not instantiate the Zynq PS. clk_i is the dedicated
@@ -49,13 +49,13 @@ set_property BITSTREAM.GENERAL.PERFRAMECRC YES [current_design]
 ## are specific to that device. The pblocks below use ranges for the
 ## ZedBoard device.
 
-## Pblock: isolate the stock BRAM for pblock-confined fault injection
-create_pblock pblock_stock_bram
-add_cells_to_pblock [get_pblocks pblock_stock_bram] [get_cells -quiet [list stock_bram]]
-resize_pblock [get_pblocks pblock_stock_bram] -add {RAMB18_X4Y30:RAMB18_X4Y31 \
+## Pblock: isolate the BRAM (soft_sec_bram) for pblock-confined fault injection
+create_pblock pblock_soft_sec_bram
+add_cells_to_pblock [get_pblocks pblock_soft_sec_bram] [get_cells -quiet [list soft_sec_bram]]
+resize_pblock [get_pblocks pblock_soft_sec_bram] -add {RAMB18_X4Y30:RAMB18_X4Y31 \
                                                     RAMB36_X4Y15:RAMB36_X4Y15 \
 }
-set_property EXCLUDE_PLACEMENT 1 [get_pblocks pblock_stock_bram]
+set_property EXCLUDE_PLACEMENT 1 [get_pblocks pblock_soft_sec_bram]
 
 ## Exclude the BRAMs from power optimization. Otherwise, Vivado adds
 ## gating logic to the BRAM enables.
