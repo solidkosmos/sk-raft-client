@@ -4,8 +4,8 @@
 """Example: readback scrubbing of the configuration memory, in Python.
 
 The script corrects upsets in the configuration memory (CRAM) of the FPGA.
-It uses only the readback and the frame write of SK-RAFT. It does not use
-the scrubbing of the server (dev.scrub). Each scrub cycle does these steps:
+It uses only the readback and the frame write of SK-RAFT. Each scrub cycle
+does these steps:
 
   1. Read back all the frames of the CRAM.
   2. Compare each frame with its golden frame. The golden frames are the
@@ -13,7 +13,7 @@ the scrubbing of the server (dev.scrub). Each scrub cycle does these steps:
   3. Write the golden frame back into each frame that is different.
 
 The script does not check the dummy (pad) frames and the BRAM content
-frames, as the SK-RAFT scrubber does.
+frames.
 
 The script does not upload design files and does not program the FPGA. It
 scrubs the design that is in the FPGA. To show the scrubber at work, the

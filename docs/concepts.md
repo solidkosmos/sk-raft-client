@@ -24,7 +24,7 @@ Essential bits are CRAM bits that, when corrupted, can cause an application-obse
 
 ### Targeting or excluding resources from fault injection
 
-You can inject faults only to the resources of a specific Pblock defined in your XDC constraints file. Combine `pblock=<pblock_name>` with `TargetMemory.FF`, `TargetMemory.LUTRAM`, `TargetMemory.BRAM`, `TargetMemory.CRAM` and `TargetMemory.ESSENTIAL_CRAM` to inject faults into the specific Pblock. To leave configuration frames out of the injections, give their frame addresses (FARs) to `dev.exclude_frames()`. The exclusion applies to the injections where the server chooses the bits: `dev.inject_random()` and `dev.inject_exhaustive()`. It does not apply to `dev.inject_at()`, which injects at the location that you give, also in an excluded frame. It also does not apply to `dev.run_campaign()` and `dev.scrub()`.
+You can inject faults only to the resources of a specific Pblock defined in your XDC constraints file. Combine `pblock=<pblock_name>` with `TargetMemory.FF`, `TargetMemory.LUTRAM`, `TargetMemory.BRAM`, `TargetMemory.CRAM` and `TargetMemory.ESSENTIAL_CRAM` to inject faults into the specific Pblock. To leave configuration frames out of the injections, give their frame addresses (FARs) to `dev.exclude_frames()`. The exclusion applies to the injections where the server chooses the bits: `dev.inject_random()` and `dev.inject_exhaustive()`. It does not apply to `dev.inject_at()`, which injects at the location that you give, also in an excluded frame. It also does not apply to `dev.run_campaign()`.
 
 ### Location of a bit: FAR, word index and bit index
 

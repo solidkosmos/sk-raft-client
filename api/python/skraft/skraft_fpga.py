@@ -5,8 +5,8 @@
 Client for the SK-RAFT server.
 
 Connects to an SK-RAFT server over gRPC, reserves FPGA devices and runs
-operations on them, such as programming, readback, fault injection and
-scrubbing.
+operations on them, such as programming, readback, frame writes and fault
+injection.
 """
 
 from __future__ import annotations
@@ -36,14 +36,10 @@ from .datatypes import (
     FpgaPblockFar,
     FpgaPblockRange,
     FpgaRandomInjectionReport,
-    FpgaScrubReport,
-    FpgaScrubSummary,
-    FpgaScrubWordSummary,
     FpgaWord,
     FpgaFiWordSummary,
     JtagFrequency,
     TargetMemory,
-    ScrubbingType,
     ReadbackOption,
     XadcAlarm,
     XadcAlarmSelector,
@@ -1324,76 +1320,6 @@ class FpgaDevice:
                 f"failed to perform bit flip: {_rpc_detail(e)}"
             ) from e
         return FpgaInjectionReport(far, word_index, bit_index, target)
-
-    def scrub(self, option: ScrubbingType, scrub_cycle: int,
-              duration_ms: int, session_id: str = "") -> FpgaScrubReport:
-        """
-        Run a scrubbing session on the device.
-
-        Uses the FpgaScrubbing RPC.
-
-        Parameters:
-            option (ScrubbingType): The kind of scrubbing to run. Essential
-                scrubbing needs the essential bits (EBD) file, which the
-                server uses to tell essential upsets from non-essential
-                ones.
-            scrub_cycle (int): The scrub cycle setting for the session.
-            duration_ms (int): How long the session runs, in milliseconds.
-            session_id (str): An optional identifier for the session.
-
-        Returns:
-            FpgaScrubReport: A summary of each scrub cycle, including its
-                timings and the words that differed from the golden data.
-
-        Raises:
-            DesignFileError: If essential scrubbing is requested and
-                the essential bits (EBD) file has not been uploaded.
-            ConnectionFailedError: If the server could not run the session.
-        """
-        if option == ScrubbingType.ESSENTIAL:
-            self._design.require("ebd")
-        try:
-            essential = False 
-            if option == ScrubbingType.ESSENTIAL:
-                essential = True
-
-            request = skraft_client_pb2.FpgaScrubSession(
-                scrub_cycle=scrub_cycle,
-                duration_ms=duration_ms,
-                essential=essential,
-                id=session_id,
-            )
-            reply = self._stub.FpgaScrubbing(request)
-        except grpc.RpcError as e:
-            raise ConnectionFailedError(
-                f"failed to perform scrubbing: {_rpc_detail(e)}"
-            ) from e
-
-        summaries: list[FpgaScrubSummary] = []
-        for summary in reply.scrub_summaries:
-            words = [
-                FpgaScrubWordSummary(
-                    ws.far,
-                    ws.word_index,
-                    ws.bit_index,
-                    ws.golden_word_value,
-                    ws.erroneous_word_value,
-                    ws.ebd_word_value,
-                    ws.msd_word_value,
-                    ws.is_essential,
-                )
-                for ws in summary.word_summaries
-            ]
-            summaries.append(
-                FpgaScrubSummary(
-                    summary.scrub_cycle,
-                    summary.correction_time_ms,
-                    summary.idle_time_ms,
-                    summary.scrub_cycle_actual_duration_ms,
-                    words,
-                )
-            )
-        return FpgaScrubReport(summaries)
 
     def run_campaign(self, session: FpgaFiSession) -> FpgaFiSummary:
         """

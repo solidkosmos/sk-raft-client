@@ -8,6 +8,7 @@ The changes of each release of the SK-RAFT client. For the SK-RAFT server versio
 
 - `SkraftFpga.connect()` prints the versions of the client and of the server. It prints a warning only when their major or minor versions (X.Y of X.Y.Z) differ. Before, it printed a warning for each server version other than the version of the client.
 - When the block of `with client.attach(...) as dev:` raises an error and the release of the device also fails, for example because the server stopped, the client reports the error of the block. Before, the error of the release replaced it.
+- Removed `FpgaDevice.scrub` and its types `ScrubbingType`, `FpgaScrubReport`, `FpgaScrubSummary` and `FpgaScrubWordSummary`. To scrub the CRAM, read back the frames and write the frames that changed back from your script, as [`readback_scrubbing`](application_examples/readback_scrubbing/README.md) does.
 
 ### Examples
 

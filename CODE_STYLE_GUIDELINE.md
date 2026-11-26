@@ -100,7 +100,7 @@ from .exceptions import (
 - Write acronyms as one word in class names: `Fpga`, `Bscan`, `Xadc`, not
   `FPGA`, `BSCAN`, `XADC`.
 - Give a class that mirrors a server message the prefix of its area:
-  `FpgaFrame`, `FpgaScrubReport`, `XadcSensor`.
+  `FpgaFrame`, `FpgaFiSummary`, `XadcSensor`.
 - Put the unit at the end of the name of a quantity: `duration_ms`,
   `sbu_percent`, `READ_PERIOD_S`.
 - Do not use `camelCase` names. Version 1.0.0 renamed the last two:

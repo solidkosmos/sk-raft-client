@@ -217,7 +217,7 @@ for i, frame in enumerate(frames):
     dev.write_frame(golden[i])                               # write the golden frame back
 ```
 
-The scrub does not use `dev.scrub`. Refer to [`readback_scrubbing`](../application_examples/readback_scrubbing/README.md), which also prints each corrected bit.
+Refer to [`readback_scrubbing`](../application_examples/readback_scrubbing/README.md), which also prints each corrected bit.
 
 ## Exclude frames from injection
 
@@ -225,14 +225,10 @@ The scrub does not use `dev.scrub`. Refer to [`readback_scrubbing`](../applicati
 dev.exclude_frames([0x00400F9F, 0x00400FA0])   # the feature operations skip these frames; inject_at does not
 ```
 
-## Scrubbing and campaigns on the server
+## Campaigns on the server
 
 ```python
-from skraft import ScrubbingType, FpgaFiSession, FaultType
-
-report = dev.scrub(ScrubbingType.ESSENTIAL, scrub_cycle=1, duration_ms=10_000)
-for cycle in report.scrub_summaries:
-    print(cycle.scrub_cycle, len(cycle.word_summaries), "words differed from the golden data")
+from skraft import FpgaFiSession, FaultType
 
 session = FpgaFiSession(fault_type=FaultType.RANDOM, duration_ms=10_000,
                         correction_time_ms=100, time_between_faults_ms=200,
@@ -242,7 +238,7 @@ summary = dev.run_campaign(session)
 print(summary.faults_injected, summary.corrected)
 ```
 
-The parameter values are only examples. Refer to `scrub` and `run_campaign` in the API reference.
+The parameter values are only examples. Refer to `run_campaign` in the API reference.
 
 ## Read the XADC sensors
 
