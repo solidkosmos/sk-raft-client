@@ -60,11 +60,23 @@ dev.all_bit_counts()                                         # dict with all cou
 ```python
 import time
 
-report = dev.inject_random(TargetMemory.ESSENTIAL_CRAM)
+report = dev.inject_random(TargetMemory.CRAM)                # any bit of the CRAM
 print(f"far {report.far:#010x} word {report.word_index} bit {report.bit_index}")
 time.sleep(0.1)                                              # keep the upset
 dev.inject_at(report.far, report.word_index, report.bit_index,
               TargetMemory.CRAM)                             # flip the bit back
+```
+
+## Inject into the essential bits and correct the upset
+
+```python
+import time
+
+report = dev.inject_random(TargetMemory.ESSENTIAL_CRAM)      # a bit that the design uses (EBD file)
+print(f"far {report.far:#010x} word {report.word_index} bit {report.bit_index}")
+time.sleep(0.1)                                              # keep the upset
+dev.inject_at(report.far, report.word_index, report.bit_index,
+              TargetMemory.CRAM)                             # an essential bit is a CRAM bit: flip it back
 ```
 
 ## Inject into a pblock, or exclude pblocks
@@ -180,6 +192,32 @@ for f in dev.readback(ReadbackOption.READBACK):
 ...
 dev.write_frame(golden[far])     # restore one frame from the golden copy
 ```
+
+## Scrub the CRAM from the script
+
+```python
+from skraft import ReadbackOption
+
+BRAM_CONTENT = 1                                             # the block type of the BRAM content frames
+
+def is_dummy(frames, i):
+    # The first and the last frame, and a frame with the FAR of the frame before it.
+    return i in (0, len(frames) - 1) or (i >= 2 and frames[i].far == frames[i - 1].far)
+
+golden = dev.readback(ReadbackOption.READBACK)               # once, at the start: the golden frames
+
+frames = dev.readback(ReadbackOption.READBACK)               # each scrub cycle
+for i, frame in enumerate(frames):
+    if is_dummy(frames, i):
+        continue                                             # never write a dummy frame
+    if [w.value for w in frame.words] == [w.value for w in golden[i].words]:
+        continue                                             # no upset in this frame
+    if dev.decode_far(frame.far).blocktype == BRAM_CONTENT:
+        continue                                             # the BRAM contents change during operation
+    dev.write_frame(golden[i])                               # write the golden frame back
+```
+
+The scrub does not use `dev.scrub`. Refer to [`readback_scrubbing`](../application_examples/readback_scrubbing/README.md), which also prints each corrected bit.
 
 ## Exclude frames from injection
 

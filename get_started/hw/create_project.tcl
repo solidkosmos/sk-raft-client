@@ -181,7 +181,6 @@ set vhdl_files {
     brams_top.vhd
     bram_readback_writeback_top.vhd
     examples_utilities_pkg.vhd
-    heartbeat.vhd
     lut_memory_array.vhd
     secded_dec8b.vhd
     secded_enc8b.vhd

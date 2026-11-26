@@ -21,10 +21,10 @@ This example has two parts:
    bit) and the net of the flip-flop that the upset hit. At the end, the
    script programs the FPGA again to remove all the upsets.
 
-The design is targeted_top, the design of example 1. Its two heartbeats,
-slow_heartbeat and fast_heartbeat, are components. The script injects
-into slow_heartbeat: the slow LED shows the upsets, and the fast LED
-blinks as before.
+The design is bscan_adder_top, the design of example 2. Its top-level
+components are its three BSCAN registers. The script injects into
+bscan_u1_operands, the register (USER1) with the operands of the two
+adders.
 
 A component is one or more whole levels of the net paths in the LL file,
 for example ``top_component/sub_component``.
@@ -66,7 +66,7 @@ design = Design(
 )
 
 # The component to test: the full path of a component, as part 1 shows
-# it. This one is the slow heartbeat (its counter and its output).
+# it. This one is the BSCAN register USER1, the operands of the two adders.
 COMPONENT = "bscan_u1_operands"
 
 # The time between two upsets, in seconds.

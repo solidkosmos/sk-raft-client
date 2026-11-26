@@ -9,6 +9,10 @@ The changes of each release of the SK-RAFT client. For the SK-RAFT server versio
 - `SkraftFpga.connect()` prints the versions of the client and of the server. It prints a warning only when their major or minor versions (X.Y of X.Y.Z) differ. Before, it printed a warning for each server version other than the version of the client.
 - When the block of `with client.attach(...) as dev:` raises an error and the release of the device also fails, for example because the server stopped, the client reports the error of the block. Before, the error of the release replaced it.
 
+### Examples
+
+- Example 1: the design `targeted_top` has two 16-bit shift registers with a feedback loop, each in its own pblock (`pblock_sr_0`, `pblock_sr_1`), with their even parities on LD0 and LD1. Before, it had two heartbeat counters. The prebuilt designs for the Basys 3 and the ZedBoard are new. Step 1 stops after 200 upsets, or earlier when you press Enter, and each step is a function of `main.py`.
+
 ## 1.0.0 (2026-11-09)
 
 The first release.
