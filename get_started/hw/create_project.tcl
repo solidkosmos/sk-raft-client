@@ -312,7 +312,7 @@ array set top_to_example {
     bscan_adder_top 2
     ff_lut_top      3
     brams_top       4
-    bram_readback_writeback_top 4
+    bram_readback_writeback_top 6
 }
 
 if { [info exists top_to_example($top)] } {

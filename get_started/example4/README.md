@@ -1,6 +1,6 @@
 # Example 4: BRAM content injection and ECC recovery
 
-The design uses one RAMB36 in the 1K x 36 configuration. Each 36-bit word contains 24 data bits and 12 check bits. Logic in the fabric around the BRAM protects each data byte with its own Hamming SEC code (4 check bits for each byte). This logic is not the built-in ECC of the BRAM.
+The design uses one RAMB36 in the 1K x 36 configuration. Each 36-bit word contains 24 data bits and 12 check bits. Logic in the fabric around the BRAM protects each data byte with its own Hamming SEC code (4 check bits for each byte). This logic is not the built-in ECC of the BRAM: the built-in ECC does not see an SK-RAFT injection ([example 6](../example6/README.md) explains why).
 
 ![Block diagram of brams_top. A BRAM in a pblock has an encoder on the write path. On the read path, a falling-edge hold register on the gated clock feeds a decoder and a multiplexer. USER1 controls the clock gate, USER2 selects the address, USER3 carries the data and USER4 enables the ECC correction.](images/example4_brams_top_abstract.svg)
 
@@ -29,13 +29,9 @@ AMD defines the block types in the description of the frame address register (FA
 - UG470, *7 Series FPGAs Configuration User Guide*, section "Frame Address Register (FAR)".
 - UG570, *UltraScale Architecture Configuration User Guide*, section "Frame Address Register (FAR)".
 
-## BRAM output latch and the hold register
+## The hold register
 
-When SK-RAFT reads or writes BRAM content frames (the script injects into them), the output latch of `soft_sec_bram` takes a value from the configuration frame. The content of the BRAM does not change. The BRAM has no output register (`DO_REG = 0`), so without protection the design can take that wrong value instead of the word it read before the freeze.
-
-`hw/create_project.tcl` builds `brams_top` with the BRAM hold register pass ([`auxiliary_components/bram_hold_pass`](../../auxiliary_components/bram_hold_pass/README.md)). The pass adds a falling-edge register behind the BRAM output, which keeps the word read before the freeze. Thus a wrong word in the results comes from the injected content, not from the latch. The build prints the report of the pass.
-
-[`readback_writeback/`](readback_writeback/README.md) shows the effect without the pass, on a BRAM with the built-in ECC: the wrong word while the clock is stopped, and the flipped bit that the ECC does not detect.
+The design reads the BRAM through a hold register. `hw/create_project.tcl` adds it with the BRAM hold register pass ([`auxiliary_components/bram_hold_pass`](../../auxiliary_components/bram_hold_pass/README.md)), and the build prints the report of the pass. Without the hold register, each injection into the BRAM content would also change the BRAM output, and the design could read a wrong word after the clock starts again. Thus a wrong word in the results comes from the injected content, not from the test setup. [Example 6](../example6/README.md) explains why, and shows the effect on a BRAM without a hold register.
 
 ## BSCAN register map
 

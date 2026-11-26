@@ -13,6 +13,8 @@ The changes of each release of the SK-RAFT client. For the SK-RAFT server versio
 ### Examples
 
 - Example 1: the design `targeted_top` has two 16-bit shift registers with a feedback loop, each in its own pblock (`pblock_sr_0`, `pblock_sr_1`), with their even parities on LD0 and LD1. Before, it had two heartbeat counters. The prebuilt designs for the Basys 3 and the ZedBoard are new. Step 1 stops after 200 upsets, or earlier when you press Enter, and each step is a function of `main.py`.
+- Example 4: the script injects only into the BRAM content (block type 1). The README tells why the configuration frames (block type 0) also affect the BRAM. The BRAM of `brams_top` is now `soft_sec_bram` (pblock `pblock_soft_sec_bram`), and the prebuilt designs are new.
+- Example 6: the readback and writeback part of example 4 (`example4/readback_writeback`) is now example 6. It explains why a BRAM needs a hold register: the BRAM shares its write and read paths with the configuration layer, so an SK-RAFT access changes the BRAM output, and the built-in ECC encoder makes new parity bits for an injected bit.
 
 ## 1.0.0 (2026-11-09)
 

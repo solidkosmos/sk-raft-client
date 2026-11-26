@@ -68,10 +68,10 @@ The pass works only if the design obeys these requirements:
 **In this repository:**
 
 - [`auxiliary_components/bram_hold_pass/README.md`](../auxiliary_components/bram_hold_pass/README.md): the problem, the hold register, the requirements and the report of the pass.
-- [example4/readback_writeback](../get_started/example4/readback_writeback/README.md): shows the effect. The BRAM outputs a wrong word while the clock is stopped after an injection.
-- [example4](../get_started/example4/README.md#bram-output-latch-and-the-hold-register): a BRAM protected by the pass.
+- [example6](../get_started/example6/README.md): explains why the BRAM output changes, and shows the effect. The BRAM outputs a wrong word while the clock is stopped after an injection.
+- [example4](../get_started/example4/README.md#the-hold-register): a BRAM protected by the pass.
 - [`get_started/hw/create_project.tcl`](../get_started/hw/create_project.tcl) (list `tops_with_bram_hold`) and [`application_examples/test_neo_hardened/create_project.tcl`](../application_examples/test_neo_hardened/create_project.tcl) set the pass as the hook before `opt_design`.
 
 **AMD references:**
 
-- UG570 (v1.17), *UltraScale Architecture Configuration User Guide*, Chapter 10, "SEU Detection and Correction" (p. 192): "Block RAM content is skipped during readback to avoid interfering with user functions." The guide does not describe the effect on the output latch. The effect above comes from the measurements of example4/readback_writeback.
+- UG570 (v1.17), *UltraScale Architecture Configuration User Guide*, Chapter 10, "SEU Detection and Correction" (p. 192): "Block RAM content is skipped during readback to avoid interfering with user functions." The guide does not describe the effect on the output latch. The effect above comes from the measurements of example 6.
