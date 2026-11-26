@@ -6,7 +6,7 @@
 get_started/
 ├── example1/ .. example6/               SK-RAFT client examples (src/main.py)
 ├── list_devices.py                      lists the boards connected to the server
-├── install_client.bat, .sh              installs the skraft client into .venv (for a clone from GitHub)
+├── install_client.bat, .sh              installs the skraft client into .venv 
 ├── open_terminal.bat, .sh               opens a terminal with .venv active
 └── hw/                                  Vivado project (create_project.tcl)
     ├── design_examples/                 design files: design_examples.zip and build output
