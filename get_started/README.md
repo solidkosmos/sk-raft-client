@@ -5,6 +5,7 @@
 ```
 get_started/
 ├── example1/ .. example6/               SK-RAFT client examples (src/main.py)
+├── speed_test/                          the time of the SK-RAFT functions (src/main.py)
 ├── list_devices.py                      lists the boards connected to the server
 ├── install_client.bat, .sh              installs the skraft client into .venv 
 ├── open_terminal.bat, .sh               opens a terminal with .venv active
@@ -24,6 +25,8 @@ get_started/
 | 4 | [example4](example4/README.md) | [`brams_top`](hw/sources_1/new/brams_top.vhd) (one BRAM with a Hamming SEC code for each byte) | Showing how to inject faults into the content of a BRAM (ARAM, block type 1 frames), and how a SEC code corrects them. |
 | 5 | [example5](example5/README.md) | [`bscan_adder_top`](hw/sources_1/new/bscan_adder_top.vhd) (the design of example 2: the three BSCAN registers are components of the design hierarchy) | Showing how to list the components of a design as a tree, from the flip-flop nets of the LL file, and how to perform random fault injection into the flip-flops of one component, with the net of each flip-flop that an upset hits. |
 | 6 | [example6](example6/README.md) | [`bram_readback_writeback_top`](hw/sources_1/new/bram_readback_writeback_top.vhd) (one BRAM with the built-in ECC, no output register, no hold register) | Showing why a BRAM needs a hold register: SK-RAFT and the design share the write and read paths of the BRAM. A configuration read changes the BRAM output while the clock is stopped, and the built-in ECC encoder makes new parity bits for an injected bit, so the ECC does not see it. |
+
+[`speed_test`](speed_test/README.md) measures the time of the main SK-RAFT functions on `brams_top`, the design of example 4: the programming, the frame reads and writes, the full readback, the flip-flop and BRAM injections, and the CRAM and essential CRAM scrubbing.
 
 Each example operates with one design. The README of each example shows how to create the files that the SK-RAFT client script uploads to the SK-RAFT server for testing. These files are the bitstream and the EBD, LL and XDC files where necessary. Vivado builds these files from the `sources_1/new/*.vhd` files of that design in [`hw`](hw/).
 
@@ -65,7 +68,7 @@ vivado -mode batch -source create_project.tcl -tclargs <device> <top>
 | `targeted_top` | example1 |
 | `bscan_adder_top` | example2, example5 |
 | `ff_lut_top` | example3 |
-| `brams_top` | example4 |
+| `brams_top` | example4, speed_test |
 | `bram_readback_writeback_top` | example6 |
 
 SolidKosmos tested and supplies only `basys3` and `zedboard` as `<device>`. To add your own board, refer to "Build a bitstream" in [`hw/README.md`](hw/README.md#build-a-bitstream). That section tells you how to:
@@ -106,7 +109,7 @@ The examples do not use command-line options. To configure an example, change th
 
 Each example ends with exit code 0 when it is done, 1 on an error and 130 after Ctrl+C.
 
-Examples 1 to 5 inject faults until you press Enter. Then the example continues to its next step, or it stops. Example 6 injects one fault and runs without input.
+Examples 1 to 5 inject faults until you press Enter. Then the example continues to its next step, or it stops. Example 6 injects one fault and runs without input. The speed test (`get_started/speed_test/src`) runs without input, and programs the FPGA again at the end.
 
 Examples 1 and 2 correct each upset. Examples 3, 4, 5 and 6 program the FPGA again at the end.
 

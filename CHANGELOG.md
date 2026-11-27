@@ -6,6 +6,7 @@ The changes of each release of the SK-RAFT client. For the SK-RAFT server versio
 
 ### Examples
 
+- `get_started/speed_test`: a new test that measures the time of the main SK-RAFT functions on the design of example 4 (`brams_top`): the programming, the frame reads and writes, the full readback, the flip-flop and BRAM injections, and the CRAM and essential CRAM scrubbing.
 - Removed the application example `mmcm_drp_interface`.
 - Renamed the application example `sem_arbitration` to `sem_design_test`, with its Vivado projects and its top entities (`sem_design_test_7series`, `sem_design_test_us`).
 - The hardened NEORV32 SoC (`test_neo_hardened`) moved from `application_examples/` to the new folder `real_campaigns/`.
