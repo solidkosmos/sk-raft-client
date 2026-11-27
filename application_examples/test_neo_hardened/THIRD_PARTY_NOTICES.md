@@ -47,7 +47,7 @@ All of the SECDED/parity/ECC hardening added above is gated behind a single
 `neorv32_test_setup_bootloader` (the actual top-level entity used by this
 project) down through `neorv32_top` / `neorv32_cpu` to the individual modified
 files. Building with `HARDEN_EN => false` produces an unhardened baseline that
-should behave like stock NEORV32 for fault-injection comparisons: no SECDED/
+should behave like unhardened NEORV32 for fault-injection comparisons: no SECDED/
 parity/ECC hardware is left in a position to affect execution or report
 errors. Two exceptions to note:
 

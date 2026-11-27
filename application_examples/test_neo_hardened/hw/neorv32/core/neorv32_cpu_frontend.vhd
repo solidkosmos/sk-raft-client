@@ -18,7 +18,7 @@
 -- (S_RESTART/ S_REQUEST/S_PENDING). Gated behind the HARDEN_EN generic: the  --
 -- checking hardware stays in place either way, but check_o/ill_state_o are   --
 -- masked to '0' when HARDEN_EN is false, so a disabled build reports no      --
--- fetch-stage parity or one-hot errors (stock NEORV32 behavior). See         --
+-- fetch-stage parity or one-hot errors (unhardened NEORV32 behavior). See    --
 -- THIRD_PARTY_NOTICES.md at the project root for the full list of modified   --
 -- files.                                                                     --
 -- ========================================================================== --
@@ -172,7 +172,7 @@ begin
   harden_sig <= '1' when HARDEN_EN else '0';
 
   -- both bits forced low when HARDEN_EN = false, so a disabled build reports no
-  -- fetch-stage PC parity or one-hot state errors (stock NEORV32 behavior) --
+  -- fetch-stage PC parity or one-hot state errors (unhardened NEORV32 behavior) --
   check_o     <= check_pc and harden_sig;
   ill_state_o <= ill_state_reg and harden_sig;
    

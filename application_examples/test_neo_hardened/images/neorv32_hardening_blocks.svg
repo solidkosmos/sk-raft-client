@@ -76,7 +76,7 @@
 <text x="727.0" y="330.0" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">CRC word</text>
 <rect x="830" y="296" width="188" height="50" fill="#F2F2F2" stroke="#111111" stroke-width="1.5"/>
 <text x="924.0" y="313.0" font-size="15" font-weight="700" fill="#111827" text-anchor="middle" dominant-baseline="central">other modules</text>
-<text x="924.0" y="330.0" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">stock NEORV32</text>
+<text x="924.0" y="330.0" font-size="12.5" font-weight="400" fill="#3F4651" text-anchor="middle" dominant-baseline="central">unhardened NEORV32</text>
 <path d="M1018,261 L1064.5,261" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="miter"/>
 <polygon points="1075,261 1064.5,264.75 1064.5,257.25" fill="#111111"/>
 <text x="1080" y="261" font-size="15" font-weight="700" fill="#111111" text-anchor="start" dominant-baseline="central">UART</text>

@@ -11,7 +11,7 @@ the CPU control FSM and the program counter. The `HARDEN_EN` generic selects a
 hardened or an unhardened build of the same design. Thus you can measure the
 effect of the hardening under fault injection.
 
-![Block diagram of the example. The board clock goes through the safe clock generation PLL, a root clock gate (BSCAN USER3) and the cycle controller, which enables the clock for the number of cycles set over BSCAN USER2, then to the NEORV32. The tester (BSCAN USER1/USER2/USER3 and the cycle controller) sits in harness_pblock, which SK-RAFT does not inject into. Inside the NEORV32, the hardened modules (CPU control, CPU frontend, register file, DMEM) are grouped apart from the stock modules (IMEM, UART0, GPIO and the rest). USER1 resets the NEORV32 and reads the CRC word from its GPIO, the UART tx_busy keeps the clock running until the UART is idle, and ECC/parity events raise fast interrupts that print an [ALERT] on the UART.](images/neorv32_hardening_blocks.svg)
+![Block diagram of the example. The board clock goes through the safe clock generation PLL, a root clock gate (BSCAN USER3) and the cycle controller, which enables the clock for the number of cycles set over BSCAN USER2, then to the NEORV32. The tester (BSCAN USER1/USER2/USER3 and the cycle controller) sits in harness_pblock, which SK-RAFT does not inject into. Inside the NEORV32, the hardened modules (CPU control, CPU frontend, register file, DMEM) are grouped apart from the unhardened modules (IMEM, UART0, GPIO and the rest). USER1 resets the NEORV32 and reads the CRC word from its GPIO, the UART tx_busy keeps the clock running until the UART is idle, and ECC/parity events raise fast interrupts that print an [ALERT] on the UART.](images/neorv32_hardening_blocks.svg)
 
 The NEORV32 boots the CoreMark firmware from the IMEM image
 (`BOOT_MODE_SELECT => 2`). The image is in
@@ -49,7 +49,7 @@ For the unhardened baseline, remove the `#` from this line near the end of
 The generic `HARDEN_EN : boolean := true` goes from
 `neorv32_test_setup_bootloader` through `neorv32_top` and `neorv32_cpu` to
 each modified file. With `HARDEN_EN => false`, the design operates as the
-stock NEORV32:
+unhardened NEORV32:
 
 - DMEM and register file (`neorv32_dmem.vhd`, `neorv32_prim.vhd`): the
   protected datapath and the plain datapath are in different `generate`

@@ -11,7 +11,7 @@
 -- encode/ decode (secded_enc8b/secded_dec8b) around the memory core, and an  --
 -- irq_ecc_dmem output flagging corrections. Gated behind the HARDEN_EN       --
 -- generic -- when false, falls back to a plain, unprotected byte-wide RAM    --
--- matching stock NEORV32, for hardened-vs-unhardened fault-injection         --
+-- matching unhardened NEORV32, for hardened-vs-unhardened fault-injection    --
 -- comparisons. See THIRD_PARTY_NOTICES.md at the project root for the full   --
 -- list of modified files.                                                    --
 -- ========================================================================== --
@@ -28,7 +28,7 @@ entity neorv32_dmem is
     MEM_SIZE  : natural; -- memory size in bytes, has to be a power of 2, min 4
     OUTREG_EN : boolean; -- implement output register stage
     -- enable per-byte-lane Hamming SEC protection; when false, plain
-    -- unprotected RAM (stock NEORV32 behavior)
+    -- unprotected RAM (unhardened NEORV32 behavior)
     HARDEN_EN : boolean := true
   );
   port (
@@ -144,7 +144,7 @@ begin
   end generate dmem_ram_gen_hardened;
 
 
-  -- Memory Core (unhardened: plain byte-wide RAM, no ECC, stock NEORV32
+  -- Memory Core (unhardened: plain byte-wide RAM, no ECC, unhardened NEORV32
   -- behavior) -----------------------------------------------------------------
   -- ---------------------------------------------------------------------------
   dmem_ram_gen_plain:

@@ -279,7 +279,7 @@ entity neorv32_prim_sdpram is
     DWIDTH    : natural; -- data width (number of bits)
     OUTREG    : boolean; -- add output register stage
     -- enable soft SECDED (fabric logic, DWIDTH = 32 only); when false, plain
-    -- inferred BRAM (stock NEORV32 behavior)
+    -- inferred BRAM (unhardened NEORV32 behavior)
     HARDEN_EN : boolean := true
   );
   port (
@@ -416,7 +416,7 @@ begin
 
   end generate memory_core_hardened;
 
-  -- Memory Core (plain path: inferred BRAM, no ECC -- stock NEORV32 behavior)
+  -- Memory Core (plain path: inferred BRAM, no ECC -- unhardened NEORV32 behavior)
   -- ---------------------------------------------------------------------------
   memory_core_plain:
   if not HARDEN_EN generate

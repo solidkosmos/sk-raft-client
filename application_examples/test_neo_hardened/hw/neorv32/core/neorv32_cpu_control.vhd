@@ -392,7 +392,7 @@ begin
 
   -- Override the fast irq with our own signals for the execution engine --
   -- (both bits forced low when HARDEN_EN = false, so a disabled build reports
-  --  no FSM-state corrections or PC/PC2/RA parity errors, matching stock
+  --  no FSM-state corrections or PC/PC2/RA parity errors, matching unhardened
   --  NEORV32) --
   custom_fast_irq <= (check_exe_pc_ra and harden_sig)
       & (corr_exe_eng_reg_irq and harden_sig) & irq_fast_i(13 downto 0);
@@ -543,7 +543,7 @@ begin
    -- uncorrectable (double-bit) state error. EX_RESTART flushes and restarts
    -- instruction fetch. when HARDEN_EN = false, bypass SECDED correction
    -- entirely: the FSM runs directly off the raw, unprotected state register
-   -- (stock NEORV32 behavior) --
+   -- (unhardened NEORV32 behavior) --
    exe_fctv_state <= exe_engine.state when not HARDEN_EN else
                       EX_RESTART when ill_state_sig = '1' else exe_corr_state;
     
