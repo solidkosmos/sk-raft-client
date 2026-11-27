@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (C) 2026 SOLIDKOSMOS S.A.
 #
-# Constraints of the UltraScale SEM arbitration example (top:
-# sem_arbitration_us) for the Trenz TE0841-02 (xcku040-sfva784-1-i).
+# Constraints of the UltraScale SEM design test example (top:
+# sem_design_test_us) for the Trenz TE0841-02 (xcku040-sfva784-1-i).
 ################################################################################
 
 set_property CFGBVS GND [current_design]

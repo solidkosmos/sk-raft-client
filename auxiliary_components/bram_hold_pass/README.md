@@ -85,7 +85,7 @@ set_property STEPS.OPT_DESIGN.TCL.PRE \
     [get_runs impl_1]
 ```
 
-The examples do this in their `create_project.tcl` files: `get_started/hw/create_project.tcl` (for `brams_top`) and `application_examples/test_neo_hardened/create_project.tcl`.
+The examples do this in their `create_project.tcl` files: `get_started/hw/create_project.tcl` (for `brams_top`) and `real_campaigns/test_neo_hardened/create_project.tcl`.
 
 The pass writes its report to `bram_hold_pass.rpt` in the `impl_1` run directory. To give options, copy `bram_hold_hook.tcl` and add the options to the `bram_hold::run` line.
 

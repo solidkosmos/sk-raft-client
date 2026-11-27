@@ -2,6 +2,14 @@
 
 The changes of each release of the SK-RAFT client. For the SK-RAFT server versions that the client supports, refer to [Compatibility](README.md#compatibility) in the README.
 
+## Unreleased
+
+### Examples
+
+- Removed the application example `mmcm_drp_interface`.
+- Renamed the application example `sem_arbitration` to `sem_design_test`, with its Vivado projects and its top entities (`sem_design_test_7series`, `sem_design_test_us`).
+- The hardened NEORV32 SoC (`test_neo_hardened`) moved from `application_examples/` to the new folder `real_campaigns/`.
+
 ## 1.0.1 (2026-11-26)
 
 ### Python client (`api/python`, package `skraft`)

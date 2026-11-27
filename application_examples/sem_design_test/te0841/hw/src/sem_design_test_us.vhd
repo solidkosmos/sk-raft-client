@@ -3,8 +3,8 @@
 -- SPDX-License-Identifier: Apache-2.0
 -- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
--- Module Name: sem_arbitration_us
--- Description: Top of the UltraScale SEM arbitration example. The SEM
+-- Module Name: sem_design_test_us
+-- Description: Top of the UltraScale SEM design test example. The SEM
 --              controller (sem_ultra_0, PG187) and SK-RAFT share the
 --              configuration logic. SK-RAFT controls the ICAP arbitration
 --              interface of the SEM (cap_gnt, cap_rel) through BSCAN
@@ -65,7 +65,7 @@ use UNISIM.VComponents.all;
 
 use work.examples_utilities_pkg.all;
 
-entity sem_arbitration_us is
+entity sem_design_test_us is
   Generic (
     -- Period of the board clock in ns (200 MHz oscillator U11 of the
     -- TE0841). clk_gen_wrapper makes the 100 MHz SEM clock from it.
@@ -81,9 +81,9 @@ entity sem_arbitration_us is
     -- Enable of the 200 MHz oscillator of the TE0841 (EN_OSC)
     en_osc  : out std_ulogic
   );
-end sem_arbitration_us;
+end sem_design_test_us;
 
-architecture Behavioral of sem_arbitration_us is
+architecture Behavioral of sem_design_test_us is
 
     -- The SEM IP (sem_ultra 3.1). create_project.tcl generates it with the
     -- name sem_ultra_0. The widths of command_code and fecc_far are for

@@ -14,7 +14,7 @@ The rules that a design must obey for correct fault injection with SK-RAFT, and 
 **In this repository:**
 
 - [`auxiliary_components/safe_clk_gen/`](../auxiliary_components/safe_clk_gen/README.md): `clk_gen_wrapper`, a PLL for 7-series, UltraScale and UltraScale+. It enables the output BUFGCE only after LOCKED has passed an 8-stage shift register.
-- `targeted_top`, `ff_lut_top`, `brams_top` and `bram_readback_writeback_top` (in `get_started/hw/sources_1/new/`), [`test_neo_hardened`](../application_examples/test_neo_hardened/README.md), [`sem_arbitration`](../application_examples/sem_arbitration/README.md) and [`mmcm_drp_interface`](../application_examples/mmcm_drp_interface/README.md) use `clk_gen_wrapper`.
+- `targeted_top`, `ff_lut_top`, `brams_top` and `bram_readback_writeback_top` (in `get_started/hw/sources_1/new/`), [`test_neo_hardened`](../real_campaigns/test_neo_hardened/README.md) and [`sem_design_test`](../application_examples/sem_design_test/README.md) use `clk_gen_wrapper`.
 - All the examples program the FPGA at the start, and some examples program it again between their steps (for example [example1](../get_started/example1/README.md) and [example4](../get_started/example4/README.md)).
 
 **AMD references:**
@@ -70,7 +70,7 @@ The pass works only if the design obeys these requirements:
 - [`auxiliary_components/bram_hold_pass/README.md`](../auxiliary_components/bram_hold_pass/README.md): the problem, the hold register, the requirements and the report of the pass.
 - [example6](../get_started/example6/README.md): explains why the BRAM output changes, and shows the effect. The BRAM outputs a wrong word while the clock is stopped after an injection.
 - [example4](../get_started/example4/README.md#the-hold-register): a BRAM protected by the pass.
-- [`get_started/hw/create_project.tcl`](../get_started/hw/create_project.tcl) (list `tops_with_bram_hold`) and [`application_examples/test_neo_hardened/create_project.tcl`](../application_examples/test_neo_hardened/create_project.tcl) set the pass as the hook before `opt_design`.
+- [`get_started/hw/create_project.tcl`](../get_started/hw/create_project.tcl) (list `tops_with_bram_hold`) and [`real_campaigns/test_neo_hardened/create_project.tcl`](../real_campaigns/test_neo_hardened/create_project.tcl) set the pass as the hook before `opt_design`.
 
 **AMD references:**
 

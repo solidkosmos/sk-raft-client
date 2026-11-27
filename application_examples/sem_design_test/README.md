@@ -1,4 +1,4 @@
-# SEM arbitration: SK-RAFT injects, the SEM corrects
+# SEM design test: SK-RAFT injects, the SEM corrects
 
 This example shows how SK-RAFT and the Soft Error Mitigation (SEM) controller of the FPGA can share the configuration logic. SK-RAFT injects upsets into the configuration memory (CRAM) while the SEM is idle. Then the SEM scans the CRAM again and reports what it finds on the UART of the board. The script compares the reports of the SEM with the injected bits (output of experiment 1, shortened):
 
@@ -21,7 +21,7 @@ The SEM reported 1 of 1 injected bits.
 
 The lines that start with `SEM|` are the UART text of the SEM.
 
-![Block diagram of the Basys 3 design. The board clock goes through the safe clock generation PLL and a clock gate (BUFGCE) to sem_clk, which drives the SEM controller and the monitor interface. BSCAN USER1 sets the clock enable, USER2 gives the ICAP grant to the SEM and reads icap_request, USER3 reads the 8 SEM status bits. The SEM controller sits in pblock_sem (the target of experiments 4 and 5) and reads and corrects the configuration frames through ICAPEX and FRAME_ECCEX (ICAPE2 and FRAME_ECCE2 on the Basys 3, ICAPE3 and FRAME_ECCE3 on the TE0841). Over JTAG, SK-RAFT injects upsets into the CRAM (experiments 1 to 3) through CFG IN and reads it back through CFG OUT. The monitor interface connects the SEM monitor port to the UART of the host. The SEM is PG036 on 7 series and PG187 on UltraScale. The TE0841 design is the same, with 10 status bits.](images/sem_arbitration_blocks.svg)
+![Block diagram of the Basys 3 design. The board clock goes through the safe clock generation PLL and a clock gate (BUFGCE) to sem_clk, which drives the SEM controller and the monitor interface. BSCAN USER1 sets the clock enable, USER2 gives the ICAP grant to the SEM and reads icap_request, USER3 reads the 8 SEM status bits. The SEM controller sits in pblock_sem (the target of experiments 4 and 5) and reads and corrects the configuration frames through ICAPEX and FRAME_ECCEX (ICAPE2 and FRAME_ECCE2 on the Basys 3, ICAPE3 and FRAME_ECCE3 on the TE0841). Over JTAG, SK-RAFT injects upsets into the CRAM (experiments 1 to 3) through CFG IN and reads it back through CFG OUT. The monitor interface connects the SEM monitor port to the UART of the host. The SEM is PG036 on 7 series and PG187 on UltraScale. The TE0841 design is the same, with 10 status bits.](images/sem_design_test_blocks.svg)
 
 ## Supported boards
 
@@ -39,7 +39,7 @@ The example has a design for two boards. One script, `src/main.py`, works with b
 | `src/main.py` | The test script: board settings, BSCAN and SK-RAFT operations, the experiments. |
 | `src/sem_monitor.py` | Helpers for `main.py`: the UART reader of the SEM and the parsing of the SEM reports and status. |
 | `<board>/create_project.tcl` | Creates the Vivado project with the sources, the constraints and the SEM IP. |
-| `basys3/hw/src/sem_arbitration_7series.vhd`, `te0841/hw/src/sem_arbitration_us.vhd` | The top: the SEM, ICAP, frame ECC, the BSCAN registers and the clock enable. |
+| `basys3/hw/src/sem_design_test_7series.vhd`, `te0841/hw/src/sem_design_test_us.vhd` | The top: the SEM, ICAP, frame ECC, the BSCAN registers and the clock enable. |
 | `<board>/hw/src/monitor_interface.vhd`, `fifo_mem.vhd`, `uart_rx_tx.vhd`, `rx_module.vhd`, `tx_module.vhd` | The UART bridge of the SEM monitor port (9600 8-N-1). |
 | `<board>/hw/src/examples_utilities_pkg.vhd` | The utilities package of the getting-started examples. The build adds the BSCAN interface and the safe-startup PLL from `auxiliary_components/`. |
 | `<board>/hw/xdc/` | Pins, clocks, bitstream settings (EBD, per-frame CRC) and the pblock of the SEM, `pblock_sem`. |
@@ -107,8 +107,8 @@ Other results of the tests:
    vivado -mode batch -source basys3/create_project.tcl
    ```
 
-   The script creates the project `<board>/sem_arbitration/sem_arbitration.xpr` next to itself, creates the SEM IP and opens the project in the Vivado GUI.
-2. Run Generate Bitstream. The `.bit` and `.ebd` files go to `<board>/sem_arbitration/sem_arbitration.runs/impl_1/`. `main.py` reads them from there.
+   The script creates the project `<board>/sem_design_test/sem_design_test.xpr` next to itself, creates the SEM IP and opens the project in the Vivado GUI.
+2. Run Generate Bitstream. The `.bit` and `.ebd` files go to `<board>/sem_design_test/sem_design_test.runs/impl_1/`. `main.py` reads them from there.
 
 ## Run the example
 

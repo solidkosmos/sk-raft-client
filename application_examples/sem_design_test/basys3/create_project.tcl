@@ -8,23 +8,36 @@
 #            -tclargs [project_name] [project_dir]
 # Example: vivado -mode batch -source create_project.tcl
 #
-# The script creates the Vivado project of the MMCM dynamic reconfiguration
-# example for the Digilent Basys 3 and builds it to a bitstream. It uses the
-# sources and the constraints in hw/ and the shared components in
-# auxiliary_components/ at the root of the repository, and sets
-# mmcm_drp_interface_top as the top. The default project is
-# mmcm_drp_interface/mmcm_drp_interface.xpr next to this script.
-# src/main.py reads the .bit file from
-# mmcm_drp_interface/mmcm_drp_interface.runs/impl_1/.
+# The script creates the Vivado project of the 7-series SEM design test
+# example for the Digilent Basys 3 and opens it in the Vivado GUI. It uses
+# the sources and the constraints in hw/, creates the SEM IP (sem_0) and
+# sets sem_design_test_7series as the top. It does not build the project: run
+# Generate Bitstream in the GUI. The bitstream run also writes the EBD file
+# (BITSTREAM.SEU.ESSENTIALBITS in the XDC). The default project is
+# sem_design_test/sem_design_test.xpr next to this script. ../src/main.py
+# reads the .bit and .ebd files from sem_design_test/sem_design_test.runs/
+# impl_1/.
 #
-# The script was written for Vivado 2025.2.
+# The script was written for Vivado 2025.2 (SEM IP sem 4.1).
 ################################################################################
 
 # Target part and top. To use another 7-series board, change the part and the
-# XDC file. For UltraScale or UltraScale+, also change g_family below.
+# XDC file.
 set part_name  xc7a35tcpg236-1
-set top        mmcm_drp_interface_top
-set family     7SERIES
+set top        sem_design_test_7series
+
+# Leave the Vivado GUI open on success; exit with an error code on failure
+proc finish {code} {
+    if { $code == 0 } {
+        puts [string repeat "-" 70]
+        puts "Opening the project in the Vivado GUI..."
+        puts [string repeat "-" 70]
+        # start_gui fails if the GUI is already open (script run from the GUI)
+        catch { start_gui }
+    } else {
+        exit $code
+    }
+}
 
 if { [llength $argv] > 2 } {
     puts "ERROR: too many arguments."
@@ -34,9 +47,9 @@ if { [llength $argv] > 2 } {
 }
 
 # The default project directory is next to this script (not the directory
-# where you start Vivado), so that main.py finds the .bit file.
+# where you start Vivado), so that main.py finds the .bit and .ebd files.
 set script_dir [file dirname [file normalize [info script]]]
-set proj_name "mmcm_drp_interface"
+set proj_name "sem_design_test"
 set proj_dir  "$script_dir/$proj_name"
 
 # A project name without a directory gets its own default directory. Thus
@@ -54,12 +67,23 @@ if { $part_obj eq "" } {
     exit 1
 }
 
-set srcs_dir "$script_dir/hw"
-set xdc_path "$srcs_dir/xdc/basys3.xdc"
+set srcs_dir   "$script_dir/hw"
+set xdc_path   "$srcs_dir/xdc/basys3.xdc"
+
+if { ![file isdirectory $srcs_dir] } {
+    puts "ERROR: expected source directory not found: $srcs_dir"
+    exit 1
+}
+
+if { ![file exists $xdc_path] } {
+    puts "ERROR: expected constraints file not found:"
+    puts "  $xdc_path"
+    exit 1
+}
 
 # The shared components, relative to auxiliary_components/ at the root of
 # the repository. The build uses these reference files directly.
-set aux_dir [file normalize "$script_dir/../../auxiliary_components"]
+set aux_dir [file normalize "$script_dir/../../../auxiliary_components"]
 set aux_files {
     bscan/bscan_interface.vhd
     bscan/bscan_primitive_wrapper.vhd
@@ -69,16 +93,19 @@ set aux_files {
 
 # The VHDL sources, relative to hw/
 set vhdl_files {
-    src/heartbeat.vhd
-    src/mmcm_wrapper.vhd
-    src/DRP_control.vhd
-    src/mmcm_drp_interface_top.vhd
+    src/examples_utilities_pkg.vhd
+    src/fifo_mem.vhd
+    src/rx_module.vhd
+    src/tx_module.vhd
+    src/uart_rx_tx.vhd
+    src/monitor_interface.vhd
+    src/sem_design_test_7series.vhd
 }
 
 set missing_files {}
 foreach f $vhdl_files {
     if { ![file exists "$srcs_dir/$f"] } {
-        lappend missing_files "$srcs_dir/$f"
+        lappend missing_files $f
     }
 }
 foreach f $aux_files {
@@ -86,11 +113,8 @@ foreach f $aux_files {
         lappend missing_files "$aux_dir/$f"
     }
 }
-if { ![file exists $xdc_path] } {
-    lappend missing_files $xdc_path
-}
 if { [llength $missing_files] > 0 } {
-    puts "ERROR: missing expected file(s):"
+    puts "ERROR: missing expected source file(s) under $srcs_dir:"
     foreach f $missing_files { puts "  - $f" }
     exit 1
 }
@@ -114,36 +138,36 @@ set xdc_file [lindex [get_files -of_objects [get_filesets constrs_1] \
     "*/[file tail $xdc_path]"] 0]
 set_property target_constrs_file $xdc_file [get_filesets constrs_1]
 
+# The SEM controller (PG036). The settings:
+#   - correction on, with the repair method. Classification off.
+#   - error injection off: SK-RAFT does the injections.
+#   - no injection or retrieval shim: the commands and the reports go
+#     through the monitor interface (UART).
+#   - 100 MHz clock (icap_clk).
+create_ip -name sem -vendor xilinx.com -library ip -version 4.1 \
+    -module_name sem_0
+set_property -dict [list \
+    CONFIG.ENABLE_CORRECTION     {true} \
+    CONFIG.CORRECTION_METHOD     {repair} \
+    CONFIG.ENABLE_CLASSIFICATION {false} \
+    CONFIG.ENABLE_INJECTION      {false} \
+    CONFIG.INJECTION_SHIM        {none} \
+    CONFIG.RETRIEVAL_SHIM        {none} \
+    CONFIG.VALIDATE_DETECTION    {false} \
+    CONFIG.CLOCK_FREQ            {100} \
+] [get_ips sem_0]
+generate_target {instantiation_template synthesis} [get_ips sem_0]
+
 set_property top $top [get_filesets sources_1]
-# g_family is a VHDL string generic: the value includes the quotes.
-set_property generic "g_family=\"$family\"" [get_filesets sources_1]
 update_compile_order -fileset sources_1
 
 puts "----------------------------------------------------------------------"
 puts "Project '$proj_name' created at '$proj_dir'"
 puts "Part:        $part_name"
-puts "Top:         $top (g_family = $family)"
+puts "Top:         $top"
 puts "Constraints: $xdc_path"
 puts "----------------------------------------------------------------------"
+puts "Run Generate Bitstream in the GUI. The .bit and .ebd files go to"
+puts "  $proj_dir/$proj_name.runs/impl_1/"
 
-launch_runs synth_1 -jobs 4
-wait_on_run synth_1
-if { [get_property PROGRESS [get_runs synth_1]] != "100%" } {
-    puts "ERROR: synth_1 did not complete -- see\
-        $proj_dir/$proj_name.runs/synth_1/runme.log"
-    exit 1
-}
-
-launch_runs impl_1 -to_step write_bitstream -jobs 4
-wait_on_run impl_1
-set bit_path "$proj_dir/$proj_name.runs/impl_1/$top.bit"
-if { ![file exists $bit_path] } {
-    puts "ERROR: impl_1 did not write the bitstream -- see\
-        $proj_dir/$proj_name.runs/impl_1/runme.log"
-    exit 1
-}
-
-puts "----------------------------------------------------------------------"
-puts "Bitstream written: $bit_path"
-puts "Run the script: cd src; python main.py"
-puts "----------------------------------------------------------------------"
+finish 0

@@ -8,15 +8,15 @@
 #            -tclargs [project_name] [project_dir]
 # Example: vivado -mode batch -source create_project.tcl
 #
-# The script creates the Vivado project of the UltraScale SEM arbitration
+# The script creates the Vivado project of the UltraScale SEM design test
 # example for the Trenz TE0841-02 (XCKU040) and opens it in the Vivado GUI.
 # It uses the sources and the constraints in hw/, creates the SEM IP
-# (sem_ultra_0) and sets sem_arbitration_us as the top. It does not build
+# (sem_ultra_0) and sets sem_design_test_us as the top. It does not build
 # the project: run Generate Bitstream in the GUI. The bitstream run also
 # writes the EBD file (BITSTREAM.SEU.ESSENTIALBITS in the XDC). The default
-# project is sem_arbitration/sem_arbitration.xpr next to this script.
+# project is sem_design_test/sem_design_test.xpr next to this script.
 # ../src/main.py reads the .bit and .ebd files from
-# sem_arbitration/sem_arbitration.runs/impl_1/.
+# sem_design_test/sem_design_test.runs/impl_1/.
 #
 # The script was written for Vivado 2025.2 (SEM IP sem_ultra 3.1).
 ################################################################################
@@ -25,7 +25,7 @@
 # XDC file, and the widths of command_code and fecc_far in the top (see the
 # sem_ultra_0.vho file that Vivado generates).
 set part_name  xcku040-sfva784-1-i
-set top        sem_arbitration_us
+set top        sem_design_test_us
 
 # Leave the Vivado GUI open on success; exit with an error code on failure
 proc finish {code} {
@@ -50,7 +50,7 @@ if { [llength $argv] > 2 } {
 # The default project directory is next to this script (not the directory
 # where you start Vivado), so that main.py finds the .bit and .ebd files.
 set script_dir [file dirname [file normalize [info script]]]
-set proj_name "sem_arbitration"
+set proj_name "sem_design_test"
 set proj_dir  "$script_dir/$proj_name"
 
 # A project name without a directory gets its own default directory. Thus
@@ -100,7 +100,7 @@ set vhdl_files {
     src/tx_module.vhd
     src/uart_rx_tx.vhd
     src/monitor_interface.vhd
-    src/sem_arbitration_us.vhd
+    src/sem_design_test_us.vhd
 }
 
 set missing_files {}
@@ -143,7 +143,7 @@ set_property target_constrs_file $xdc_file [get_filesets constrs_1]
 #   - mitigation only (detection and correction), no classification.
 #   - 100 MHz clock (CLOCK_PERIOD in ps).
 #   - ICAPE3 and FRAME_ECCE3 outside the IP (in the example design, here
-#     in sem_arbitration_us).
+#     in sem_design_test_us).
 create_ip -name sem_ultra -vendor xilinx.com -library ip -version 3.1 \
     -module_name sem_ultra_0
 set_property -dict [list \

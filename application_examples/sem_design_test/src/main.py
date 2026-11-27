@@ -2,7 +2,7 @@
 # Copyright (C) 2026 SOLIDKOSMOS S.A.
 
 """
-SEM arbitration test: how does the SEM react to the upsets that SK-RAFT
+SEM design test: how does the SEM react to the upsets that SK-RAFT
 injects while the SEM is idle?
 
 The SEM controller and SK-RAFT both use the configuration logic. In idle,
@@ -102,7 +102,7 @@ class Board:
 BOARDS = {
     "basys3": Board(
         folder="basys3",
-        top="sem_arbitration_7series",
+        top="sem_design_test_7series",
         xdc="basys3.xdc",
         serial_number="210183BA252EA",
         uart_port="/dev/ttyUSB1",
@@ -118,7 +118,7 @@ BOARDS = {
     ),
     "te0841": Board(
         folder="te0841",
-        top="sem_arbitration_us",
+        top="sem_design_test_us",
         xdc="te0841_ku040.xdc",
         serial_number="251633000000A",
         uart_port="COM7",
@@ -166,8 +166,8 @@ LOOP_LIMIT = 3
 # --------------------------------------------------------------------------- #
 # The example folder: the parent of src/
 ROOT = Path(__file__).resolve().parent.parent
-IMPL_DIR = (ROOT / BOARD.folder / "sem_arbitration"
-            / "sem_arbitration.runs" / "impl_1")
+IMPL_DIR = (ROOT / BOARD.folder / "sem_design_test"
+            / "sem_design_test.runs" / "impl_1")
 design = Design(
     bit=str(IMPL_DIR / f"{BOARD.top}.bit"),
     ebd=str(IMPL_DIR / f"{BOARD.top}.ebd"),
@@ -401,7 +401,7 @@ def run(dev: FpgaDevice, sem: SemUart, number: int) -> None:
 
 def main() -> int:
     """Run the experiments."""
-    print(f"SEM arbitration experiments ({BOARD.folder})")
+    print(f"SEM design test experiments ({BOARD.folder})")
     try:
         with SkraftFpga.connect(
             ip=SK_RAFT_SERVER_IP, port=SK_RAFT_SERVER_PORT

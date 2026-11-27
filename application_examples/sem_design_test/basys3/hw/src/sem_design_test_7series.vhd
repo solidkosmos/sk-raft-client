@@ -3,8 +3,8 @@
 -- SPDX-License-Identifier: Apache-2.0
 -- Copyright (C) 2026 SOLIDKOSMOS S.A.
 --
--- Module Name: sem_arbitration_7series
--- Description: Top of the 7-series SEM arbitration example. The SEM
+-- Module Name: sem_design_test_7series
+-- Description: Top of the 7-series SEM design test example. The SEM
 --              controller (sem_0, PG036) and SK-RAFT share the
 --              configuration memory. SK-RAFT controls the icap_grant input
 --              of the SEM through BSCAN USER2.
@@ -53,7 +53,7 @@ use UNISIM.VComponents.all;
 
 use work.examples_utilities_pkg.all;
 
-entity sem_arbitration_7series is
+entity sem_design_test_7series is
   Port (
     -- 100 MHz board clock
     clk_i  : in  std_ulogic;
@@ -67,9 +67,9 @@ entity sem_arbitration_7series is
     -- 1 = the SEM is idle (bits 5:1 of the status all 0)
     sem_idle_o              : out std_ulogic
   );
-end sem_arbitration_7series;
+end sem_design_test_7series;
 
-architecture Behavioral of sem_arbitration_7series is
+architecture Behavioral of sem_design_test_7series is
 
     -- The SEM IP (sem 4.1). create_project.tcl generates it with the
     -- name sem_0.

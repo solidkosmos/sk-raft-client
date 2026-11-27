@@ -115,6 +115,26 @@ Before you inject into the application memory (flip-flops, LUTRAM, BRAM), read t
    The script prints the serial number and the part number of each board that is connected to the server. For a server on another computer, set `SK_RAFT_SERVER_IP` at the top of the script to the address of that computer. In your own scripts, `client.get_devices()` gives the same list.
 5. Run an example. Start with [`get_started`](get_started/README.md). It has prebuilt design files for the Basys 3 and the ZedBoard. Set `BOARD` at the top of the `main.py` of the example. The examples attach to the first board that the server lists, so connect only the target board to the server.
 
+## Application examples
+
+Each folder in [`application_examples`](application_examples) shows one use case of SK-RAFT. Its README tells how to build and run it.
+
+| Example | Use case |
+| --- | --- |
+| [`readback_scrubbing`](application_examples/readback_scrubbing/README.md) | Use it to correct CRAM upsets from the test computer in radiation experiments, with no internal scrubber (e.g. SEM IP or ICAP logic) in the design. The script logs the frame, word and bit of each upset. You can change it, for example to check only the frames of one pblock. |
+| [`sem_design_test`](application_examples/sem_design_test/README.md) | Use it to check a design with the SEM IP before a radiation test: inject known upsets while the SEM is idle, and check that the SEM detects, corrects and reports each one at the right frame address. |
+| [`tls_program`](application_examples/tls_program/README.md) | Use it when the SK-RAFT server is on a network that other people also use, for example at a radiation facility. TLS encrypts the connection, and the server accepts only the clients whose public keys you gave it. |
+| [`xadc_alarm`](application_examples/xadc_alarm/README.md) | Use it to set the temperature alarm of the FPGA from the test script and read its state, with no XADC in the design. For example, set an upper limit, and stop a campaign or a beam run when the alarm goes on. The XADC checks the temperature all the time, so the script only has to read the alarm state. |
+| [`xadc_monitor`](application_examples/xadc_monitor/README.md) | Use it to record and monitor the die temperature and the supply voltages of the FPGA during a campaign or a beam run, with no XADC in the design and no extra wiring, either for safety or logging. The minimum and maximum values show the extremes between two reads. |
+
+## Real campaigns
+
+Each folder in [`real_campaigns`](real_campaigns) has a complete fault-injection campaign. Its README tells how to build and run it.
+
+| Campaign | Use case |
+| --- | --- |
+| [`test_neo_hardened`](real_campaigns/test_neo_hardened/README.md) | Use it to measure what a hardening technique gives you: build the same design with and without the hardening (`HARDEN_EN`), run the same campaign on both, and compare the failures and the corrections. Use its test harness (clock control, reset and status over BSCAN) as a template for your own processor or SoC. |
+
 ## Folder structure
 
 ```
@@ -123,7 +143,8 @@ sk-raft-client/
 ├── application_examples/                 Example designs and scripts for specific use cases
 ├── auxiliary_components/                 Reusable BSCAN registers, safe clock, BRAM hold pass
 ├── docs/                                 Concepts, guidelines and cheat sheet
-└── get_started/                          Example designs and scripts, client install scripts
+├── get_started/                          Example designs and scripts, client install scripts
+└── real_campaigns/                       Complete fault-injection campaigns
 ```
 
 ## Installation
@@ -151,7 +172,7 @@ A clone of this repository from GitHub has no `.venv`. Install the client one ti
 
 Then open a terminal with the client, as above. If `.venv` does not exist, `open_terminal` installs the client first.
 
-The examples in `get_started` and `application_examples` run in this terminal. Some application examples need more packages, for example `pyserial`. Their README gives the `pip install` command.
+The examples in `get_started`, `application_examples` and `real_campaigns` run in this terminal. Some application examples and campaigns need more packages, for example `pyserial`. Their README gives the `pip install` command.
 
 ### Install with commands
 
@@ -218,7 +239,7 @@ The documents are also Markdown files in this repository:
 - [`docs/concepts.md`](docs/concepts.md): the concepts of SK-RAFT.
 - [`docs/general_guidelines.md`](docs/general_guidelines.md): the setup rules for injection into the application memory.
 - [`docs/cheatsheet.md`](docs/cheatsheet.md): code snippets of the common routines.
-- The README of each folder in `get_started` and `application_examples`.
+- The README of each folder in `get_started`, `application_examples` and `real_campaigns`.
 
 ## Report a problem
 
@@ -228,7 +249,7 @@ SolidKosmos does not accept pull requests from persons outside SolidKosmos.
 
 ## License
 
-- The Python client (`api/python`), the examples (`get_started/` and `application_examples/`), the auxiliary components (`auxiliary_components/`) and the documents (`docs/`) are open source under the Apache License 2.0. Refer to [`LICENSE.md`](LICENSE.md) and [`NOTICE.md`](NOTICE.md).
-- Exception: the NEORV32 files in `application_examples/test_neo_hardened` are under the BSD 3-Clause License. Refer to [`NOTICE.md`](NOTICE.md).
+- The Python client (`api/python`), the examples (`get_started/`, `application_examples/` and `real_campaigns/`), the auxiliary components (`auxiliary_components/`) and the documents (`docs/`) are open source under the Apache License 2.0. Refer to [`LICENSE.md`](LICENSE.md) and [`NOTICE.md`](NOTICE.md).
+- Exception: the NEORV32 files in `real_campaigns/test_neo_hardened` are under the BSD 3-Clause License. Refer to [`NOTICE.md`](NOTICE.md).
 - The SK-RAFT server is not open source. The SK-RAFT Trial Licence Agreement or the SK-RAFT End User Licence Agreement applies to the server.
 - SK-RAFT and SolidKosmos are trademarks of SOLIDKOSMOS S.A. The Apache License 2.0 does not give permission to use these trademarks.

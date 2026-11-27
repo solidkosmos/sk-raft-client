@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (C) 2026 SOLIDKOSMOS S.A.
 #
-# Constraints of the 7-series SEM arbitration example (top:
-# sem_arbitration_7series) for the Digilent Basys 3 (xc7a35tcpg236-1).
+# Constraints of the 7-series SEM design test example (top:
+# sem_design_test_7series) for the Digilent Basys 3 (xc7a35tcpg236-1).
 ################################################################################
 
 # Clock: 100 MHz oscillator
