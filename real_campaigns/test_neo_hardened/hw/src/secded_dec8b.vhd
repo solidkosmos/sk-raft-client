@@ -82,7 +82,7 @@ begin
             vpar := '0';
             for i in 0 to (data_len + parities_len - 1) loop
                 -- Calculate the overall parity for double-error detection.
-                -- This example does not use par_check (uncorr_o is always 0).
+                -- This design does not use par_check (uncorr_o is always 0).
                 vpar := vpar XOR wd_i(i);
             end loop;
 
@@ -91,7 +91,7 @@ begin
 
     corr_bit_o <= '1' when (syndrome /= "0000") else '0';
 
-	uncorr_o <= '0'; -- This example does not test double-bit upsets (DBUs)
+	uncorr_o <= '0'; -- This design does not test double-bit upsets (DBUs)
 	
 			 -- Corrected word
     dec_o <= corr_data(11) & corr_data(10) & corr_data(9) & corr_data(8) &

@@ -4,21 +4,48 @@
 | --- | --- | --- |
 | Digilent Basys 3 | xc7a35tcpg236-1 (Artix-7) | Apache-2.0 (SolidKosmos code), BSD-3-Clause (NEORV32) |
 
-This example has a [NEORV32](https://github.com/stnolting/neorv32) RISC-V SoC
-with SECDED and parity hardening, and a JTAG test harness for fault injection
-with SK-RAFT. The hardening protects the DMEM, the register file, the state of
-the CPU control FSM and the program counter. The `HARDEN_EN` generic selects a
+A [NEORV32](https://github.com/stnolting/neorv32) RISC-V SoC with SECDED/parity
+hardening, and its fault-injection campaign.
+It includes:
+
+- A complex, dynamic injection methodology
+- Custom testing harness
+- Hardware and software modifications for hardening and result acquisition
+- Utilization of all SK-RAFT injection capabilities
+
+The hardening protects the DMEM, the register file, the state of the CPU
+control FSM and the program counter. The `HARDEN_EN` generic selects a
 hardened or an unhardened build of the same design. Thus you can measure the
 effect of the hardening under fault injection.
 
-![Block diagram of the example. The board clock goes through the safe clock generation PLL, a root clock gate (BSCAN USER3) and the cycle controller, which enables the clock for the number of cycles set over BSCAN USER2, then to the NEORV32. The tester (BSCAN USER1/USER2/USER3 and the cycle controller) sits in harness_pblock, which SK-RAFT does not inject into. Inside the NEORV32, the hardened modules (CPU control, CPU frontend, register file, DMEM) are grouped apart from the unhardened modules (IMEM, UART0, GPIO and the rest). USER1 resets the NEORV32 and reads the CRC word from its GPIO, the UART tx_busy keeps the clock running until the UART is idle, and ECC/parity events raise fast interrupts that print an [ALERT] on the UART.](images/neorv32_hardening_blocks.svg)
+![Block diagram of the design. The board clock goes through the safe clock generation PLL, a root clock gate (BSCAN USER3) and the cycle controller, which enables the clock for the number of cycles set over BSCAN USER2, then to the NEORV32. The tester (BSCAN USER1/USER2/USER3 and the cycle controller) sits in harness_pblock, which SK-RAFT does not inject into. Inside the NEORV32, the hardened modules (CPU control, CPU frontend, register file, DMEM) are grouped apart from the unhardened modules (IMEM, UART0, GPIO and the rest). USER1 resets the NEORV32 and reads the CRC word from its GPIO, the UART tx_busy keeps the clock running until the UART is idle, and ECC/parity events raise fast interrupts that print an [ALERT] on the UART.](images/neorv32_hardening_blocks.svg)
 
 The NEORV32 boots the CoreMark firmware from the IMEM image
 (`BOOT_MODE_SELECT => 2`). The image is in
 `hw/neorv32/neorv32_application_image.vhd`. Thus the bitstream holds the
 firmware, and you do not upload it separately.
 
-## Build and run the example
+## How the campaign works
+
+The script does one golden run of CoreMark without a fault. Then, in each run,
+it resets the SoC, injects one random fault at a random cycle of the benchmark,
+lets the benchmark finish, and compares the result with the golden run. After
+the run, it flips the bit back with `inject_at`, so that each run starts from
+the original design. SK-RAFT does not inject into the test harness
+(`harness_pblock`).
+
+The script compares three CRCs with the golden run:
+
+- the CRC word on the GPIO, which the script reads through BSCAN (USER1)
+- the CRC that the firmware prints at the end of the report (`MSG CRC`)
+- the CRC that the script calculates again from the UART data
+
+A run is an error only when all three CRCs differ. Thus an error in the UART
+capture or in the BSCAN read does not count as an error of the SoC. The CoreMark
+`crcfinal` and the `[ALERT]` messages then classify the error as `DETECTED`,
+`SDC`, `ERROR` or `HUNG`. Refer to [Result](neorv_fi_example/README.md#result).
+
+## Build and run the campaign
 
 1. From this folder, in the Vivado Tcl shell (or after `settings64.bat` /
    `settings64.sh` of Vivado), build the design:
@@ -43,6 +70,21 @@ For the unhardened baseline, remove the `#` from this line near the end of
 ```tcl
 # set_property generic HARDEN_EN=false [get_filesets sources_1]
 ```
+
+## Hardening
+
+The SoC is partially hardened. The `HARDEN_EN` generic selects the hardened or
+the unhardened build, so you can compare them.
+
+| Module | Hardening | Effect |
+| --- | --- | --- |
+| DMEM | Hamming code (12,8) on each byte | Corrects a single-bit error |
+| Register file | SECDED (39,32) in the fabric around the BRAM | Corrects a single-bit error |
+| CPU control | SECDED on the execute FSM state, parity on PC, PC2 and RA | Corrects the state, detects a PC or RA error |
+| CPU frontend | Parity on the fetch PC, one-hot check of the fetch FSM state | Detects an error |
+
+Each correction or detection sets a fast interrupt. IMEM, UART0, GPIO and the
+other modules are not hardened.
 
 ## The HARDEN_EN generic
 
@@ -76,10 +118,15 @@ The USER2 commands are:
 - 0x1 starts the countdown.
 - 0x2 cancels the countdown.
 
-If the UART still sends data when the countdown ends, the controller keeps
-the clock on until the UART is idle (`check_tx`). The root clock goes to the
-NEORV32, the harness and the cycle controller. The root clock is off after
-programming. `run_injection.py` stops it during each injection.
+The cycle controller runs the SoC for the number of cycles that the script
+selected, then stops its clock. Thus the state of the processor does not
+change during the injection, as the
+[general guidelines](../../docs/general_guidelines.md#2-stop-the-clock-during-application-memory-injection)
+require. If the UART still sends data when the countdown ends, the
+controller keeps the clock on until the UART is idle (`check_tx`). The root
+clock goes to the NEORV32, the harness and the cycle controller. The root
+clock is off after programming. `run_injection.py` stops it during each
+injection.
 
 ## BRAM output latch protection
 
@@ -87,13 +134,16 @@ Vivado makes the NEORV32 IMEM and DMEM from block RAMs. An SK-RAFT access to
 BRAM content frames (readback, inject, revert) overwrites the output latch of
 each block RAM port without an output register. The stored content does not
 change. Without protection, the core can use that wrong value instead of the
-word that it read before the freeze.
+word that it read before the freeze. Refer to
+[rule 3](../../docs/general_guidelines.md#3-bram-injection-changes-the-bram-output)
+of the general guidelines.
 
 `create_project.tcl` sets the BRAM hold register pass
 ([`auxiliary_components/bram_hold_pass`](../../auxiliary_components/bram_hold_pass/README.md))
 as the hook before `opt_design`. The pass adds a register on the opposite
 clock edge behind each BRAM output in use. This register keeps the word that
-the core read before the freeze. After the build, examine
+the core read before the freeze. Because it uses the opposite clock edge, the
+latency of the pipeline does not change. After the build, examine
 `bram_hold_pass.rpt`. The report lists each block RAM and the change that the
 pass made. The clock gates of the harness are BUFGCEs. A BUFGCE stops low, as
 the pass requires.
@@ -118,6 +168,12 @@ with these changes in `core_portme.c` and `core_portme.h`:
 - The firmware does not print the floating-point results.
 - The UART runs at 500000 baud.
 - The firmware calculates a CRC over the printed characters.
+
+The CRC covers all the characters that the firmware prints, so it is a
+signature of the full report. The firmware prints it at the end of the report
+(`MSG CRC`) and writes it to the GPIO, where the harness reads it (USER1). The
+interrupt handlers print an `[ALERT]` message for each correction or detection
+of the hardening.
 
 To change the firmware, build it in NEORV32. Then replace
 `hw/neorv32/neorv32_application_image.vhd` with the image that NEORV32 makes.

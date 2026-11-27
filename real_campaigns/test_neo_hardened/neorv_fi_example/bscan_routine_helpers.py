@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (C) 2026 SOLIDKOSMOS S.A.
 
-"""BSCAN routines of the NEORV32 hardening example, for run_injection.py.
+"""BSCAN routines of the NEORV32 hardening campaign, for run_injection.py.
 
 BSCAN user register map:
 U1 : reset control (write) / CRC output (read)

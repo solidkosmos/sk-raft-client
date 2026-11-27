@@ -8,7 +8,7 @@
 #            -tclargs [project_name] [project_dir] [-gui]
 # Example: vivado -mode batch -source create_project.tcl
 #
-# The script creates the Vivado project of the NEORV32 hardening example for
+# The script creates the Vivado project of the NEORV32 hardening campaign for
 # the Digilent Basys 3 and builds it, from synthesis to bitstream. It uses the
 # sources and the constraints in hw/ and sets neorv32_test_setup_bootloader as
 # the top. The bitstream run also writes the EBD and LL files. The default

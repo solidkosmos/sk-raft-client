@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (C) 2026 SOLIDKOSMOS S.A.
 
-"""NEORV32 hardening example: fault-injection campaign.
+"""NEORV32 hardening: fault-injection campaign.
 
 The script uploads the design to the SK-RAFT server and programs the FPGA.
 The design under test (DUT) is the NEORV32. The script does one golden

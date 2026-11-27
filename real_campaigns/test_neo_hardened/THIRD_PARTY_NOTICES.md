@@ -13,7 +13,7 @@ SPDX-License-Identifier: BSD-3-Clause
 
 The full, unmodified NEORV32 license text is reproduced in `LICENSE-NEORV32`
 at the project root. It applies to all NEORV32 files, vendored and modified.
-The SolidKosmos S.A. files of this example are licensed under Apache-2.0 (see
+The SolidKosmos S.A. files of this campaign are licensed under Apache-2.0 (see
 the sections below). The majority of the files under
 `hw/neorv32/core/` are vendored copies of NEORV32
 used **unmodified**.
@@ -21,7 +21,7 @@ used **unmodified**.
 ## Modified NEORV32 files
 
 SolidKosmos S.A. modified the following NEORV32 files to add the hardening
-features used by this example design (SECDED/parity fault detection and
+features used by this design (SECDED/parity fault detection and
 correction, and test-harness hooks). Each file carries an inline
 "Modified by SolidKosmos S.A. (2026)" note immediately below its original
 NEORV32 header, describing the specific change. Everything outside of the

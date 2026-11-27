@@ -5,7 +5,7 @@ design. It measures the observed error rate (AVF) against a golden run.
 `bscan_routine_helpers.py` has the BSCAN register access (reset, step count,
 root clock, CRC read).
 
-## The calls of the example
+## The calls of the campaign
 
 | Function | Calls |
 | --- | --- |
@@ -15,9 +15,9 @@ root clock, CRC read).
 | BSCAN | `BscanPrimitive`, `dev.write_bscan()` and `dev.read_bscan()` |
 | Fault injection | `TargetMemory` (essential bits, BRAM, FF, LUTRAM), `dev.inject_random()`, and `dev.inject_at()` to flip the bit back after the run |
 
-## Run the example
+## Run the campaign
 
-Build the design first. Refer to the [README of the example](../README.md).
+Build the design first. Refer to the [README of the campaign](../README.md).
 The script reads the `.bit`, `.ebd` and `.ll` files from
 `../test_neo/test_neo.runs/impl_1/` (`IMPL_DIR`), and the XDC from
 `../hw/xdc/basys3.xdc`. Set the constants at the top of the script, then run

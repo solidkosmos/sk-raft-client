@@ -1,6 +1,6 @@
 # create_project.tcl and Vivado make the files below again when necessary.
 # Git tracks only the sources, the project script, the constraints and the
-# documents. Refer to "Build and run the example" in README.md.
+# documents. Refer to "Build and run the campaign" in README.md.
 
 # The Vivado project that create_project.tcl makes (default project name
 # "test_neo"): .xpr, caches, runs and simulation files. Vivado makes all of
